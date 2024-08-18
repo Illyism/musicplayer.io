@@ -8,7 +8,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
+      - REDDIT_REDIRECT_URI=${REDDIT_REDIRECT_URI}
+      - PUBLIC_BANDCAMP_KEY=${PUBLIC_BANDCAMP_KEY}
+      - PUBLIC_SOUNDCLOUD_KEY=${PUBLIC_SOUNDCLOUD_KEY}
     volumes:
       - session-data:/app/sessions
     command: npm run start
