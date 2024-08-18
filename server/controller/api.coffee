@@ -128,6 +128,7 @@ class APIController
 			if not err? and resp.statusCode is 200
 				response.send
 					user: request.user._json
+					user_json: JSON.stringify(request.user._json)
 					status: resp.statusCode
 					data: body
 			else
