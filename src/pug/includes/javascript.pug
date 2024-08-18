@@ -8,9 +8,9 @@ script(src="/js/lib/jquery.qrcode.js")
 if "production" == process.env.NODE_ENV
 	script.
 		var FLAG_DEBUG = false
-	script(src="/js/main.min.js?v=#{pkg.version}")
+	script(src="/js/main.min.js?v=" + pkg.version)
 	include gtm
 else
 	script.
 		var FLAG_DEBUG = true
-	script(src="/js/main.js?v=#{pkg.version}")
+	script(src="/js/main.js?v=" + pkg.version)
