@@ -24,3 +24,4 @@ server/config/keys
 src/coffee/config.coffee
 
 sessions
+.env*
