@@ -1,0 +1,52 @@
+# Dependency directories
+node_modules
+npm-debug.log
+
+# Version control
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+# Build output
+dist
+build
+
+# Test coverage
+coverage
+
+# Temporary files
+*.tmp
+*.temp
+
+# Docker files (to prevent recursive copies)
+Dockerfile
+docker-compose.yml
+
+# Application specific
+sessions
+
+# Debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional: Depending on your project structure
+# public
+# src
