@@ -60,10 +60,3 @@ module.exports = ->
 	# Authentication
 	@use passport.initialize()
 	@use passport.session()
-
-	## add a middleware, that creates a user_json (stringified) from the user object
-	@use (req, res, next) ->
-		if req.user?
-			req.user_json = JSON.stringify req.user
-		next()
-	

@@ -11,6 +11,7 @@ render = (request, response, page, obj) ->
 		data =
 			content: html
 			user: request.user._json if request.user?
+			user_json = JSON.stringify(request.user._json) if request.user?
 			seo: seo.generate page
 			page: page
 			remote: obj.hash if obj? and obj.hash?
