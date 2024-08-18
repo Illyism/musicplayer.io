@@ -33,7 +33,7 @@ module.exports = ->
 	baseDir = @set 'baseDir'
 
 	# The port the server should run on
-	@set 'port', process.env.PORT or 4008
+	@set 'port', process.env.PORT or 3000
 
 	@set 'view engine', 'pug'
 	@set 'views', baseDir + '/src/pug'
