@@ -19,9 +19,6 @@ node_modules
 *.sublime-project
 *.sublime-workspace
 
-server/config/reddit.coffee
-server/config/keys
-src/coffee/config.coffee
-
 sessions
-.env*
+.env
+.env.local
