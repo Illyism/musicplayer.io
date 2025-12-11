@@ -32,8 +32,9 @@ export async function GET(
     redditPath = redditPath.slice(0, -5) // Remove '.json'
   }
 
-  // Build Reddit API URL - Reddit API always needs .json
-  const redditUrl = `https://www.reddit.com/${redditPath}.json${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
+  // Build Reddit API URL - Use old.reddit.com which is less likely to block serverless functions
+  // Reddit API always needs .json
+  const redditUrl = `https://old.reddit.com/${redditPath}.json${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
 
   // Check cache
   const cacheKey = redditUrl
@@ -74,8 +75,8 @@ export async function GET(
             "Accept": "application/json, text/html, */*",
             "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
-            "Referer": "https://www.reddit.com/",
-            "Origin": "https://www.reddit.com",
+            "Referer": "https://old.reddit.com/",
+            "Origin": "https://old.reddit.com",
             "DNT": "1",
             "Connection": "keep-alive",
             "Sec-Fetch-Dest": "empty",

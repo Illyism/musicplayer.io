@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     // The permalink should be like: /r/subreddit/comments/post_id/title/
     const sort = searchParams.get("sort") || "top"
     // Reddit API: /permalink.json?sort=top|new|best|controversial|old|qa
-    const redditUrl = `https://www.reddit.com${permalink}.json?sort=${sort}`
+    // Use old.reddit.com which is less likely to block serverless functions
+    const redditUrl = `https://old.reddit.com${permalink}.json?sort=${sort}`
 
     const response = await fetch(redditUrl, {
       headers: {
@@ -28,8 +29,8 @@ export async function GET(request: NextRequest) {
         "Accept": "application/json, text/html, */*",
         "Accept-Language": "en-US,en;q=0.9",
         "Accept-Encoding": "gzip, deflate, br",
-        "Referer": "https://www.reddit.com/",
-        "Origin": "https://www.reddit.com",
+        "Referer": "https://old.reddit.com/",
+        "Origin": "https://old.reddit.com",
         "DNT": "1",
         "Connection": "keep-alive",
         "Sec-Fetch-Dest": "empty",
