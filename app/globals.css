@@ -1,0 +1,432 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Icon Fonts */
+@font-face {
+  font-family: 'icons';
+  src: url('/fonts/icons.eot');
+  src: url('/fonts/icons.eot?#iefix') format('embedded-opentype'),
+       url('/fonts/icons.woff2') format('woff2'),
+       url('/fonts/icons.woff') format('woff'),
+       url('/fonts/icons.ttf') format('truetype'),
+       url('/fonts/icons.otf') format('opentype'),
+       url('/fonts/icons.svg#icons') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --radius: 0.5rem;
+    
+    /* Spotify/Apple Music inspired colors */
+    --spotify-green: #1DB954;
+    --spotify-dark: #121212;
+    --spotify-gray: #181818;
+    --spotify-light-gray: #282828;
+    --apple-music-red: #FA243C;
+    --gold-accent: #FDC00F;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* Icon font class */
+  .icon-font {
+    font-family: 'icons', sans-serif;
+    speak: none;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FDC00F;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f99b1d;
+}
+
+/* Touch-friendly interactions */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  /* Hide scrollbars on mobile for cleaner look */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better text rendering on mobile */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Comment styles */
+.comment {
+  margin-bottom: 1rem;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: #FDC00F;
+}
+
+.comment-score {
+  color: #888;
+}
+
+.comment-time {
+  color: #666;
+}
+
+.comment-body {
+  margin-top: 0.5rem;
+  line-height: 1.5;
+  color: #ddd;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  word-spacing: normal;
+}
+
+.comment-body p {
+  margin-bottom: 0.5rem;
+}
+
+.comment-body a {
+  color: #FDC00F;
+  text-decoration: underline;
+}
+
+.comment-body code {
+  background: #222;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.comment-body pre {
+  background: #222;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.comment-body pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.comment-body blockquote {
+  border-left: 3px solid #444;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: #aaa;
+}
+
+.comment-body ul,
+.comment-body ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.comment-body li {
+  margin: 0.25rem 0;
+}
+
+.comment-replies {
+  margin-left: 1.5rem;
+  margin-top: 0.5rem;
+  padding-left: 1rem;
+  border-left: 2px solid #333;
+}
+
+/* Modern UI Enhancements - Spotify/Apple Music Inspired */
+
+/* Glassmorphism effect */
+.glass {
+  background: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-light {
+  background: rgba(24, 24, 24, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-fast {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Card styles */
+.card-modern {
+  background: rgba(24, 24, 24, 0.8);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-modern:hover {
+  background: rgba(40, 40, 40, 0.8);
+  border-color: rgba(253, 192, 15, 0.3);
+}
+
+/* Gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, #FDC00F 0%, #f99b1d 100%);
+}
+
+.gradient-dark {
+  background: linear-gradient(180deg, rgba(18, 18, 18, 0.95) 0%, rgba(18, 18, 18, 0.98) 100%);
+}
+
+/* Text gradients */
+.text-gradient {
+  background: linear-gradient(135deg, #FDC00F 0%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Pulse animation for playing indicator */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(253, 192, 15, 0.7);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 8px rgba(253, 192, 15, 0);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    to right,
+    rgba(40, 40, 40, 0.4) 0%,
+    rgba(60, 60, 60, 0.6) 50%,
+    rgba(40, 40, 40, 0.4) 100%
+  );
+  background-size: 1000px 100%;
+}
+
+/* Smooth scroll */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modern button styles */
+.btn-modern {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.btn-modern:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(253, 192, 15, 0.5);
+  transform: scale(1.05);
+}
+
+.btn-modern:active {
+  transform: scale(0.95);
+}
+
+/* Progress bar modern style */
+.progress-modern {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #FDC00F 0%, #f99b1d 100%);
+  transition: width 0.1s linear;
+  border-radius: 4px;
+}
+
+/* Modern input styles */
+.input-modern {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.input-modern:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(253, 192, 15, 0.5);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(253, 192, 15, 0.1);
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.2s ease-out;
+}

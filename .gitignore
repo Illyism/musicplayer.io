@@ -1,0 +1,57 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+*.log
+
+# Next.js
+.next/
+out/
+build
+dist
+
+# Production
+*.pid
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.gz
+*.lock
+
+# Environment variables
+.env
+.env*.local
+.env.local
+
+# IDE
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sessions (old server sessions)
+sessions/
+
+# Test files
+test-*.js
+
+# Old build artifacts
+app/js/
+app/css/
+app/fonts/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
