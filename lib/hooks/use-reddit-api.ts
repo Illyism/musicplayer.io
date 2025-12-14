@@ -1,14 +1,15 @@
 import { useRef, useCallback } from 'react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { parseSong, filterPlayableSongs } from '@/lib/utils/song-utils'
+import { getSubredditPosts, searchReddit } from '@/lib/actions/reddit'
 
 // ============================================================================
 // REDDIT API HOOK
 // ============================================================================
 
 export function useRedditAPI() {
-  const abortControllerRef = useRef<AbortController | null>(null)
   const storeRef = useRef(usePlayerStore.getState())
+  const isFetchingRef = useRef(false)
 
   // Keep store ref updated
   usePlayerStore.subscribe(state => {
@@ -19,45 +20,19 @@ export function useRedditAPI() {
    * Fetch from subreddits
    */
   const fetchFromSubreddits = useCallback(async (subreddits: string[], pagination?: string) => {
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-
-    const controller = new AbortController()
-    abortControllerRef.current = controller
+    // Prevent concurrent requests
+    if (isFetchingRef.current) return []
+    isFetchingRef.current = true
 
     const state = storeRef.current
     state.setLoading(true)
 
     try {
       const subredditString = subreddits.join('+')
-      const params = new URLSearchParams({
-        limit: '100',
-      })
+      const sort = state.sortMethod
+      const timePeriod = sort === 'top' ? state.topPeriod : undefined
 
-      if (state.sortMethod === 'top') {
-        params.append('t', state.topPeriod)
-      }
-
-      if (pagination) {
-        params.append('after', pagination)
-      }
-
-      const url = `/api/reddit/r/${subredditString}/${state.sortMethod}?${params}`
-
-      const response = await fetch(url, {
-        signal: controller.signal,
-      })
-
-      if (controller.signal.aborted) return []
-      if (!response.ok) throw new Error('Failed to fetch from Reddit')
-
-      const data = await response.json()
-
-      if (data.error) {
-        throw new Error(data.error.message || 'Reddit API error')
-      }
+      const data = await getSubredditPosts(subredditString, sort, timePeriod, pagination, '100')
 
       if (!data?.data?.children) {
         console.warn('Unexpected API response structure')
@@ -79,14 +54,11 @@ export function useRedditAPI() {
 
       return songs
     } catch (error: any) {
-      if (error.name === 'AbortError') return []
       console.error('Error fetching from Reddit:', error)
       throw error
     } finally {
-      if (!controller.signal.aborted) {
-        state.setLoading(false)
-        abortControllerRef.current = null
-      }
+      state.setLoading(false)
+      isFetchingRef.current = false
     }
   }, [])
 
@@ -96,46 +68,18 @@ export function useRedditAPI() {
   const fetchSearch = useCallback(async (query: string, pagination?: string) => {
     if (!query?.trim()) return []
 
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-
-    const controller = new AbortController()
-    abortControllerRef.current = controller
+    // Prevent concurrent requests
+    if (isFetchingRef.current) return []
+    isFetchingRef.current = true
 
     const state = storeRef.current
     state.setLoading(true)
 
     try {
-      const params = new URLSearchParams({
-        q: query,
-        limit: '100',
-        sort: state.sortMethod,
-      })
+      const sort = state.sortMethod
+      const timePeriod = sort === 'top' ? state.topPeriod : undefined
 
-      if (state.sortMethod === 'top') {
-        params.append('t', state.topPeriod)
-      }
-
-      if (pagination) {
-        params.append('after', pagination)
-      }
-
-      const url = `/api/reddit/search?${params}`
-
-      const response = await fetch(url, {
-        signal: controller.signal,
-      })
-
-      if (controller.signal.aborted) return []
-      if (!response.ok) throw new Error('Search failed')
-
-      const data = await response.json()
-
-      if (data.error) {
-        throw new Error(data.error.message || 'Search error')
-      }
+      const data = await searchReddit(query, sort, timePeriod, pagination, '100')
 
       if (!data?.data?.children) {
         console.warn('Unexpected search response')
@@ -157,14 +101,11 @@ export function useRedditAPI() {
 
       return songs
     } catch (error: any) {
-      if (error.name === 'AbortError') return []
       console.error('Search error:', error)
       throw error
     } finally {
-      if (!controller.signal.aborted) {
-        state.setLoading(false)
-        abortControllerRef.current = null
-      }
+      state.setLoading(false)
+      isFetchingRef.current = false
     }
   }, [])
 

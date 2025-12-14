@@ -36,23 +36,13 @@ function AuthCallbackContent() {
       }
 
       try {
-        // Exchange code for access token
-        const response = await fetch('/api/auth/reddit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code }),
-        })
+        // Exchange code for access token using Server Action
+        const { loginWithReddit } = await import('@/lib/actions/auth')
+        const result = await loginWithReddit(code)
 
-        const data = await response.json()
-
-        if (data.error) {
-          throw new Error(data.error)
+        if (!result.success) {
+          throw new Error(result.error || 'Authentication failed')
         }
-
-        // Save tokens
-        localStorage.setItem('reddit_access_token', data.access_token)
-        localStorage.setItem('reddit_refresh_token', data.refresh_token)
-        localStorage.setItem('reddit_username', data.username)
 
         setStatus('Login successful! Redirecting...')
         setTimeout(() => router.push('/'), 1000)

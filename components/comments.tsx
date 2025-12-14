@@ -74,13 +74,9 @@ export function Comments({ permalink }: CommentsProps) {
     const loadComments = async () => {
       setLoading(true)
       try {
-        const response = await fetch(
-          `/api/reddit/comments?permalink=${encodeURIComponent(permalink)}`
-        )
-        if (response.ok) {
-          const data = await response.json()
-          setComments(data.comments || [])
-        }
+        const { getComments } = await import('@/lib/actions/reddit')
+        const data = await getComments(permalink)
+        setComments(data.comments || [])
       } catch (error) {
         console.error('Failed to load comments:', error)
       } finally {

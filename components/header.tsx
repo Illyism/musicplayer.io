@@ -1,9 +1,10 @@
 'use client'
 
 import Image from 'next/image'
-import { Menu, LogIn, Keyboard } from 'lucide-react'
+import { Menu, LogIn, Keyboard, LogOut, User } from 'lucide-react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
+import { useAuth } from '@/lib/hooks/use-auth'
 import { useState } from 'react'
 import {
   Dialog,
@@ -27,6 +28,7 @@ interface HeaderProps {
 
 export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps) {
   const { mobileView, setMobileView, currentSong } = usePlayerStore()
+  const { isAuthenticated, username, login, logout } = useAuth()
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [internalShowKeyboardModal, setInternalShowKeyboardModal] = useState(false)
 
@@ -167,16 +169,36 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* Login Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowLoginModal(true)}
-            className="gap-2"
-          >
-            <LogIn className="h-4 w-4" />
-            Sign in
-          </Button>
+          {/* Auth Button */}
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <User className="h-4 w-4" />
+                  {username || 'User'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                  Signed in as {username}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={logout} className="text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLoginModal(true)}
+              className="gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in
+            </Button>
+          )}
         </div>
 
         {/* Mobile Navigation */}

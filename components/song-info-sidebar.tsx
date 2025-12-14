@@ -108,13 +108,9 @@ export function SongInfoSidebar() {
     const loadComments = async () => {
       setLoadingComments(true)
       try {
-        const response = await fetch(
-          `/api/reddit/comments?permalink=${encodeURIComponent(currentSong.permalink)}`
-        )
-        if (response.ok) {
-          const data = await response.json()
-          setComments(data.comments || [])
-        }
+        const { getComments } = await import('@/lib/actions/reddit')
+        const data = await getComments(currentSong.permalink)
+        setComments(data.comments || [])
       } catch (error) {
         console.error('Failed to load comments:', error)
       } finally {

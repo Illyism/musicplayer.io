@@ -23,7 +23,6 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@auth/core": "^0.41.0",
     "@radix-ui/react-dialog": "^1.1.0",
     "@radix-ui/react-dropdown-menu": "^2.1.0",
     "@radix-ui/react-select": "^2.2.6",
@@ -32,18 +31,17 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.0",
     "@radix-ui/react-tooltip": "^1.1.0",
+    "babel-plugin-react-compiler": "^1.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
     "lucide-react": "^0.561.0",
     "next": "^16.0.10",
-    "next-auth": "^5.0.0-beta.30",
-    "passport": "^0.7.0",
-    "passport-reddit": "git+https://github.com/musicplayer-io/passport-reddit.git",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwind-merge": "^3.4.0",
+    "zod": "^4.1.13",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

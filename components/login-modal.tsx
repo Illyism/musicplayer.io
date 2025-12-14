@@ -18,7 +18,7 @@ interface LoginModalProps {
 
 export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
   const handleLogin = () => {
-    const clientId = 'YOUR_CLIENT_ID'
+    const clientId = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || 'YOUR_CLIENT_ID'
     const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback')
     const scope = 'identity,read,vote,submit'
     const state = Math.random().toString(36).substring(7)

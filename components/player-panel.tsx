@@ -86,21 +86,22 @@ export function PlayerPanel() {
 
     console.log('[Mobile] Loading comments for:', currentSong.title)
     setLoadingComments(true)
-    fetch(`/api/reddit/comments?permalink=${encodeURIComponent(currentSong.permalink)}`)
-      .then(res => {
-        console.log('[Mobile] Comments API response status:', res.status)
-        return res.json()
-      })
-      .then(data => {
+
+    const loadComments = async () => {
+      try {
+        const { getComments } = await import('@/lib/actions/reddit')
+        const data = await getComments(currentSong.permalink)
         console.log('[Mobile] Comments loaded:', data.comments?.length || 0)
         setComments(data.comments || [])
+      } catch (error) {
+        console.error('[Mobile] Failed to load comments:', error)
+      } finally {
         setLoadingComments(false)
-      })
-      .catch(err => {
-        console.error('[Mobile] Failed to load comments:', err)
-        setLoadingComments(false)
-      })
-  }, [currentSong])
+      }
+    }
+
+    loadComments()
+  }, [currentSong?.permalink])
 
   const handleLogin = (action: string) => {
     setLoginAction(action)

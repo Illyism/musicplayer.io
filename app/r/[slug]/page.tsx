@@ -57,8 +57,8 @@ function SubredditContent() {
         {/* Browse Panel - Left (5% narrower) */}
         <div
           className={`
-            w-full md:w-72 lg:w-80 
-            bg-card border-r border-border 
+            w-full md:w-72 lg:w-80
+            bg-card border-r border-border
             overflow-y-auto
             ${mobileView === 'browse' ? 'block' : 'hidden md:block'}
           `}
@@ -69,7 +69,7 @@ function SubredditContent() {
         {/* Playlist Panel - Center */}
         <div
           className={`
-            flex-1 bg-background 
+            flex-1 bg-background
             overflow-y-auto
             ${mobileView === 'playlist' ? 'block' : 'hidden md:block'}
           `}
@@ -82,7 +82,7 @@ function SubredditContent() {
           <div
             className={`
               w-full
-              bg-card border-l border-border 
+              bg-card border-l border-border
               overflow-y-auto
               ${mobileView === 'player' ? 'block' : 'hidden'}
             `}
