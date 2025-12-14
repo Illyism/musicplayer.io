@@ -66,7 +66,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
                 <a
-                  href="https://github.com/musicplayer-io/redditmusicplayer"
+                  href="https://github.com/musicplayer-io/musicplayer.io"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 cursor-pointer"

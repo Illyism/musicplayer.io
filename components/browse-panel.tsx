@@ -122,7 +122,7 @@ export function BrowsePanel() {
     if (sortMethod === 'top' && topPeriod !== 'week') params.append('t', topPeriod)
     
     const queryString = params.toString()
-    const fullUrl = `https://reddit.musicplayer.io${queryString ? `?${queryString}` : ''}`
+    const fullUrl = `https://musicplayer.io${queryString ? `?${queryString}` : ''}`
     const shortUrl = `http://r.il.ly/r/${subs}${queryString ? `?${params.toString()}` : ''}`
     
     return { fullUrl, shortUrl }

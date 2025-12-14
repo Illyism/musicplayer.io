@@ -2,7 +2,7 @@
 
 <div align="center">
   <br>
-  <a href="https://reddit.musicplayer.io" title="reddit.musicplayer.io">
+  <a href="https://musicplayer.io" title="musicplayer.io">
     <img width="650" src="https://cloud.githubusercontent.com/assets/304283/8148060/19b85c3c-1279-11e5-9004-7dda6ee8f7d7.png" alt="music player for reddit">
   </a>
   <br>
@@ -26,8 +26,8 @@ The `main` branch is the active development branch with all the latest features 
 
 ```bash
 # Clone the repository
-git clone https://github.com/musicplayer-io/redditmusicplayer.git
-cd redditmusicplayer
+git clone https://github.com/musicplayer-io/musicplayer.io.git
+cd musicplayer.io
 
 # Install dependencies
 npm install
@@ -116,7 +116,7 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 ## 🏗️ Project Structure
 
 ```
-redditmusicplayer/
+musicplayer.io/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes (12 routes)
 │   ├── r/                 # Dynamic subreddit routes
@@ -165,7 +165,7 @@ This project has been migrated from CoffeeScript/Backbone.js to Next.js 16/React
 
 **Conversion Progress**: 100% complete - All features fully functional!
 
-The original CoffeeScript/Backbone.js codebase is preserved in the [`coffeescript` branch](https://github.com/musicplayer-io/redditmusicplayer/tree/coffeescript) for reference.
+The original CoffeeScript/Backbone.js codebase is preserved in the [`coffeescript` branch](https://github.com/musicplayer-io/musicplayer.io/tree/coffeescript) for reference.
 
 ## 🤝 Contributing
 

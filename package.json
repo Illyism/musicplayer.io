@@ -1,10 +1,10 @@
 {
-  "name": "redditmusicplayer",
+  "name": "musicplayer.io",
   "version": "0.6.14",
   "description": "Music Player for Reddit Server",
   "repository": {
     "type": "git",
-    "url": "git@github.com:musicplayer-io/redditmusicplayer.git"
+    "url": "git@github.com:musicplayer-io/musicplayer.io.git"
   },
   "scripts": {
     "dev": "next dev",
