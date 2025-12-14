@@ -2,26 +2,10 @@
 
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { cacheLife } from 'next/cache'
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-
-async function getHeaders() {
-  const cookieStore = await cookies()
-  const accessToken = cookieStore.get('reddit_access_token')?.value
-
-  return {
-    'User-Agent': USER_AGENT,
-    Accept: 'application/json',
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-  }
-}
-
-async function getBaseUrl() {
-  const cookieStore = await cookies()
-  const accessToken = cookieStore.get('reddit_access_token')?.value
-  return accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
-}
 
 // Validation schemas
 const SubredditSchema = z
@@ -65,6 +49,7 @@ const GetSubredditPostsSchema = z.object({
   timePeriod: TimePeriodSchema,
   after: AfterSchema,
   limit: LimitSchema,
+  accessToken: z.string().optional(),
 })
 
 const SearchRedditSchema = z.object({
@@ -73,12 +58,128 @@ const SearchRedditSchema = z.object({
   timePeriod: TimePeriodSchema,
   after: AfterSchema,
   limit: LimitSchema,
+  accessToken: z.string().optional(),
 })
 
 const GetCommentsSchema = z.object({
   permalink: PermalinkSchema,
+  accessToken: z.string().optional(),
 })
 
+// Cached fetch functions - these cannot access cookies() directly
+async function fetchSubredditPostsCached(
+  subreddit: string,
+  sort: string,
+  timePeriod: string | undefined,
+  after: string | undefined,
+  limit: string,
+  accessToken: string | undefined
+) {
+  'use cache'
+  cacheLife('minutes') // Cache for 15 minutes (default)
+
+  const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
+  const headers: HeadersInit = {
+    'User-Agent': USER_AGENT,
+    Accept: 'application/json',
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  }
+
+  const params = new URLSearchParams({ limit })
+  if (timePeriod) params.append('t', timePeriod)
+  if (after) params.append('after', after)
+
+  const url = `${baseUrl}/r/${subreddit}/${sort}.json?${params}`
+
+  const response = await fetch(url, {
+    headers,
+  })
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('Access denied (403). Rate limited or private subreddit.')
+    }
+    throw new Error(`Reddit API error: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+async function searchRedditCached(
+  query: string,
+  sort: string,
+  timePeriod: string | undefined,
+  after: string | undefined,
+  limit: string,
+  accessToken: string | undefined
+) {
+  'use cache'
+  cacheLife('minutes') // Cache for 15 minutes (default)
+
+  const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
+  const headers: HeadersInit = {
+    'User-Agent': USER_AGENT,
+    Accept: 'application/json',
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  }
+
+  const params = new URLSearchParams({
+    q: query,
+    limit,
+    sort,
+    ...(timePeriod && { t: timePeriod }),
+    ...(after && { after }),
+  })
+
+  const url = `${baseUrl}/search.json?${params}`
+
+  const response = await fetch(url, {
+    headers,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Reddit API error: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+async function getCommentsCached(permalink: string, accessToken: string | undefined) {
+  'use cache'
+  cacheLife('minutes') // Cache for 15 minutes (default)
+
+  const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
+  const headers: HeadersInit = {
+    'User-Agent': USER_AGENT,
+    Accept: 'application/json',
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  }
+
+  const url = `${baseUrl}${permalink}.json?limit=100&depth=10&sort=top`
+
+  const response = await fetch(url, {
+    headers,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Reddit API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  // Reddit returns [post, comments] array
+  const commentsData = data[1]?.data?.children || []
+
+  // Recursively parse comments and replies
+  const formattedComments = parseComments(commentsData)
+
+  return {
+    comments: formattedComments,
+    count: formattedComments.length,
+  }
+}
+
+// Public API functions - these read cookies and call cached functions
 export async function getSubredditPosts(
   subreddit: string,
   sort: string = 'hot',
@@ -87,6 +188,10 @@ export async function getSubredditPosts(
   limit: string = '100'
 ) {
   try {
+    // Read cookies outside cached scope
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get('reddit_access_token')?.value
+
     // Validate and transform inputs
     const validated = GetSubredditPostsSchema.parse({
       subreddit,
@@ -94,35 +199,24 @@ export async function getSubredditPosts(
       timePeriod,
       after,
       limit,
+      accessToken,
     })
 
-    const baseUrl = await getBaseUrl()
-    const headers = await getHeaders()
+    // Call cached function with token as argument
+    const data = await fetchSubredditPostsCached(
+      validated.subreddit,
+      validated.sort,
+      validated.timePeriod,
+      validated.after,
+      validated.limit,
+      validated.accessToken
+    )
 
-    const params = new URLSearchParams({ limit: validated.limit })
-    if (validated.timePeriod) params.append('t', validated.timePeriod)
-    if (validated.after) params.append('after', validated.after)
-
-    const url = `${baseUrl}/r/${validated.subreddit}/${validated.sort}.json?${params}`
-
-    const response = await fetch(url, {
-      headers,
-      next: { revalidate: 60 },
-    })
-
-    if (!response.ok) {
-      if (response.status === 403) {
-        throw new Error('Access denied (403). Rate limited or private subreddit.')
-      }
-      throw new Error(`Reddit API error: ${response.status}`)
-    }
-
-    const data = await response.json()
     return data
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Validation error:', error.errors)
-      throw new Error(`Invalid input: ${error.errors.map(e => e.message).join(', ')}`)
+      console.error('Validation error:', error.issues)
+      throw new Error(`Invalid input: ${error.issues.map(e => e.message).join(', ')}`)
     }
     console.error('Reddit API error:', error)
     throw error instanceof Error ? error : new Error('Failed to fetch from Reddit')
@@ -137,6 +231,10 @@ export async function searchReddit(
   limit: string = '100'
 ) {
   try {
+    // Read cookies outside cached scope
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get('reddit_access_token')?.value
+
     // Validate and transform inputs
     const validated = SearchRedditSchema.parse({
       query,
@@ -144,36 +242,24 @@ export async function searchReddit(
       timePeriod,
       after,
       limit,
+      accessToken,
     })
 
-    const baseUrl = await getBaseUrl()
-    const headers = await getHeaders()
+    // Call cached function with token as argument
+    const data = await searchRedditCached(
+      validated.query,
+      validated.sort,
+      validated.timePeriod,
+      validated.after,
+      validated.limit,
+      validated.accessToken
+    )
 
-    const params = new URLSearchParams({
-      q: validated.query,
-      limit: validated.limit,
-      sort: validated.sort,
-      ...(validated.timePeriod && { t: validated.timePeriod }),
-      ...(validated.after && { after: validated.after }),
-    })
-
-    const url = `${baseUrl}/search.json?${params}`
-
-    const response = await fetch(url, {
-      headers,
-      next: { revalidate: 60 },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Reddit API error: ${response.status}`)
-    }
-
-    const data = await response.json()
     return data
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Validation error:', error.errors)
-      throw new Error(`Invalid input: ${error.errors.map(e => e.message).join(', ')}`)
+      console.error('Validation error:', error.issues)
+      throw new Error(`Invalid input: ${error.issues.map(e => e.message).join(', ')}`)
     }
     console.error('Reddit search error:', error)
     throw error instanceof Error ? error : new Error('Search failed')
@@ -182,39 +268,19 @@ export async function searchReddit(
 
 export async function getComments(permalink: string) {
   try {
+    // Read cookies outside cached scope
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get('reddit_access_token')?.value
+
     // Validate permalink
-    const validated = GetCommentsSchema.parse({ permalink })
+    const validated = GetCommentsSchema.parse({ permalink, accessToken })
 
-    const baseUrl = await getBaseUrl()
-    const headers = await getHeaders()
-
-    const url = `${baseUrl}${validated.permalink}.json?limit=100&depth=10&sort=top`
-
-    const response = await fetch(url, {
-      headers,
-      next: { revalidate: 60 },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Reddit API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    // Reddit returns [post, comments] array
-    const commentsData = data[1]?.data?.children || []
-
-    // Recursively parse comments and replies
-    const formattedComments = parseComments(commentsData)
-
-    return {
-      comments: formattedComments,
-      count: formattedComments.length,
-    }
+    // Call cached function with token as argument
+    return await getCommentsCached(validated.permalink, validated.accessToken)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Validation error:', error.errors)
-      throw new Error(`Invalid permalink: ${error.errors.map(e => e.message).join(', ')}`)
+      console.error('Validation error:', error.issues)
+      throw new Error(`Invalid permalink: ${error.issues.map(e => e.message).join(', ')}`)
     }
     console.error('Comments fetch error:', error)
     throw error instanceof Error ? error : new Error('Failed to fetch comments')

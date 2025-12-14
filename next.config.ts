@@ -4,8 +4,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   reactCompiler: true,
-  experimental: {
-    useCache: true,
+  cacheComponents: true,
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
   },
   images: {
     remotePatterns: [
