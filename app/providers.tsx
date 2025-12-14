@@ -2,6 +2,7 @@
 
 import Script from 'next/script'
 import { ThemeProvider } from 'next-themes'
+import { Toaster } from '@/components/ui/sonner'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
@@ -17,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           strategy="afterInteractive"
         />
       )}
+      <Toaster />
       {children}
     </ThemeProvider>
   )

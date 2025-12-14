@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react'
+import { toast } from 'sonner'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { parseSong, filterPlayableSongs } from '@/lib/utils/song-utils'
 import { getSubredditPosts, searchReddit } from '@/lib/actions/reddit'
@@ -55,6 +56,10 @@ export function useRedditAPI() {
       return songs
     } catch (error: any) {
       console.error('Error fetching from Reddit:', error)
+      const errorMessage =
+        error?.message ||
+        'Failed to load posts from Reddit. The subreddit may be private or rate-limited.'
+      toast.error(errorMessage, { duration: 10000 })
       throw error
     } finally {
       state.setLoading(false)
@@ -102,6 +107,9 @@ export function useRedditAPI() {
       return songs
     } catch (error: any) {
       console.error('Search error:', error)
+      const errorMessage =
+        error?.message || 'Failed to search Reddit. You may be rate-limited or the search failed.'
+      toast.error(errorMessage, { duration: 10000 })
       throw error
     } finally {
       state.setLoading(false)

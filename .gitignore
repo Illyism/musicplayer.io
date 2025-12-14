@@ -21,7 +21,6 @@ dist
 *.dat
 *.out
 *.gz
-*.lock
 
 # Environment variables
 .env

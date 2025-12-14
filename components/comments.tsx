@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Comment {
   id: string
@@ -66,6 +67,7 @@ function CommentItem({ comment, depth = 0 }: { comment: Comment; depth?: number 
 export function Comments({ permalink }: CommentsProps) {
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!permalink) {
@@ -75,12 +77,17 @@ export function Comments({ permalink }: CommentsProps) {
 
     const loadComments = async () => {
       setLoading(true)
+      setError(null)
       try {
         const { getComments } = await import('@/lib/actions/reddit')
         const data = await getComments(permalink)
         setComments(data.comments || [])
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to load comments:', error)
+        const errorMessage =
+          error?.message || 'Failed to load comments. The post may be private or rate-limited.'
+        setError(errorMessage)
+        toast.error(errorMessage, { duration: 10000 })
       } finally {
         setLoading(false)
       }
@@ -94,6 +101,15 @@ export function Comments({ permalink }: CommentsProps) {
       <div className="text-center py-8">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-sm text-muted-foreground">Loading comments...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 px-4 bg-card border border-destructive/50 rounded-xl">
+        <p className="text-sm text-destructive font-medium mb-2">Failed to load comments</p>
+        <p className="text-xs text-muted-foreground">{error}</p>
       </div>
     )
   }

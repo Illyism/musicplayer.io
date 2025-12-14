@@ -6,9 +6,9 @@ import { useState } from 'react'
 import { Music, ArrowUp, ArrowDown, ExternalLink, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 import { usePlaylistStore } from '@/lib/store'
 import { useAuth } from '@/lib/hooks/use-auth'
-import { usePlaylistStore as useStore } from '@/lib/store'
 import { YouTubePlayer } from '@/components/players/youtube-player'
 import { SoundCloudPlayer } from '@/components/players/soundcloud-player'
 import { VimeoPlayer } from '@/components/players/vimeo-player'
@@ -23,22 +23,17 @@ interface SongPanelProps {
 export function SongPanel({ onClose }: SongPanelProps = {}) {
   const currentSong = usePlaylistStore(state => state.currentSong)
   const { isAuthenticated, login } = useAuth()
-  const addMessage = useStore(state => state.addMessage)
   const [voteDirection, setVoteDirection] = useState<number>(0)
 
   const handleVote = async (direction: number) => {
     // Check if authenticated
     if (!isAuthenticated) {
-      addMessage({
-        type: 'error',
-        text: 'You need to be logged in to vote.',
-        buttons: [
-          {
-            text: 'Log In',
-            className: 'yellow',
-            callback: login,
-          },
-        ],
+      toast.error('You need to be logged in to vote.', {
+        duration: 10000,
+        action: {
+          label: 'Log In',
+          onClick: login,
+        },
       })
       return
     }
@@ -63,19 +58,13 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
       const data = await response.json()
 
       if (data.error) {
-        addMessage({
-          type: 'error',
-          text: data.error.message || 'Failed to vote.',
-        })
+        toast.error(data.error.message || 'Failed to vote.', { duration: 10000 })
         // Revert vote direction on error
         setVoteDirection(voteDirection)
       }
     } catch (error) {
       console.error('Vote error:', error)
-      addMessage({
-        type: 'error',
-        text: 'Failed to vote. Please try again.',
-      })
+      toast.error('Failed to vote. Please try again.', { duration: 10000 })
       // Revert vote direction on error
       setVoteDirection(voteDirection)
     }
@@ -401,25 +390,18 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
             const commentText = formData.get('comment') as string
 
             if (!isAuthenticated) {
-              addMessage({
-                type: 'error',
-                text: 'You need to be logged in to post comments.',
-                buttons: [
-                  {
-                    text: 'Log In',
-                    className: 'yellow',
-                    callback: login,
-                  },
-                ],
+              toast.error('You need to be logged in to post comments.', {
+                duration: 10000,
+                action: {
+                  label: 'Log In',
+                  onClick: login,
+                },
               })
               return
             }
 
             if (!commentText || commentText.trim().length === 0) {
-              addMessage({
-                type: 'error',
-                text: 'Please enter a comment.',
-              })
+              toast.error('Please enter a comment.', { duration: 10000 })
               return
             }
 
@@ -438,15 +420,9 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
               const data = await response.json()
 
               if (data.error) {
-                addMessage({
-                  type: 'error',
-                  text: data.error.message || 'Failed to post comment.',
-                })
+                toast.error(data.error.message || 'Failed to post comment.', { duration: 10000 })
               } else {
-                addMessage({
-                  type: 'success',
-                  text: 'Comment posted successfully!',
-                })
+                toast.success('Comment posted successfully!', { duration: 5000 })
                 // Clear form
                 e.currentTarget.reset()
                 // Reload comments (you might want to add a refresh function)
@@ -454,10 +430,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
               }
             } catch (error) {
               console.error('Comment error:', error)
-              addMessage({
-                type: 'error',
-                text: 'Failed to post comment. Please try again.',
-              })
+              toast.error('Failed to post comment. Please try again.', { duration: 10000 })
             }
           }}
         >
