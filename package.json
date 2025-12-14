@@ -30,7 +30,7 @@
     
     "lodash": "^3.10.1",
     "lucide-react": "^0.454.0",
-    "next": "^16.0.0",
+    "next": "^16.0.10",
     "next-auth": "^5.0.0-beta.30",
     "passport": "^0.3.0",
     "passport-reddit": "git+https://github.com/musicplayer-io/passport-reddit.git",
