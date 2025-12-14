@@ -123,7 +123,7 @@ export function SongInfoSidebar() {
 
   if (!currentSong) {
     return (
-      <div className="hidden lg:flex lg:w-80 xl:w-96 border-l border-border bg-card flex-col">
+      <div className="hidden lg:flex w-full border-l border-border bg-card flex-col">
         <div className="flex-1 overflow-y-auto pb-24">
           {/* Current Song Header */}
           <div className="p-6 border-b border-border">
@@ -216,7 +216,7 @@ export function SongInfoSidebar() {
   }
 
   return (
-    <div className="hidden lg:flex lg:w-80 xl:w-96 border-l border-border bg-card flex-col">
+    <div className="hidden lg:flex w-full border-l border-border bg-card flex-col">
       <div className="flex-1 overflow-y-auto pb-24">
         <div className="space-y-6">
           {/* Video Player - FIRST! */}
