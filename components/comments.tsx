@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors/reddit-error'
 
 interface Comment {
   id: string
@@ -84,8 +85,7 @@ export function Comments({ permalink }: CommentsProps) {
         setComments(data.comments || [])
       } catch (error: any) {
         console.error('Failed to load comments:', error)
-        const errorMessage =
-          error?.message || 'Failed to load comments. The post may be private or rate-limited.'
+        const errorMessage = getErrorMessage(error)
         setError(errorMessage)
         toast.error(errorMessage, { duration: 10000 })
       } finally {

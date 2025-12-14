@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { cacheLife } from 'next/cache'
+import { handleRedditApiError } from '@/lib/utils/error-handler'
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -96,30 +97,7 @@ async function fetchSubredditPostsCached(
   })
 
   if (!response.ok) {
-    let errorMessage = `Reddit API error: ${response.status}`
-
-    // Try to get error details from response body
-    try {
-      const errorData = await response
-        .clone()
-        .json()
-        .catch(() => null)
-      if (errorData?.reason) {
-        errorMessage = errorData.reason
-      } else if (errorData?.message) {
-        errorMessage = errorData.message
-      }
-    } catch {
-      // If JSON parsing fails, use default message
-    }
-
-    if (response.status === 403) {
-      throw new Error(`Access denied (403). ${errorMessage}`)
-    }
-    if (response.status === 429) {
-      throw new Error(`Rate limited (429). Please try again later.`)
-    }
-    throw new Error(errorMessage)
+    await handleRedditApiError(response)
   }
 
   return response.json()
@@ -158,30 +136,7 @@ async function searchRedditCached(
   })
 
   if (!response.ok) {
-    let errorMessage = `Reddit API error: ${response.status}`
-
-    // Try to get error details from response body
-    try {
-      const errorData = await response
-        .clone()
-        .json()
-        .catch(() => null)
-      if (errorData?.reason) {
-        errorMessage = errorData.reason
-      } else if (errorData?.message) {
-        errorMessage = errorData.message
-      }
-    } catch {
-      // If JSON parsing fails, use default message
-    }
-
-    if (response.status === 403) {
-      throw new Error(`Access denied (403). ${errorMessage}`)
-    }
-    if (response.status === 429) {
-      throw new Error(`Rate limited (429). Please try again later.`)
-    }
-    throw new Error(errorMessage)
+    await handleRedditApiError(response)
   }
 
   return response.json()
@@ -205,30 +160,7 @@ async function getCommentsCached(permalink: string, accessToken: string | undefi
   })
 
   if (!response.ok) {
-    let errorMessage = `Reddit API error: ${response.status}`
-
-    // Try to get error details from response body
-    try {
-      const errorData = await response
-        .clone()
-        .json()
-        .catch(() => null)
-      if (errorData?.reason) {
-        errorMessage = errorData.reason
-      } else if (errorData?.message) {
-        errorMessage = errorData.message
-      }
-    } catch {
-      // If JSON parsing fails, use default message
-    }
-
-    if (response.status === 403) {
-      throw new Error(`Access denied (403). ${errorMessage}`)
-    }
-    if (response.status === 429) {
-      throw new Error(`Rate limited (429). Please try again later.`)
-    }
-    throw new Error(errorMessage)
+    await handleRedditApiError(response)
   }
 
   const data = await response.json()
@@ -284,8 +216,8 @@ export async function getSubredditPosts(
       console.error('Validation error:', error.issues)
       throw new Error(`Invalid input: ${error.issues.map(e => e.message).join(', ')}`)
     }
-    console.error('Reddit API error:', error)
-    throw error instanceof Error ? error : new Error('Failed to fetch from Reddit')
+    // Re-throw RedditError as-is, it's already properly formatted
+    throw error
   }
 }
 

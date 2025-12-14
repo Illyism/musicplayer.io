@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { parseSong, filterPlayableSongs } from '@/lib/utils/song-utils'
 import { getSubredditPosts, searchReddit } from '@/lib/actions/reddit'
+import { getErrorMessage } from '@/lib/errors/reddit-error'
 
 // ============================================================================
 // REDDIT API HOOK
@@ -56,9 +57,7 @@ export function useRedditAPI() {
       return songs
     } catch (error: any) {
       console.error('Error fetching from Reddit:', error)
-      const errorMessage =
-        error?.message ||
-        'Failed to load posts from Reddit. The subreddit may be private or rate-limited.'
+      const errorMessage = getErrorMessage(error)
       toast.error(errorMessage, { duration: 10000 })
       throw error
     } finally {
@@ -107,8 +106,7 @@ export function useRedditAPI() {
       return songs
     } catch (error: any) {
       console.error('Search error:', error)
-      const errorMessage =
-        error?.message || 'Failed to search Reddit. You may be rate-limited or the search failed.'
+      const errorMessage = getErrorMessage(error)
       toast.error(errorMessage, { duration: 10000 })
       throw error
     } finally {
