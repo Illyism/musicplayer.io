@@ -1,0 +1,53 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next
+out
+build
+dist
+
+# Testing
+coverage
+.nyc_output
+
+# Environment variables
+.env
+.env*.local
+.env.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE.md
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Other
+*.log
+*.pid
+*.seed
+*.csv
+*.dat
+*.out
+*.gz
