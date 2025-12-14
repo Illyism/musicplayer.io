@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter, usePathname } from "next/navigation"
 import { Search, Plus, Share2 } from "lucide-react"
 import { usePlayerStore } from "@/lib/store/player-store"
 import { useRedditAPI } from "@/lib/hooks/use-reddit-api"
@@ -22,6 +23,8 @@ export function BrowsePanel() {
   const [copyStatus, setCopyStatus] = useState<'full' | 'short' | null>(null)
   const [mounted, setMounted] = useState(false)
   
+  const router = useRouter()
+  const pathname = usePathname()
   const { 
     selectedSubreddits, 
     setSelectedSubreddits,
@@ -31,6 +34,19 @@ export function BrowsePanel() {
     topPeriod,
   } = usePlayerStore()
   const { fetchFromSubreddits, fetchSearch } = useRedditAPI()
+
+  // Update URL path when subreddits change
+  const updateUrlPath = (subreddits: string[]) => {
+    if (subreddits.length === 0) {
+      router.push('/')
+    } else {
+      const slug = subreddits.join('+')
+      const newPath = `/r/${slug}`
+      if (pathname !== newPath) {
+        router.push(newPath)
+      }
+    }
+  }
 
   // Fix hydration
   useEffect(() => {
@@ -51,6 +67,7 @@ export function BrowsePanel() {
       : [...selectedSubreddits, key]
 
     setSelectedSubreddits(newSelected)
+    updateUrlPath(newSelected)
 
     // Fetch immediately with current sort settings
     if (newSelected.length > 0) {
@@ -61,6 +78,7 @@ export function BrowsePanel() {
   const removeSubreddit = async (key: string) => {
     const newSelected = selectedSubreddits.filter((s) => s !== key)
     setSelectedSubreddits(newSelected)
+    updateUrlPath(newSelected)
 
     // Fetch if there are still subreddits selected
     if (newSelected.length > 0) {
@@ -74,6 +92,7 @@ export function BrowsePanel() {
 
     setSearchQuery(query)
     setSelectedSubreddits([])
+    updateUrlPath([])
     await fetchSearch(query)
   }
 
@@ -96,6 +115,7 @@ export function BrowsePanel() {
     // Add to selected
     const newSelected = [...selectedSubreddits, name]
     setSelectedSubreddits(newSelected)
+    updateUrlPath(newSelected)
     setCustomSubreddit("")
     
     // Fetch songs from this subreddit
@@ -105,6 +125,7 @@ export function BrowsePanel() {
       console.error(`Failed to fetch from r/${name}:`, error)
       // Remove if fetch fails
       setSelectedSubreddits(selectedSubreddits)
+      updateUrlPath(selectedSubreddits)
       alert(`Could not load r/${name}. Please check the subreddit name.`)
     }
   }
@@ -117,13 +138,13 @@ export function BrowsePanel() {
   const getShareUrls = () => {
     const subs = selectedSubreddits.join('+')
     const params = new URLSearchParams()
-    if (subs) params.append('r', subs)
     if (sortMethod !== 'hot') params.append('sort', sortMethod)
     if (sortMethod === 'top' && topPeriod !== 'week') params.append('t', topPeriod)
     
     const queryString = params.toString()
-    const fullUrl = `https://musicplayer.io${queryString ? `?${queryString}` : ''}`
-    const shortUrl = `http://r.il.ly/r/${subs}${queryString ? `?${params.toString()}` : ''}`
+    const path = subs ? `/r/${subs}` : '/'
+    const fullUrl = `https://musicplayer.io${path}${queryString ? `?${queryString}` : ''}`
+    const shortUrl = `http://r.il.ly${path}${queryString ? `?${queryString}` : ''}`
     
     return { fullUrl, shortUrl }
   }
@@ -247,10 +268,19 @@ export function BrowsePanel() {
             <div>
               {subs.map((sub) => {
                 const isSelected = selectedSubreddits.includes(sub.key)
+                const newSelected = isSelected
+                  ? selectedSubreddits.filter((s) => s !== sub.key)
+                  : [...selectedSubreddits, sub.key]
+                const href = newSelected.length > 0 ? `/r/${newSelected.join('+')}` : '/'
+                
                 return (
-                  <button
+                  <a
                     key={sub.key}
-                    onClick={() => toggleSubreddit(sub.key)}
+                    href={href}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      toggleSubreddit(sub.key)
+                    }}
                     className={`w-full flex items-center justify-between px-6 py-3 hover:bg-secondary/50 transition-colors ${
                       isSelected ? 'bg-primary/10' : ''
                     }`}
@@ -268,7 +298,7 @@ export function BrowsePanel() {
                     ) : (
                       <Plus className="h-4 w-4 text-muted-foreground" />
                     )}
-                  </button>
+                  </a>
                 )
               })}
             </div>

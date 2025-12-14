@@ -30,8 +30,6 @@ export function useInitializeApp() {
   // INITIALIZE FROM URL
   // ==========================================
   useEffect(() => {
-    if (hasInitialized.current) return
-
     // Check path: /r/music+listentothis
     const pathMatch = pathname.match(/^\/r\/(.+)$/)
     if (pathMatch) {
@@ -41,14 +39,19 @@ export function useInitializeApp() {
         .filter(Boolean)
 
       if (subs.length > 0) {
+        // Only update if different from current selection
+        const currentSubsStr = selectedSubreddits.sort().join('+')
+        const newSubsStr = subs.sort().join('+')
+        if (currentSubsStr !== newSubsStr) {
+          setSelectedSubreddits(subs)
+          fetchFromSubreddits(subs)
+        }
         hasInitialized.current = true
-        setSelectedSubreddits(subs)
-        fetchFromSubreddits(subs)
         return
       }
     }
 
-    // Check query: ?r=music+listentothis
+    // Check query: ?r=music+listentothis (fallback for old URLs)
     const rParam = searchParams.get("r")
     if (rParam) {
       const subs = rParam
@@ -57,24 +60,32 @@ export function useInitializeApp() {
         .filter(Boolean)
 
       if (subs.length > 0) {
+        // Only update if different from current selection
+        const currentSubsStr = selectedSubreddits.sort().join('+')
+        const newSubsStr = subs.sort().join('+')
+        if (currentSubsStr !== newSubsStr) {
+          setSelectedSubreddits(subs)
+          fetchFromSubreddits(subs)
+        }
         hasInitialized.current = true
-        setSelectedSubreddits(subs)
-        fetchFromSubreddits(subs)
         return
       }
     }
 
-    // Use saved subreddits or default
-    if (selectedSubreddits.length > 0) {
-      hasInitialized.current = true
-      fetchFromSubreddits(selectedSubreddits)
-    } else {
-      hasInitialized.current = true
-      const defaultSubs = ["listentothis"]
-      setSelectedSubreddits(defaultSubs)
-      fetchFromSubreddits(defaultSubs)
+    // Only initialize defaults on first mount
+    if (!hasInitialized.current) {
+      // Use saved subreddits or default
+      if (selectedSubreddits.length > 0) {
+        hasInitialized.current = true
+        fetchFromSubreddits(selectedSubreddits)
+      } else {
+        hasInitialized.current = true
+        const defaultSubs = ["listentothis"]
+        setSelectedSubreddits(defaultSubs)
+        fetchFromSubreddits(defaultSubs)
+      }
     }
-  }, []) // Run once on mount
+  }, [pathname, searchParams]) // React to pathname and searchParams changes
 
   // ==========================================
   // KEYBOARD SHORTCUTS
