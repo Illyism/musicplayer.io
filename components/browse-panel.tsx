@@ -199,9 +199,9 @@ export function BrowsePanel() {
 
         {selectedSubreddits.length > 0 ? (
           <div className="space-y-2 mb-4">
-            {selectedSubreddits.map(sub => (
+            {selectedSubreddits.map((sub, index) => (
               <div
-                key={sub}
+                key={`${sub}-${index}`}
                 className="flex items-center justify-between px-4 py-2.5 bg-secondary rounded-lg"
               >
                 <span className="text-sm font-medium">{sub}</span>

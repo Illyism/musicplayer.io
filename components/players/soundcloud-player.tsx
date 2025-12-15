@@ -20,7 +20,7 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
   const widgetRef = useRef<any>(null)
   const songUrlRef = useRef<string | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, setCurrentTime, setDuration } = usePlayerStore()
+  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay } = usePlayerStore()
 
   useEffect(() => {
     if (!iframeRef.current) return
@@ -42,8 +42,18 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
 
           setIsReady(true)
 
+          const state = usePlayerStore.getState()
           try {
             widget.setVolume(volume)
+            // If there's a saved currentTime > 0, seek to it (preserve playback position)
+            if (state.currentTime > 0) {
+              widget.getDuration((dur: number) => {
+                if (dur > 0 && (!state.duration || state.currentTime < state.duration)) {
+                  const position = (state.currentTime / (dur / 1000)) * 1000
+                  widget.seekTo(position)
+                }
+              })
+            }
             if (isPlaying) widget.play()
           } catch (_e) {
             // SoundCloud ready error - silently handle
@@ -80,6 +90,23 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
             if (!mounted || songUrlRef.current !== song.url) return
             const state = usePlayerStore.getState()
             state.next()
+          })
+
+          // Play state sync
+          widget.bind(window.SC.Widget.Events.PLAY, () => {
+            if (!mounted || songUrlRef.current !== song.url) return
+            const state = usePlayerStore.getState()
+            if (!state.isPlaying) {
+              state.play()
+            }
+          })
+
+          widget.bind(window.SC.Widget.Events.PAUSE, () => {
+            if (!mounted || songUrlRef.current !== song.url) return
+            const state = usePlayerStore.getState()
+            if (state.isPlaying) {
+              state.pause()
+            }
           })
         })
 
@@ -120,6 +147,8 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
           widget.unbind(window.SC.Widget.Events.READY)
           widget.unbind(window.SC.Widget.Events.PLAY_PROGRESS)
           widget.unbind(window.SC.Widget.Events.FINISH)
+          widget.unbind(window.SC.Widget.Events.PLAY)
+          widget.unbind(window.SC.Widget.Events.PAUSE)
           widget.unbind(window.SC.Widget.Events.ERROR)
         } catch (_e) {
           // Silently ignore
@@ -159,15 +188,22 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
   )}&auto_play=false&visual=true`
 
   return (
-    <iframe
-      ref={iframeRef}
-      key={song.url}
-      width="100%"
-      height="100%"
-      scrolling="no"
-      frameBorder="no"
-      allow="autoplay"
-      src={soundcloudUrl}
-    />
+    <div className="relative w-full h-full">
+      <iframe
+        ref={iframeRef}
+        key={song.url}
+        width="100%"
+        height="100%"
+        scrolling="no"
+        frameBorder="no"
+        allow="autoplay"
+        src={soundcloudUrl}
+      />
+      <div
+        className={`absolute inset-0 z-10 ${isPlaying ? 'cursor-pointer' : ''}`}
+        onClick={isPlaying ? togglePlay : undefined}
+        style={{ pointerEvents: isPlaying ? 'auto' : 'none' }}
+      />
+    </div>
   )
 }

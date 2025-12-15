@@ -77,7 +77,7 @@ export function PlayerPanel() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loginAction, setLoginAction] = useState('')
 
-  // Fetch comments when song changes
+  // Fetch comments when song ID changes (not when object reference changes)
   useEffect(() => {
     if (!currentSong) {
       setComments([])
@@ -101,7 +101,7 @@ export function PlayerPanel() {
     }
 
     loadComments()
-  }, [currentSong])
+  }, [currentSong?.id]) // Only reload when song ID changes, not object reference
 
   const handleLogin = (action: string) => {
     setLoginAction(action)
@@ -126,10 +126,10 @@ export function PlayerPanel() {
     <div className="flex flex-col h-full overflow-y-auto pb-24">
       {/* Player */}
       <div className="relative aspect-video bg-black shrink-0">
-        {currentSong.type === 'youtube' && <YouTubePlayer song={currentSong} />}
-        {currentSong.type === 'soundcloud' && <SoundCloudPlayer song={currentSong} />}
-        {currentSong.type === 'vimeo' && <VimeoPlayer song={currentSong} />}
-        {currentSong.type === 'mp3' && <MP3Player song={currentSong} />}
+        {currentSong.type === 'youtube' && <YouTubePlayer key={`player-mobile-${currentSong.id}-youtube`} song={currentSong} />}
+        {currentSong.type === 'soundcloud' && <SoundCloudPlayer key={`player-mobile-${currentSong.id}-soundcloud`} song={currentSong} />}
+        {currentSong.type === 'vimeo' && <VimeoPlayer key={`player-mobile-${currentSong.id}-vimeo`} song={currentSong} />}
+        {currentSong.type === 'mp3' && <MP3Player key={`player-mobile-${currentSong.id}-mp3`} song={currentSong} />}
         {currentSong.type === 'none' && (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">Cannot play this media</p>

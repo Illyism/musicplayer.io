@@ -21,7 +21,7 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
   const playerRef = useRef<any>(null)
   const videoIdRef = useRef<string | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, setCurrentTime, setDuration } = usePlayerStore()
+  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay } = usePlayerStore()
 
   const videoId = extractVimeoId(song.url)
 
@@ -45,8 +45,13 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
 
           setIsReady(true)
 
+          const state = usePlayerStore.getState()
           try {
             player.setVolume(volume / 100)
+            // If there's a saved currentTime > 0, seek to it (preserve playback position)
+            if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
+              player.setCurrentTime(state.currentTime).catch(() => {})
+            }
           } catch (e) {
             console.error('Vimeo volume error:', e)
           }
@@ -79,6 +84,22 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
             if (!mounted || videoIdRef.current !== videoId) return
             const state = usePlayerStore.getState()
             state.next()
+          })
+
+          player.on('play', () => {
+            if (!mounted || videoIdRef.current !== videoId) return
+            const state = usePlayerStore.getState()
+            if (!state.isPlaying) {
+              state.play()
+            }
+          })
+
+          player.on('pause', () => {
+            if (!mounted || videoIdRef.current !== videoId) return
+            const state = usePlayerStore.getState()
+            if (state.isPlaying) {
+              state.pause()
+            }
           })
 
           if (isPlaying) {
@@ -115,6 +136,8 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
           player.pause()
           player.off('timeupdate')
           player.off('ended')
+          player.off('play')
+          player.off('pause')
           player.off('error')
         } catch (_e) {
           // Silently ignore
@@ -158,15 +181,22 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
   }
 
   return (
-    <iframe
-      ref={iframeRef}
-      key={videoId}
-      src={`https://player.vimeo.com/video/${videoId}?api=1`}
-      width="100%"
-      height="100%"
-      frameBorder="0"
-      allow="autoplay; fullscreen"
-      allowFullScreen
-    />
+    <div className="relative w-full h-full">
+      <iframe
+        ref={iframeRef}
+        key={videoId}
+        src={`https://player.vimeo.com/video/${videoId}?api=1`}
+        width="100%"
+        height="100%"
+        frameBorder="0"
+        allow="autoplay; fullscreen"
+        allowFullScreen
+      />
+      <div
+        className={`absolute inset-0 z-10 ${isPlaying ? 'cursor-pointer' : ''}`}
+        onClick={isPlaying ? togglePlay : undefined}
+        style={{ pointerEvents: isPlaying ? 'auto' : 'none' }}
+      />
+    </div>
   )
 }

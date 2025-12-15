@@ -38,13 +38,23 @@ export function useInitializeApp() {
         .map(s => s.trim().toLowerCase())
         .filter(Boolean)
 
-      if (subs.length > 0) {
+      // Deduplicate subreddits from URL
+      const seen = new Set<string>()
+      const uniqueSubs = subs.filter(sub => {
+        if (seen.has(sub)) {
+          return false
+        }
+        seen.add(sub)
+        return true
+      })
+
+      if (uniqueSubs.length > 0) {
         // Only update if different from current selection
         const currentSubsStr = selectedSubreddits.sort().join('+')
-        const newSubsStr = subs.sort().join('+')
+        const newSubsStr = uniqueSubs.sort().join('+')
         if (currentSubsStr !== newSubsStr) {
-          setSelectedSubreddits(subs)
-          fetchFromSubreddits(subs)
+          setSelectedSubreddits(uniqueSubs)
+          fetchFromSubreddits(uniqueSubs)
         }
         hasInitialized.current = true
         return
@@ -59,13 +69,23 @@ export function useInitializeApp() {
         .map(s => s.trim().toLowerCase())
         .filter(Boolean)
 
-      if (subs.length > 0) {
+      // Deduplicate subreddits from URL
+      const seen = new Set<string>()
+      const uniqueSubs = subs.filter(sub => {
+        if (seen.has(sub)) {
+          return false
+        }
+        seen.add(sub)
+        return true
+      })
+
+      if (uniqueSubs.length > 0) {
         // Only update if different from current selection
         const currentSubsStr = selectedSubreddits.sort().join('+')
-        const newSubsStr = subs.sort().join('+')
+        const newSubsStr = uniqueSubs.sort().join('+')
         if (currentSubsStr !== newSubsStr) {
-          setSelectedSubreddits(subs)
-          fetchFromSubreddits(subs)
+          setSelectedSubreddits(uniqueSubs)
+          fetchFromSubreddits(uniqueSubs)
         }
         hasInitialized.current = true
         return

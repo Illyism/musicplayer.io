@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { Menu, LogIn, Keyboard, LogOut, User } from 'lucide-react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
@@ -41,7 +42,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/60">
       <div className="flex h-14 items-center px-4 md:px-6">
         {/* Logo */}
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
           <Image
             src="/favicon.ico"
             alt="Reddit Music Player"
@@ -53,7 +54,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
             <h1 className="text-lg font-bold">Reddit Music</h1>
             <p className="text-xs text-muted-foreground">Stream from subreddits</p>
           </div>
-        </div>
+        </Link>
 
         {/* Desktop - Login and Menu */}
         <div className="ml-auto hidden md:flex items-center gap-2">

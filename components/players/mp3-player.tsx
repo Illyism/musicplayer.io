@@ -12,7 +12,7 @@ interface MP3PlayerProps {
 
 export function MP3Player({ song }: MP3PlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
-  const { isPlaying, volume, setCurrentTime, setDuration } = usePlayerStore()
+  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay, play, pause } = usePlayerStore()
 
   useEffect(() => {
     const audio = audioRef.current
@@ -32,27 +32,69 @@ export function MP3Player({ song }: MP3PlayerProps) {
       usePlayerStore.getState().next()
     }
 
+    const handlePlay = () => {
+      const state = usePlayerStore.getState()
+      if (!state.isPlaying) {
+        play()
+      }
+    }
+
+    const handlePause = () => {
+      const state = usePlayerStore.getState()
+      if (state.isPlaying) {
+        pause()
+      }
+    }
+
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('durationchange', handleDurationChange)
     audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('play', handlePlay)
+    audio.addEventListener('pause', handlePause)
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('durationchange', handleDurationChange)
       audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('play', handlePlay)
+      audio.removeEventListener('pause', handlePause)
     }
-  }, [setCurrentTime, setDuration])
+  }, [setCurrentTime, setDuration, play, pause])
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
+
+    // Restore saved currentTime when audio is loaded
+    const state = usePlayerStore.getState()
+    if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration) && audio.readyState >= 2) {
+      audio.currentTime = state.currentTime
+    }
 
     if (isPlaying) {
       audio.play().catch(() => {})
     } else {
       audio.pause()
     }
-  }, [isPlaying])
+  }, [isPlaying, currentTime])
+
+  // Restore saved position when audio metadata loads
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const handleLoadedMetadata = () => {
+      const state = usePlayerStore.getState()
+      if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
+        audio.currentTime = state.currentTime
+      }
+    }
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
+    }
+  }, [song.url])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -62,7 +104,7 @@ export function MP3Player({ song }: MP3PlayerProps) {
   }, [volume])
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full cursor-pointer" onClick={togglePlay}>
       {song.thumbnail && song.thumbnail !== 'self' ? (
         <Image src={song.thumbnail} alt={song.title} fill className="object-cover" sizes="100vw" />
       ) : (

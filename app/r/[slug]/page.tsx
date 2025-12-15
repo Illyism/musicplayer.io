@@ -93,7 +93,7 @@ function SubredditContent() {
               defaultSize={30}
               minSize={20}
               maxSize={45}
-              className="bg-card border-l border-border overflow-y-auto"
+              className="bg-card border-l border-border flex flex-col"
             >
               <SongInfoSidebar />
             </ResizablePanel>

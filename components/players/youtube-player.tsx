@@ -22,7 +22,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
   const playerRef = useRef<any>(null)
   const videoIdRef = useRef<string | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, setCurrentTime, setDuration } = usePlayerStore()
+  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay } = usePlayerStore()
 
   const videoId = extractYouTubeId(song.url)
 
@@ -66,9 +66,16 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
               window.__youtubePlayer = event.target
               setIsReady(true)
 
+              const state = usePlayerStore.getState()
               try {
                 event.target.setVolume(volume)
-                event.target.playVideo()
+                // If there's a saved currentTime > 0, seek to it (preserve playback position)
+                if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
+                  event.target.seekTo(state.currentTime, true)
+                }
+                if (state.isPlaying) {
+                  event.target.playVideo()
+                }
               } catch (_e) {
                 // Silently handle errors
               }
@@ -101,11 +108,16 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
               if (event.data === 0) {
                 // Song ended - advance to next
                 state.next()
-              } else if (event.data === 2 && state.isPlaying) {
-                // Paused but should be playing
-                try {
-                  event.target.playVideo()
-                } catch (_e) {}
+              } else if (event.data === 1) {
+                // Playing - sync store state
+                if (!state.isPlaying) {
+                  state.play()
+                }
+              } else if (event.data === 2) {
+                // Paused - sync store state
+                if (state.isPlaying) {
+                  state.pause()
+                }
               }
             },
             onError: (event: any) => {
@@ -200,5 +212,14 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
     )
   }
 
-  return <div ref={containerRef} className="w-full h-full" />
+  return (
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="w-full h-full" />
+      <div
+        className={`absolute inset-0 z-10 ${isPlaying ? 'cursor-pointer' : ''}`}
+        onClick={isPlaying ? togglePlay : undefined}
+        style={{ pointerEvents: isPlaying ? 'auto' : 'none' }}
+      />
+    </div>
+  )
 }

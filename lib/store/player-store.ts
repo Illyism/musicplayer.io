@@ -139,19 +139,52 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   // PLAYLIST ACTIONS
   // ========================================
   setSongs: songs => {
+    const state = get()
+    // Deduplicate songs by ID (keep first occurrence)
+    const seenIds = new Set<string>()
+    const uniqueSongs = songs.filter(song => {
+      if (seenIds.has(song.id)) {
+        return false
+      }
+      seenIds.add(song.id)
+      return true
+    })
+
+    // Preserve current song if it still exists in the new list
+    let newCurrentIndex = -1
+    let newCurrentSong = null
+    let newCurrentTime = 0
+    let newDuration = 0
+
+    if (state.currentSong) {
+      const foundIndex = uniqueSongs.findIndex(song => song.id === state.currentSong?.id)
+      if (foundIndex >= 0) {
+        newCurrentIndex = foundIndex
+        newCurrentSong = state.currentSong
+        // Preserve playback state (currentTime, duration, isPlaying)
+        newCurrentTime = state.currentTime
+        newDuration = state.duration
+      }
+    }
+
     set({
-      songs,
-      currentIndex: -1,
-      currentSong: null,
-      currentTime: 0,
-      duration: 0,
+      songs: uniqueSongs,
+      currentIndex: newCurrentIndex,
+      currentSong: newCurrentSong,
+      currentTime: newCurrentTime,
+      duration: newDuration,
     })
   },
 
   addSongs: newSongs => {
-    set(state => ({
-      songs: [...state.songs, ...newSongs],
-    }))
+    set(state => {
+      // Filter out duplicates - only add songs that don't already exist
+      const existingIds = new Set(state.songs.map(song => song.id))
+      const uniqueNewSongs = newSongs.filter(song => !existingIds.has(song.id))
+      return {
+        songs: [...state.songs, ...uniqueNewSongs],
+      }
+    })
   },
 
   setCurrentSong: index => {
@@ -170,8 +203,17 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
 
   setSelectedSubreddits: subreddits => {
-    set({ selectedSubreddits: subreddits })
-    saveToStorage(STORAGE_KEYS.subreddits, subreddits)
+    // Deduplicate subreddits (keep first occurrence)
+    const seen = new Set<string>()
+    const unique = subreddits.filter(sub => {
+      if (seen.has(sub)) {
+        return false
+      }
+      seen.add(sub)
+      return true
+    })
+    set({ selectedSubreddits: unique })
+    saveToStorage(STORAGE_KEYS.subreddits, unique)
   },
 
   setSortMethod: method => {

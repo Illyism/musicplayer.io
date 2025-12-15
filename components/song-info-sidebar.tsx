@@ -98,7 +98,7 @@ export function SongInfoSidebar() {
     handleLogin('comment')
   }
 
-  // Load comments when song changes
+  // Load comments when song ID changes (not when object reference changes)
   useEffect(() => {
     if (!currentSong) {
       setComments([])
@@ -119,7 +119,7 @@ export function SongInfoSidebar() {
     }
 
     loadComments()
-  }, [currentSong])
+  }, [currentSong?.id]) // Only reload when song ID changes, not object reference
 
   if (!currentSong) {
     return (
@@ -216,15 +216,15 @@ export function SongInfoSidebar() {
   }
 
   return (
-    <div className="hidden lg:flex w-full border-l border-border bg-card flex-col">
+    <div className="hidden lg:flex w-full h-full bg-card flex-col">
       <div className="flex-1 overflow-y-auto pb-24">
         <div className="space-y-6">
           {/* Video Player - FIRST! */}
           <div className="aspect-video bg-black">
-            {currentSong.type === 'youtube' && <YouTubePlayer song={currentSong} />}
-            {currentSong.type === 'soundcloud' && <SoundCloudPlayer song={currentSong} />}
-            {currentSong.type === 'vimeo' && <VimeoPlayer song={currentSong} />}
-            {currentSong.type === 'mp3' && <MP3Player song={currentSong} />}
+            {currentSong.type === 'youtube' && <YouTubePlayer key={`player-${currentSong.id}-youtube`} song={currentSong} />}
+            {currentSong.type === 'soundcloud' && <SoundCloudPlayer key={`player-${currentSong.id}-soundcloud`} song={currentSong} />}
+            {currentSong.type === 'vimeo' && <VimeoPlayer key={`player-${currentSong.id}-vimeo`} song={currentSong} />}
+            {currentSong.type === 'mp3' && <MP3Player key={`player-${currentSong.id}-mp3`} song={currentSong} />}
             {currentSong.type === 'none' && (
               <div className="flex items-center justify-center h-full">
                 <p className="text-sm text-muted-foreground">Cannot play this media</p>
