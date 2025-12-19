@@ -80,7 +80,11 @@ function CommentItem({
   )
 }
 
-export function SongInfoSidebar() {
+interface SongInfoSidebarProps {
+  isDesktop: boolean
+}
+
+export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
   const { currentSong } = usePlayerStore()
   const [comment, setComment] = useState('')
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -220,17 +224,20 @@ export function SongInfoSidebar() {
       <div className="flex-1 overflow-y-auto pb-24">
         <div className="space-y-6">
           {/* Video Player - FIRST! */}
-          <div className="aspect-video bg-black">
-            {currentSong.type === 'youtube' && <YouTubePlayer key={`player-${currentSong.id}-youtube`} song={currentSong} />}
-            {currentSong.type === 'soundcloud' && <SoundCloudPlayer key={`player-${currentSong.id}-soundcloud`} song={currentSong} />}
-            {currentSong.type === 'vimeo' && <VimeoPlayer key={`player-${currentSong.id}-vimeo`} song={currentSong} />}
-            {currentSong.type === 'mp3' && <MP3Player key={`player-${currentSong.id}-mp3`} song={currentSong} />}
-            {currentSong.type === 'none' && (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">Cannot play this media</p>
-              </div>
-            )}
-          </div>
+          {/* Only render player on desktop to prevent duplicate players */}
+          {isDesktop && (
+            <div className="aspect-video bg-black">
+              {currentSong.type === 'youtube' && <YouTubePlayer key="youtube-player" song={currentSong} />}
+              {currentSong.type === 'soundcloud' && <SoundCloudPlayer key="soundcloud-player" song={currentSong} />}
+              {currentSong.type === 'vimeo' && <VimeoPlayer key="vimeo-player" song={currentSong} />}
+              {currentSong.type === 'mp3' && <MP3Player key="mp3-player" song={currentSong} />}
+              {currentSong.type === 'none' && (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-muted-foreground">Cannot play this media</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Content with padding */}
           <div className="space-y-8">

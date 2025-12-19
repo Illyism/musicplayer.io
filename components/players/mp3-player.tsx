@@ -72,7 +72,14 @@ export function MP3Player({ song }: MP3PlayerProps) {
     }
 
     if (isPlaying) {
-      audio.play().catch(() => {})
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          // Autoplay was prevented - this is expected in some browsers
+          // User will need to interact to start playback
+          console.debug('Autoplay prevented:', error)
+        })
+      }
     } else {
       audio.pause()
     }

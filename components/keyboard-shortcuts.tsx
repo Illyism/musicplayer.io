@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePlayerStore } from '@/lib/store/player-store'
 
 interface KeyboardShortcutsProps {
@@ -10,6 +10,9 @@ interface KeyboardShortcutsProps {
 export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
   const { isPlaying, volume, togglePlay, next, previous, setVolume, shufflePlaylist } =
     usePlayerStore()
+
+  // Store previous volume for unmute
+  const previousVolumeRef = useRef<number>(100)
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -52,6 +55,9 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
         e.preventDefault()
         const newVolume = Math.min(100, volume + 10)
         setVolume(newVolume)
+        if (newVolume > 0) {
+          previousVolumeRef.current = newVolume
+        }
       }
 
       // Arrow Down - Volume Down
@@ -59,6 +65,9 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
         e.preventDefault()
         const newVolume = Math.max(0, volume - 10)
         setVolume(newVolume)
+        if (newVolume > 0) {
+          previousVolumeRef.current = newVolume
+        }
       }
 
       // S - Shuffle
@@ -73,10 +82,14 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
       if (e.key === 'm' || e.key === 'M') {
         if (!e.ctrlKey && !e.metaKey) {
           e.preventDefault()
-          if (volume > 0) {
+          const currentVolume = usePlayerStore.getState().volume
+          if (currentVolume > 0) {
+            // Mute: save current volume and set to 0
+            previousVolumeRef.current = currentVolume
             setVolume(0)
           } else {
-            setVolume(100)
+            // Unmute: restore previous volume (or 100 if never set)
+            setVolume(previousVolumeRef.current || 100)
           }
         }
       }

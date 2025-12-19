@@ -95,7 +95,7 @@ function SubredditContent() {
               maxSize={45}
               className="bg-card border-l border-border flex flex-col"
             >
-              <SongInfoSidebar />
+              <SongInfoSidebar isDesktop={isDesktop} />
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : (
@@ -131,7 +131,7 @@ function SubredditContent() {
                   ${mobileView === 'player' ? 'block' : 'hidden'}
                 `}
               >
-                <PlayerPanel />
+                <PlayerPanel isDesktop={isDesktop} />
               </div>
             )}
           </>

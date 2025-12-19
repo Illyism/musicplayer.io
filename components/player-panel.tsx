@@ -70,7 +70,11 @@ function CommentItem({
   )
 }
 
-export function PlayerPanel() {
+interface PlayerPanelProps {
+  isDesktop: boolean
+}
+
+export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
   const currentSong = usePlayerStore(state => state.currentSong)
   const [comments, setComments] = useState<Comment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
@@ -84,13 +88,16 @@ export function PlayerPanel() {
       return
     }
 
-    console.log('[Mobile] Loading comments for:', currentSong.title)
+    const songTitle = currentSong.title
+    const songPermalink = currentSong.permalink
+
+    console.log('[Mobile] Loading comments for:', songTitle)
     setLoadingComments(true)
 
     const loadComments = async () => {
       try {
         const { getComments } = await import('@/lib/actions/reddit')
-        const data = await getComments(currentSong.permalink)
+        const data = await getComments(songPermalink)
         console.log('[Mobile] Comments loaded:', data.comments?.length || 0)
         setComments(data.comments || [])
       } catch (error) {
@@ -101,6 +108,7 @@ export function PlayerPanel() {
     }
 
     loadComments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?.id]) // Only reload when song ID changes, not object reference
 
   const handleLogin = (action: string) => {
@@ -125,17 +133,26 @@ export function PlayerPanel() {
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
       {/* Player */}
-      <div className="relative aspect-video bg-black shrink-0">
-        {currentSong.type === 'youtube' && <YouTubePlayer key={`player-mobile-${currentSong.id}-youtube`} song={currentSong} />}
-        {currentSong.type === 'soundcloud' && <SoundCloudPlayer key={`player-mobile-${currentSong.id}-soundcloud`} song={currentSong} />}
-        {currentSong.type === 'vimeo' && <VimeoPlayer key={`player-mobile-${currentSong.id}-vimeo`} song={currentSong} />}
-        {currentSong.type === 'mp3' && <MP3Player key={`player-mobile-${currentSong.id}-mp3`} song={currentSong} />}
-        {currentSong.type === 'none' && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">Cannot play this media</p>
-          </div>
-        )}
-      </div>
+      {/* Only render player on mobile to prevent duplicate players */}
+      {!isDesktop && (
+        <div className="relative aspect-video bg-black shrink-0">
+          {currentSong.type === 'youtube' && (
+            <YouTubePlayer key="youtube-player-mobile" song={currentSong} />
+          )}
+          {currentSong.type === 'soundcloud' && (
+            <SoundCloudPlayer key="soundcloud-player-mobile" song={currentSong} />
+          )}
+          {currentSong.type === 'vimeo' && (
+            <VimeoPlayer key="vimeo-player-mobile" song={currentSong} />
+          )}
+          {currentSong.type === 'mp3' && <MP3Player key="mp3-player-mobile" song={currentSong} />}
+          {currentSong.type === 'none' && (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">Cannot play this media</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Song Info */}
       <div className="p-4 space-y-4">

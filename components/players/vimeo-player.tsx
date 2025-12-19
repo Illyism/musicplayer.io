@@ -25,15 +25,23 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
 
   const videoId = extractVimeoId(song.url)
 
+  // Initialize Vimeo player (only once, keep persistent)
   useEffect(() => {
-    if (!videoId || !iframeRef.current) return
+    if (!iframeRef.current) return
 
     let mounted = true
     let player: any = null
-    videoIdRef.current = videoId
+
+    // Set initial videoId
+    if (videoId) {
+      videoIdRef.current = videoId
+    }
 
     const initPlayer = () => {
       if (!window.Vimeo || !mounted || !iframeRef.current) return
+
+      // Only create player if it doesn't exist
+      if (playerRef.current) return
 
       try {
         player = new window.Vimeo.Player(iframeRef.current)
@@ -41,35 +49,89 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
         window.__vimeoPlayer = player
 
         player.ready().then(() => {
-          if (!mounted || videoIdRef.current !== videoId) return
+          if (!mounted) return
 
           setIsReady(true)
 
-          const state = usePlayerStore.getState()
+          // Load initial video if we have one
+          if (videoIdRef.current) {
+            loadVideo(player, videoIdRef.current)
+          }
+        })
+
+        player.on('timeupdate', (data: any) => {
+          if (!mounted || videoIdRef.current === null) return
+
           try {
-            player.setVolume(volume / 100)
-            // If there's a saved currentTime > 0, seek to it (preserve playback position)
-            if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
-              player.setCurrentTime(state.currentTime).catch(() => {})
+            if (data?.seconds && typeof data.seconds === 'number') {
+              setCurrentTime(data.seconds)
             }
-          } catch (e) {
-            console.error('Vimeo volume error:', e)
+          } catch (_e) {
+            // Ignore
+          }
+        })
+
+        player.getDuration().then((dur: number) => {
+          if (!mounted || videoIdRef.current === null) return
+
+          try {
+            if (dur > 0 && isFinite(dur)) {
+              setDuration(dur)
+            }
+          } catch (_e) {
+            // Ignore
+          }
+        })
+
+        player.on('ended', () => {
+          if (!mounted || videoIdRef.current === null) return
+          const state = usePlayerStore.getState()
+          state.next()
+        })
+
+        player.on('play', () => {
+          if (!mounted || videoIdRef.current === null) return
+          const state = usePlayerStore.getState()
+          if (!state.isPlaying) {
+            state.play()
+          }
+        })
+
+        player.on('pause', () => {
+          if (!mounted || videoIdRef.current === null) return
+          const state = usePlayerStore.getState()
+          if (state.isPlaying) {
+            state.pause()
+          }
+        })
+
+        player.on('error', (e: any) => {
+          console.error('Vimeo error:', e)
+        })
+      } catch (error) {
+        console.error('Vimeo init error:', error)
+      }
+    }
+
+    const loadVideo = (playerInstance: any, newVideoId: string) => {
+      if (!mounted || !playerInstance) return
+
+      try {
+        const state = usePlayerStore.getState()
+        playerInstance.setVolume(volume / 100)
+
+        // Load the new video
+        playerInstance.loadVideo(newVideoId).then(() => {
+          if (!mounted || videoIdRef.current !== newVideoId) return
+
+          // Seek to saved position if needed
+          if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
+            playerInstance.setCurrentTime(state.currentTime).catch(() => {})
           }
 
-          player.on('timeupdate', (data: any) => {
-            if (!mounted || videoIdRef.current !== videoId) return
-
-            try {
-              if (data?.seconds && typeof data.seconds === 'number') {
-                setCurrentTime(data.seconds)
-              }
-            } catch (_e) {
-              // Ignore
-            }
-          })
-
-          player.getDuration().then((dur: number) => {
-            if (!mounted || videoIdRef.current !== videoId) return
+          // Get duration
+          playerInstance.getDuration().then((dur: number) => {
+            if (!mounted || videoIdRef.current !== newVideoId) return
 
             try {
               if (dur > 0 && isFinite(dur)) {
@@ -80,38 +142,25 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
             }
           })
 
-          player.on('ended', () => {
-            if (!mounted || videoIdRef.current !== videoId) return
-            const state = usePlayerStore.getState()
-            state.next()
-          })
-
-          player.on('play', () => {
-            if (!mounted || videoIdRef.current !== videoId) return
-            const state = usePlayerStore.getState()
-            if (!state.isPlaying) {
-              state.play()
-            }
-          })
-
-          player.on('pause', () => {
-            if (!mounted || videoIdRef.current !== videoId) return
-            const state = usePlayerStore.getState()
-            if (state.isPlaying) {
-              state.pause()
-            }
-          })
-
-          if (isPlaying) {
-            player.play().catch(() => {})
+          // Explicitly play if needed
+          if (state.isPlaying) {
+            setTimeout(() => {
+              if (mounted && playerRef.current && videoIdRef.current === newVideoId) {
+                try {
+                  playerInstance.play().catch(() => {
+                    // Handle autoplay rejection
+                  })
+                } catch (_e) {
+                  // Handle autoplay rejection
+                }
+              }
+            }, 100)
           }
+        }).catch(() => {
+          // Handle load error
         })
-
-        player.on('error', (e: any) => {
-          console.error('Vimeo error:', e)
-        })
-      } catch (error) {
-        console.error('Vimeo init error:', error)
+      } catch (_e) {
+        // Silently handle errors
       }
     }
 
@@ -128,8 +177,6 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
 
     return () => {
       mounted = false
-      videoIdRef.current = null
-      setIsReady(false)
 
       if (player) {
         try {
@@ -145,15 +192,80 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
       }
 
       playerRef.current = null
+      setIsReady(false)
+      videoIdRef.current = null
     }
-  }, [videoId, isPlaying, setCurrentTime, setDuration, volume])
+  }, [setCurrentTime, setDuration]) // Only run once on mount
+
+  // Handle videoId changes - load new video without destroying player
+  useEffect(() => {
+    if (!videoId) return
+
+    // If player is ready and videoId changed, load new video
+    if (isReady && playerRef.current && videoIdRef.current !== videoId) {
+      videoIdRef.current = videoId
+      const playerInstance = playerRef.current
+
+      try {
+        const state = usePlayerStore.getState()
+        playerInstance.setVolume(volume / 100)
+
+        // Load the new video
+        playerInstance.loadVideo(videoId).then(() => {
+          if (videoIdRef.current !== videoId) return
+
+          // Seek to saved position if needed
+          if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
+            playerInstance.setCurrentTime(state.currentTime).catch(() => {})
+          }
+
+          // Get duration
+          playerInstance.getDuration().then((dur: number) => {
+            if (videoIdRef.current !== videoId) return
+
+            try {
+              if (dur > 0 && isFinite(dur)) {
+                setDuration(dur)
+              }
+            } catch (_e) {
+              // Ignore
+            }
+          })
+
+          // Explicitly play if needed
+          if (state.isPlaying) {
+            setTimeout(() => {
+              if (playerRef.current && videoIdRef.current === videoId) {
+                try {
+                  playerInstance.play().catch(() => {
+                    // Handle autoplay rejection
+                  })
+                } catch (_e) {
+                  // Handle autoplay rejection
+                }
+              }
+            }, 100)
+          }
+        }).catch(() => {
+          // Handle load error
+        })
+      } catch (_e) {
+        // Silently handle errors
+      }
+    } else if (!isReady && videoId) {
+      // Store videoId for when player becomes ready
+      videoIdRef.current = videoId
+    }
+  }, [videoId, isReady, volume])
 
   useEffect(() => {
     if (!isReady || !playerRef.current || videoIdRef.current !== videoId) return
 
     try {
       if (isPlaying) {
-        playerRef.current.play()
+        playerRef.current.play().catch(() => {
+          // Handle autoplay rejection
+        })
       } else {
         playerRef.current.pause()
       }
@@ -172,6 +284,16 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
     }
   }, [volume, isReady, videoId])
 
+  // Update iframe src when videoId changes (but keep iframe persistent)
+  useEffect(() => {
+    if (iframeRef.current && videoId) {
+      const vimeoUrl = `https://player.vimeo.com/video/${videoId}?api=1`
+      if (iframeRef.current.src !== vimeoUrl) {
+        iframeRef.current.src = vimeoUrl
+      }
+    }
+  }, [videoId])
+
   if (!videoId) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -184,7 +306,6 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
     <div className="relative w-full h-full">
       <iframe
         ref={iframeRef}
-        key={videoId}
         src={`https://player.vimeo.com/video/${videoId}?api=1`}
         width="100%"
         height="100%"

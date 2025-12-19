@@ -53,8 +53,20 @@ const AfterSchema = z.string().max(50).optional()
 
 const PermalinkSchema = z
   .string()
-  .regex(/^\/r\/[a-zA-Z0-9_/.-]+$|^\/user\/[a-zA-Z0-9_/.-]+$/, 'Invalid permalink format')
-  .max(500)
+  .refine(
+    (val) => {
+      // Must start with /r/ or /user/
+      if (!val.startsWith('/r/') && !val.startsWith('/user/')) {
+        return false
+      }
+      // Must be a valid path - allow most URL-safe characters
+      // Reddit permalinks can contain various characters in post titles and paths
+      // Examples: /r/subreddit/comments/post_id/title/ or /r/subreddit/comments/post_id/title/comment_id/
+      const isValidPath = /^\/r\/.+$/.test(val) || /^\/user\/.+$/.test(val)
+      return isValidPath && val.length <= 500 && val.length > 3
+    },
+    { message: 'Invalid permalink format' }
+  )
 
 const SearchQuerySchema = z
   .string()
