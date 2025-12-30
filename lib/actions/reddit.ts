@@ -1,9 +1,9 @@
 'use server'
 
+import { handleRedditApiError } from '@/lib/utils/error-handler'
+import { cacheLife } from 'next/cache'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import { cacheLife } from 'next/cache'
-import { handleRedditApiError } from '@/lib/utils/error-handler'
 
 // Reddit requires User-Agent in format: <platform>:<app ID>:<version> (by /u/<username>)
 const REDDIT_USERNAME = process.env.REDDIT_USERNAME || 'musicplayer'
@@ -29,12 +29,22 @@ const getAuthHeader = (accessToken?: string): string => {
 // Validation schemas
 const SubredditSchema = z
   .string()
-  .regex(
-    /^[a-zA-Z0-9_+-]+$/,
-    'Subreddit name can only contain alphanumeric characters, underscores, hyphens, and plus signs'
-  )
   .min(1)
-  .max(100)
+  .max(500) // Allow longer strings for multi-subreddit queries (e.g., "sub1+sub2+sub3")
+  .refine(
+    val => {
+      // Split by + to handle multi-subreddit queries
+      const subreddits = val.split('+')
+      // Validate each individual subreddit
+      return subreddits.every(
+        sub => sub.length > 0 && sub.length <= 100 && /^[a-zA-Z0-9_+-]+$/.test(sub)
+      )
+    },
+    {
+      message:
+        'Subreddit name(s) can only contain alphanumeric characters, underscores, hyphens, and plus signs. Each subreddit must be <=100 characters.',
+    }
+  )
 
 const SortSchema = z.enum(['hot', 'new', 'top', 'rising', 'relevance']).default('hot')
 
@@ -51,22 +61,20 @@ const LimitSchema = z
 
 const AfterSchema = z.string().max(50).optional()
 
-const PermalinkSchema = z
-  .string()
-  .refine(
-    (val) => {
-      // Must start with /r/ or /user/
-      if (!val.startsWith('/r/') && !val.startsWith('/user/')) {
-        return false
-      }
-      // Must be a valid path - allow most URL-safe characters
-      // Reddit permalinks can contain various characters in post titles and paths
-      // Examples: /r/subreddit/comments/post_id/title/ or /r/subreddit/comments/post_id/title/comment_id/
-      const isValidPath = /^\/r\/.+$/.test(val) || /^\/user\/.+$/.test(val)
-      return isValidPath && val.length <= 500 && val.length > 3
-    },
-    { message: 'Invalid permalink format' }
-  )
+const PermalinkSchema = z.string().refine(
+  val => {
+    // Must start with /r/ or /user/
+    if (!val.startsWith('/r/') && !val.startsWith('/user/')) {
+      return false
+    }
+    // Must be a valid path - allow most URL-safe characters
+    // Reddit permalinks can contain various characters in post titles and paths
+    // Examples: /r/subreddit/comments/post_id/title/ or /r/subreddit/comments/post_id/title/comment_id/
+    const isValidPath = /^\/r\/.+$/.test(val) || /^\/user\/.+$/.test(val)
+    return isValidPath && val.length <= 500 && val.length > 3
+  },
+  { message: 'Invalid permalink format' }
+)
 
 const SearchQuerySchema = z
   .string()
