@@ -218,6 +218,7 @@ export function PlaylistPanel() {
                               width={40}
                               height={40}
                               className="rounded object-cover shrink-0"
+                              style={{ width: 40, height: 40 }}
                               unoptimized={isRedditHostedImage(song.thumbnail)}
                             />
                           )}
@@ -268,6 +269,7 @@ export function PlaylistPanel() {
                         width={48}
                         height={48}
                         className="rounded object-cover shrink-0"
+                        style={{ width: 48, height: 48 }}
                         unoptimized={isRedditHostedImage(song.thumbnail)}
                       />
                     )}

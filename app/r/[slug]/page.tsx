@@ -59,14 +59,10 @@ function SubredditContent() {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {/* Browse Panel - Left */}
             <ResizablePanel
-              defaultSize={20}
-              minSize={15}
-              maxSize={35}
-              className={`
-                bg-card border-r border-border
-                overflow-y-auto
-                ${mobileView === 'browse' ? 'block' : 'hidden md:block'}
-              `}
+              defaultSize="20%"
+              minSize="15%"
+              maxSize="35%"
+              className="bg-card border-r border-border overflow-y-auto"
             >
               <BrowsePanel />
             </ResizablePanel>
@@ -75,13 +71,9 @@ function SubredditContent() {
 
             {/* Playlist Panel - Center */}
             <ResizablePanel
-              defaultSize={isDesktop ? 50 : 100}
-              minSize={30}
-              className={`
-                bg-background
-                overflow-y-auto
-                ${mobileView === 'playlist' ? 'block' : 'hidden md:block'}
-              `}
+              defaultSize="50%"
+              minSize="30%"
+              className="bg-background overflow-y-auto"
             >
               <PlaylistPanel />
             </ResizablePanel>
@@ -90,9 +82,9 @@ function SubredditContent() {
 
             {/* Song Info Sidebar - Right */}
             <ResizablePanel
-              defaultSize={30}
-              minSize={20}
-              maxSize={45}
+              defaultSize="30%"
+              minSize="20%"
+              maxSize="45%"
               className="bg-card border-l border-border flex flex-col"
             >
               <SongInfoSidebar isDesktop={isDesktop} />
@@ -103,10 +95,10 @@ function SubredditContent() {
           <>
             <div
               className={`
-                w-full md:w-72 lg:w-80
+                w-full
                 bg-card border-r border-border
                 overflow-y-auto
-                ${mobileView === 'browse' ? 'block' : 'hidden md:block'}
+                ${mobileView === 'browse' ? 'block' : 'hidden'}
               `}
             >
               <BrowsePanel />
@@ -114,9 +106,9 @@ function SubredditContent() {
 
             <div
               className={`
-                flex-1 bg-background
+                w-full bg-background
                 overflow-y-auto
-                ${mobileView === 'playlist' ? 'block' : 'hidden md:block'}
+                ${mobileView === 'playlist' ? 'block' : 'hidden'}
               `}
             >
               <PlaylistPanel />

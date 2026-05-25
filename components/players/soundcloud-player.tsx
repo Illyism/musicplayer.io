@@ -20,7 +20,8 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
   const widgetRef = useRef<any>(null)
   const songUrlRef = useRef<string | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay } = usePlayerStore()
+  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay } =
+    usePlayerStore()
 
   // Initialize widget (only once, keep persistent)
   useEffect(() => {
@@ -118,7 +119,10 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
               setDuration(dur / 1000)
 
               // Seek to saved position if needed
-              if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
+              if (
+                state.currentTime > 0 &&
+                (!state.duration || state.currentTime < state.duration)
+              ) {
                 const position = (state.currentTime / (dur / 1000)) * 1000
                 widgetInstance.seekTo(position)
               }
@@ -214,7 +218,10 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
               setDuration(dur / 1000)
 
               // Seek to saved position if needed
-              if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)) {
+              if (
+                state.currentTime > 0 &&
+                (!state.duration || state.currentTime < state.duration)
+              ) {
                 const position = (state.currentTime / (dur / 1000)) * 1000
                 widgetInstance.seekTo(position)
               }

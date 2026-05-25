@@ -42,7 +42,10 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/60">
       <div className="flex h-14 items-center px-4 md:px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
+        <Link
+          href="/"
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+        >
           <Image
             src="/favicon.ico"
             alt="Reddit Music Player"
@@ -57,7 +60,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
         </Link>
 
         {/* Desktop - Login and Menu */}
-        <div className="ml-auto hidden md:flex items-center gap-2">
+        <div className="ml-auto hidden lg:flex items-center gap-2">
           {/* Theme Toggle */}
           <ThemeToggle />
           {/* Keyboard Shortcuts Button */}
@@ -206,7 +209,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
         </div>
 
         {/* Mobile Navigation */}
-        <div className="ml-auto flex gap-2 md:hidden">
+        <div className="ml-auto flex gap-2 lg:hidden">
           <button
             onClick={() => setMobileView('browse')}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${

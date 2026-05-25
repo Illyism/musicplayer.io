@@ -6,6 +6,7 @@
  */
 
 import { $, spawn } from 'bun'
+import { isIP } from 'node:net'
 
 const SSH = 'illyism@94.130.66.215'
 const SSH_PORT = '10001'
@@ -20,36 +21,44 @@ if (!PROD_REDIS_URL) {
 }
 
 const url = new URL(PROD_REDIS_URL)
-const container = url.hostname
+const remoteHost = url.hostname
 const remotePort = url.port || DEFAULT_REDIS_PORT
 const localPort = process.argv[2] || DEFAULT_REDIS_PORT
 
-// Get container IP (Docker container names aren't resolvable via SSH)
-console.log(`🔍 Looking up container: ${container}`)
-const result =
-  await $`ssh -p ${SSH_PORT} ${SSH} "docker inspect ${container} --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"`.quiet()
+async function resolveTunnelTarget(host: string) {
+  if (isIP(host)) {
+    return host
+  }
 
-if (result.exitCode !== 0 || !result.stdout.toString().trim()) {
-  console.error(`❌ Container "${container}" not found on remote server`)
-  console.error(
-    '   Run: ssh -p 10001 illyism@94.130.66.215 "docker ps" to see available containers'
-  )
-  process.exit(1)
+  // Docker container names are often not resolvable from inside an SSH tunnel.
+  console.log(`🔍 Looking up container: ${host}`)
+  const result =
+    await $`ssh -p ${SSH_PORT} ${SSH} "docker inspect ${host} --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"`
+      .quiet()
+      .nothrow()
+
+  const containerIP = result.stdout.toString().trim()
+  if (result.exitCode === 0 && containerIP) {
+    console.log(`✅ Found: ${containerIP}`)
+    return containerIP
+  }
+
+  console.warn(`⚠️  "${host}" is not a Docker container name; using it as the SSH target host.`)
+  return host
 }
 
-const containerIP = result.stdout.toString().trim()
-console.log(`✅ Found: ${containerIP}`)
+const tunnelTarget = await resolveTunnelTarget(remoteHost)
 
 // Build local connection string, preserving credentials and DB/index path.
 url.hostname = 'localhost'
 url.port = localPort
 const localUrl = url.toString()
 
-console.log(`\n🚇 Tunnel: localhost:${localPort} → ${containerIP}:${remotePort}`)
+console.log(`\n🚇 Tunnel: localhost:${localPort} → ${tunnelTarget}:${remotePort}`)
 console.log(`\n💡 REDIS_URL="${localUrl}"\n`)
 
 const tunnel = spawn({
-  cmd: ['ssh', '-N', '-L', `${localPort}:${containerIP}:${remotePort}`, '-p', SSH_PORT, SSH],
+  cmd: ['ssh', '-N', '-L', `${localPort}:${tunnelTarget}:${remotePort}`, '-p', SSH_PORT, SSH],
   stdout: 'inherit',
   stderr: 'inherit',
 })

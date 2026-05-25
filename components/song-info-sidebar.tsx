@@ -227,9 +227,15 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
           {/* Only render player on desktop to prevent duplicate players */}
           {isDesktop && (
             <div className="aspect-video bg-black">
-              {currentSong.type === 'youtube' && <YouTubePlayer key="youtube-player" song={currentSong} />}
-              {currentSong.type === 'soundcloud' && <SoundCloudPlayer key="soundcloud-player" song={currentSong} />}
-              {currentSong.type === 'vimeo' && <VimeoPlayer key="vimeo-player" song={currentSong} />}
+              {currentSong.type === 'youtube' && (
+                <YouTubePlayer key="youtube-player" song={currentSong} />
+              )}
+              {currentSong.type === 'soundcloud' && (
+                <SoundCloudPlayer key="soundcloud-player" song={currentSong} />
+              )}
+              {currentSong.type === 'vimeo' && (
+                <VimeoPlayer key="vimeo-player" song={currentSong} />
+              )}
               {currentSong.type === 'mp3' && <MP3Player key="mp3-player" song={currentSong} />}
               {currentSong.type === 'none' && (
                 <div className="flex items-center justify-center h-full">
