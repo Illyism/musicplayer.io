@@ -3,19 +3,19 @@ import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Reddit Music Player | Stream Music from Subreddits',
+  title: 'Music Player for Reddit | Stream Music from Subreddits',
   description:
-    'Discover and stream music from Reddit. Browse subreddits, play YouTube, SoundCloud, and Vimeo content in a beautiful Spotify-like interface.',
+    'Discover and stream music from Reddit communities. Browse subreddits, play YouTube, SoundCloud, and Vimeo content in a focused music player.',
   keywords: ['reddit', 'music', 'player', 'streaming', 'youtube', 'soundcloud', 'playlist'],
-  authors: [{ name: 'Reddit Music Player' }],
+  authors: [{ name: 'Music Player for Reddit' }],
   openGraph: {
-    title: 'Reddit Music Player',
+    title: 'Music Player for Reddit',
     description: 'Stream music from Reddit subreddits',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Reddit Music Player',
+    title: 'Music Player for Reddit',
     description: 'Stream music from Reddit subreddits',
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),

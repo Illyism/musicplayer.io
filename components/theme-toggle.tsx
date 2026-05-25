@@ -1,6 +1,6 @@
 'use client'
 
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun } from '@phosphor-icons/react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <Button variant="ghost" size="icon" aria-label="Toggle theme">
-        <Sun className="h-5 w-5" />
+        <Sun className="h-5 w-5" weight="fill" />
       </Button>
     )
   }
@@ -29,7 +29,11 @@ export function ThemeToggle() {
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       aria-label="Toggle theme"
     >
-      {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      {theme === 'dark' ? (
+        <Sun className="h-5 w-5" weight="fill" />
+      ) : (
+        <Moon className="h-5 w-5" weight="fill" />
+      )}
     </Button>
   )
 }

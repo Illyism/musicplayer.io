@@ -1,6 +1,6 @@
 'use client'
 
-import { Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowsInSimple, ArrowsOutSimple } from '@phosphor-icons/react'
 import { Song, usePlayerStore } from '@/lib/store/player-store'
 import { YouTubePlayer } from './players/youtube-player'
 import { SoundCloudPlayer } from './players/soundcloud-player'
@@ -62,9 +62,9 @@ export function MediaPlayerFrame({
             title={isTheatreMode ? 'Exit theatre mode' : 'Theatre mode'}
           >
             {isTheatreMode ? (
-              <Minimize2 className="h-3.5 w-3.5" />
+              <ArrowsInSimple className="h-3.5 w-3.5" weight="fill" />
             ) : (
-              <Maximize2 className="h-3.5 w-3.5" />
+              <ArrowsOutSimple className="h-3.5 w-3.5" weight="fill" />
             )}
             <span className="hidden sm:inline">{isTheatreMode ? 'Exit theatre' : 'Theatre'}</span>
           </button>

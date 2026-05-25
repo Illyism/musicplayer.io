@@ -1,6 +1,6 @@
 'use client'
 
-import { Music, ExternalLink, MessageCircle, ArrowUp } from 'lucide-react'
+import { ArrowSquareOut, ArrowUp, ChatCircle, MusicNote } from '@phosphor-icons/react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
 import { MediaPlayerFrame } from './media-player-frame'
@@ -42,7 +42,7 @@ function CommentItem({
             onClick={() => onLogin('vote')}
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
-            <ArrowUp className="h-3 w-3" />
+            <ArrowUp className="h-3 w-3" weight="fill" />
             <span>{comment.score}</span>
           </button>
           {hasReplies && (
@@ -117,7 +117,7 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
         <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <Music className="w-10 h-10 text-primary" />
+          <MusicNote className="w-10 h-10 text-primary" weight="fill" />
         </div>
         <h3 className="text-lg font-semibold mb-2">No song playing</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
@@ -183,7 +183,7 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
             rel="noopener noreferrer"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ArrowSquareOut className="h-4 w-4" weight="fill" />
             Reddit
           </a>
           {currentSong.url && (
@@ -193,7 +193,7 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
               rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ArrowSquareOut className="h-4 w-4" weight="fill" />
               Source
             </a>
           )}
@@ -202,7 +202,7 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
         {/* Comments Section */}
         <div className="border-t border-border pt-4 mt-4">
           <div className="flex items-center gap-2 mb-4">
-            <MessageCircle className="h-5 w-5 text-primary" />
+            <ChatCircle className="h-5 w-5 text-primary" weight="fill" />
             <h3 className="text-base font-bold">Comments</h3>
             <span className="text-sm text-muted-foreground">
               ({currentSong.num_comments.toLocaleString()})
@@ -225,7 +225,10 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
             </div>
           ) : (
             <div className="text-center py-12 bg-secondary/30 rounded-lg border border-border">
-              <MessageCircle className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+              <ChatCircle
+                className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50"
+                weight="fill"
+              />
               <p className="text-sm font-medium mb-1">No comments yet</p>
               <p className="text-xs text-muted-foreground">Be the first to comment on Reddit!</p>
             </div>

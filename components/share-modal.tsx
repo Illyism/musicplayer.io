@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Copy, Check, Share2 } from 'lucide-react'
+import { Check, Copy, ShareNetwork, X } from '@phosphor-icons/react'
 
 function TwitterIcon({ className }: { className?: string }) {
   return (
@@ -104,7 +104,7 @@ export function ShareModal({ isOpen, onClose, subreddits }: ShareModalProps) {
             size="icon"
             className="text-muted-foreground hover:text-foreground transition-colors h-auto w-auto p-0"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" weight="bold" />
           </Button>
         </div>
 
@@ -130,7 +130,11 @@ export function ShareModal({ isOpen, onClose, subreddits }: ShareModalProps) {
                 variant="ghost"
                 className="hover:text-primary"
               >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? (
+                  <Check className="w-4 h-4" weight="bold" />
+                ) : (
+                  <Copy className="w-4 h-4" weight="fill" />
+                )}
               </Button>
             </div>
           </div>
@@ -155,7 +159,11 @@ export function ShareModal({ isOpen, onClose, subreddits }: ShareModalProps) {
                 variant="ghost"
                 className="hover:text-primary"
               >
-                {copiedShort ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiedShort ? (
+                  <Check className="w-4 h-4" weight="bold" />
+                ) : (
+                  <Copy className="w-4 h-4" weight="fill" />
+                )}
               </Button>
             </div>
           </div>
@@ -183,7 +191,7 @@ export function ShareModal({ isOpen, onClose, subreddits }: ShareModalProps) {
               size="sm"
               className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              <Share2 className="w-4 h-4 mr-2" />
+              <ShareNetwork className="w-4 h-4 mr-2" weight="fill" />
               Reddit
             </Button>
           </div>

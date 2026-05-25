@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { Play, Shuffle, ChevronDown } from 'lucide-react'
+import { CaretDown, Play, Shuffle } from '@phosphor-icons/react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
@@ -61,20 +61,20 @@ export function PlaylistPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-6 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-lg font-bold mb-1">Playlist</h2>
+            <h2 className="text-lg font-bold mb-0.5">All Music</h2>
             <p className="text-sm text-muted-foreground">
               {songs.length} {songs.length === 1 ? 'song' : 'songs'}
             </p>
           </div>
           <button
             onClick={shufflePlaylist}
-            className="p-2 hover:bg-secondary rounded-md transition-colors"
+            className="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors"
             title="Shuffle"
           >
-            <Shuffle className="h-4 w-4" />
+            <Shuffle className="h-4 w-4" weight="fill" />
           </button>
         </div>
 
@@ -83,7 +83,7 @@ export function PlaylistPanel() {
           <button
             onClick={() => handleSortChange('hot')}
             disabled={loading}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
               sortMethod === 'hot'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary hover:bg-secondary/80'
@@ -97,7 +97,7 @@ export function PlaylistPanel() {
           <button
             onClick={() => handleSortChange('new')}
             disabled={loading}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
               sortMethod === 'new'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary hover:bg-secondary/80'
@@ -111,7 +111,7 @@ export function PlaylistPanel() {
           <button
             onClick={() => handleSortChange('top')}
             disabled={loading}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
               sortMethod === 'top'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary hover:bg-secondary/80'
@@ -139,7 +139,10 @@ export function PlaylistPanel() {
                 <option value="year">This Year</option>
                 <option value="all">All Time</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none" />
+              <CaretDown
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none"
+                weight="fill"
+              />
             </div>
           )}
         </div>
@@ -174,12 +177,12 @@ export function PlaylistPanel() {
             <div className="hidden md:block">
               <table className="w-full table-fixed">
                 <thead className="sticky top-0 bg-background/95 backdrop-blur-sm z-10">
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="w-[50px] text-center py-3">#</th>
-                    <th className="text-left py-3 px-4">Title</th>
-                    <th className="text-left py-3 px-4 w-[140px]">Subreddit</th>
-                    <th className="text-left py-3 px-4 w-[110px]">Date Added</th>
-                    <th className="text-right py-3 px-4 w-[80px]">Karma</th>
+                  <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <th className="w-[44px] text-center py-2.5">#</th>
+                    <th className="text-left py-2.5 px-3">Title</th>
+                    <th className="text-left py-2.5 px-3 w-[130px]">Subreddit</th>
+                    <th className="text-left py-2.5 px-3 w-[105px]">Added</th>
+                    <th className="text-right py-2.5 px-3 w-[70px]">Karma</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -188,10 +191,12 @@ export function PlaylistPanel() {
                       key={`${song.id}-${index}`}
                       onClick={() => setCurrentSong(index)}
                       className={`group cursor-pointer transition-colors ${
-                        currentIndex === index ? 'bg-primary/10' : 'hover:bg-secondary/50'
+                        currentIndex === index
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-secondary/40'
                       }`}
                     >
-                      <td className="text-center py-3 w-[50px]">
+                      <td className="text-center py-2.5 w-[44px]">
                         <div className="flex items-center justify-center">
                           {currentIndex === index && isPlaying ? (
                             <div className="flex gap-0.5 items-end h-4">
@@ -204,21 +209,21 @@ export function PlaylistPanel() {
                               <span className="text-xs text-muted-foreground group-hover:hidden">
                                 {index + 1}
                               </span>
-                              <Play className="h-3 w-3 hidden group-hover:block" />
+                              <Play className="h-3 w-3 hidden group-hover:block" weight="fill" />
                             </>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 overflow-hidden">
+                      <td className="py-2.5 px-3 overflow-hidden">
                         <div className="flex items-center gap-3 min-w-0">
                           {song.thumbnail && (
                             <Image
                               src={song.thumbnail}
                               alt=""
-                              width={40}
-                              height={40}
+                              width={36}
+                              height={36}
                               className="rounded object-cover shrink-0"
-                              style={{ width: 40, height: 40 }}
+                              style={{ width: 36, height: 36 }}
                               unoptimized={isRedditHostedImage(song.thumbnail)}
                             />
                           )}
@@ -230,17 +235,19 @@ export function PlaylistPanel() {
                             >
                               {song.title}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">{song.author}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              u/{song.author}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 w-[140px]">
+                      <td className="py-2.5 px-3 w-[130px]">
                         <p className="text-xs text-muted-foreground truncate">r/{song.subreddit}</p>
                       </td>
-                      <td className="py-3 px-4 w-[110px]">
+                      <td className="py-2.5 px-3 w-[105px]">
                         <p className="text-xs text-muted-foreground truncate">{song.created_ago}</p>
                       </td>
-                      <td className="py-3 px-4 text-right w-[80px]">
+                      <td className="py-2.5 px-3 text-right w-[70px]">
                         <p className="text-xs text-muted-foreground">{song.score}</p>
                       </td>
                     </tr>

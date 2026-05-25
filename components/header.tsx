@@ -1,8 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
-import { Menu, LogIn, Keyboard, LogOut, User } from 'lucide-react'
+import { Keyboard, List, SignIn, SignOut, User } from '@phosphor-icons/react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
 import { ThemeToggle } from './theme-toggle'
@@ -40,27 +39,20 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/60">
-      <div className="flex h-14 items-center px-4 md:px-6">
+      <div className="flex h-12 items-center px-3 md:px-4">
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+          className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
         >
-          <Image
-            src="/favicon.ico"
-            alt="Reddit Music Player"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
           <div className="hidden md:block">
-            <h1 className="text-lg font-bold">Reddit Music</h1>
+            <h1 className="text-sm font-bold leading-tight">Music Player for Reddit</h1>
             <p className="text-xs text-muted-foreground">Stream from subreddits</p>
           </div>
         </Link>
 
         {/* Desktop - Login and Menu */}
-        <div className="ml-auto hidden lg:flex items-center gap-2">
+        <div className="ml-auto hidden lg:flex items-center gap-1.5">
           {/* Theme Toggle */}
           <ThemeToggle />
           {/* Keyboard Shortcuts Button */}
@@ -70,13 +62,13 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
             onClick={() => setIsKeyboardModalOpen(true)}
             aria-label="Keyboard shortcuts"
           >
-            <Keyboard className="h-5 w-5" />
+            <Keyboard className="h-5 w-5" weight="fill" />
           </Button>{' '}
           {/* Menu Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2">
-                <Menu className="h-4 w-4" />
+                <List className="h-4 w-4" weight="fill" />
                 Menu
               </Button>
             </DropdownMenuTrigger>
@@ -181,7 +173,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <User className="h-4 w-4" />
+                  <User className="h-4 w-4" weight="fill" />
                   {username || 'User'}
                 </Button>
               </DropdownMenuTrigger>
@@ -190,7 +182,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
                   Signed in as {username}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout} className="text-destructive">
-                  <LogOut className="h-4 w-4 mr-2" />
+                  <SignOut className="h-4 w-4 mr-2" weight="fill" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -202,7 +194,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
               onClick={() => setShowLoginModal(true)}
               className="gap-2"
             >
-              <LogIn className="h-4 w-4" />
+              <SignIn className="h-4 w-4" weight="fill" />
               Sign in
             </Button>
           )}

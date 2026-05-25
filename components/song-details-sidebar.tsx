@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { ThumbsUp, ThumbsDown, MessageCircle, ExternalLink, LogIn } from 'lucide-react'
+import { ArrowSquareOut, ChatCircle, SignIn, ThumbsDown, ThumbsUp } from '@phosphor-icons/react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
 import { useState } from 'react'
@@ -15,7 +15,10 @@ export function SongDetailsSidebar() {
       <div className="hidden lg:flex lg:w-80 xl:w-96 border-l border-border">
         <div className="flex-1 p-6 flex items-center justify-center text-center">
           <div>
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <ChatCircle
+              className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50"
+              weight="fill"
+            />
             <p className="text-muted-foreground">Select a song to view details</p>
           </div>
         </div>
@@ -69,14 +72,14 @@ export function SongDetailsSidebar() {
               onClick={() => handleVote('up')}
               className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
             >
-              <ThumbsUp className="h-4 w-4" />
+              <ThumbsUp className="h-4 w-4" weight="fill" />
               <span className="text-sm font-medium">{currentSong.ups}</span>
             </button>
             <button
               onClick={() => handleVote('down')}
               className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
             >
-              <ThumbsDown className="h-4 w-4" />
+              <ThumbsDown className="h-4 w-4" weight="fill" />
               <span className="text-sm font-medium">{currentSong.downs || 0}</span>
             </button>
             <div className="ml-auto text-sm text-muted-foreground">Score: {currentSong.score}</div>
@@ -93,7 +96,7 @@ export function SongDetailsSidebar() {
                 className="text-primary hover:underline flex items-center gap-1"
               >
                 r/{currentSong.subreddit}
-                <ExternalLink className="h-3 w-3" />
+                <ArrowSquareOut className="h-3 w-3" weight="fill" />
               </a>
             </div>
             <div>
@@ -105,7 +108,7 @@ export function SongDetailsSidebar() {
                 className="text-primary hover:underline flex items-center gap-1 capitalize"
               >
                 {currentSong.type}
-                <ExternalLink className="h-3 w-3" />
+                <ArrowSquareOut className="h-3 w-3" weight="fill" />
               </a>
             </div>
             <div>
@@ -126,7 +129,7 @@ export function SongDetailsSidebar() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 w-full px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-md transition-colors"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ArrowSquareOut className="h-4 w-4" weight="fill" />
               <span className="text-sm font-medium">View on Reddit</span>
             </a>
             <a
@@ -135,7 +138,7 @@ export function SongDetailsSidebar() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 w-full px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-md transition-colors"
             >
-              <ExternalLink className="h-4 w-4" />
+              <ArrowSquareOut className="h-4 w-4" weight="fill" />
               <span className="text-sm font-medium">Open {currentSong.type}</span>
             </a>
           </div>
@@ -149,13 +152,16 @@ export function SongDetailsSidebar() {
               </button>
             </div>
             <div className="rounded-md border border-border bg-secondary/50 p-4 text-center">
-              <MessageCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+              <ChatCircle
+                className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50"
+                weight="fill"
+              />
               <p className="text-sm text-muted-foreground mb-3">Login to view and post comments</p>
               <button
                 onClick={() => setShowLoginPrompt(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
               >
-                <LogIn className="h-4 w-4" />
+                <SignIn className="h-4 w-4" weight="fill" />
                 Login with Reddit
               </button>
             </div>
@@ -185,7 +191,7 @@ export function SongDetailsSidebar() {
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
               >
-                <LogIn className="h-4 w-4" />
+                <SignIn className="h-4 w-4" weight="fill" />
                 Login
               </button>
               <button

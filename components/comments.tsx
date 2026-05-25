@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/errors/reddit-error'
 
@@ -38,7 +38,7 @@ function CommentItem({ comment, depth = 0 }: { comment: Comment; depth?: number 
         </p>
         <div className="flex items-center gap-4 mt-3 flex-wrap">
           <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <ArrowUp className="h-3 w-3" />
+            <ArrowUp className="h-3 w-3" weight="fill" />
             <span>{comment.score}</span>
           </div>
           {hasReplies && (

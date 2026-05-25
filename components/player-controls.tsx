@@ -1,9 +1,18 @@
 'use client'
 
-import { Play, Pause, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react'
+import Image from 'next/image'
+import {
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  SpeakerHigh,
+  SpeakerLow,
+  SpeakerX,
+} from '@phosphor-icons/react'
 import { useState, useRef } from 'react'
 import { usePlayerStore } from '@/lib/store/player-store'
-import { formatTime } from '@/lib/utils/song-utils'
+import { formatTime, isRedditHostedImage } from '@/lib/utils/song-utils'
 
 export function PlayerControls() {
   const {
@@ -74,69 +83,94 @@ export function PlayerControls() {
   }
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-  const VolumeIcon = volume === 0 ? VolumeX : volume < 50 ? Volume1 : Volume2
+  const VolumeIcon = volume === 0 ? SpeakerX : volume < 50 ? SpeakerLow : SpeakerHigh
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
       {/* Progress Bar */}
-      <div
-        ref={progressRef}
-        onClick={handleSeek}
-        className="relative h-1 bg-secondary cursor-pointer group"
-      >
+      <div ref={progressRef} onClick={handleSeek} className="relative h-3 cursor-pointer group">
+        <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 bg-secondary" />
         <div
-          className="absolute left-0 top-0 h-full bg-primary transition-all"
+          className="absolute left-0 top-1/2 h-1 -translate-y-1/2 bg-primary transition-all"
           style={{ width: `${progress}%` }}
         />
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-1/2 h-3 w-3 rounded-full bg-primary opacity-0 transition-opacity group-hover:opacity-100"
           style={{ left: `${progress}%`, transform: 'translate(-50%, -50%)' }}
         />
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-4 px-4 md:px-6 py-3">
-        {/* Time */}
-        <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground font-mono tabular-nums">
-          <span>{formatTime(currentTime)}</span>
-          <span>/</span>
-          <span>{formatTime(duration)}</span>
+      <div className="flex items-center gap-4 px-3 md:px-4 py-2">
+        {/* Now Playing */}
+        <div className="hidden md:flex items-center gap-3 min-w-0 w-[320px]">
+          {currentSong?.thumbnail ? (
+            <Image
+              src={currentSong.thumbnail}
+              alt=""
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded object-cover shrink-0"
+              unoptimized={isRedditHostedImage(currentSong.thumbnail)}
+            />
+          ) : (
+            <div className="h-10 w-10 rounded bg-secondary shrink-0" />
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold">
+              {currentSong?.title || 'No song selected'}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {currentSong
+                ? `u/${currentSong.author} • r/${currentSong.subreddit}`
+                : 'Pick a track'}
+            </p>
+          </div>
         </div>
 
         {/* Playback Controls */}
         <div className="flex items-center gap-2 flex-1 md:flex-none md:mx-auto">
           <button
             onClick={previous}
-            className="p-2 hover:bg-secondary rounded-full transition-colors"
+            className="p-2 hover:bg-secondary rounded-full transition-colors disabled:opacity-40"
             disabled={!currentSong}
           >
-            <SkipBack className="h-5 w-5" />
+            <SkipBack className="h-5 w-5" weight="fill" />
           </button>
           <button
             onClick={togglePlay}
-            className="p-3 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="p-3 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-lg shadow-primary/20"
             disabled={!currentSong}
           >
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+            {isPlaying ? (
+              <Pause className="h-5 w-5" weight="fill" />
+            ) : (
+              <Play className="h-5 w-5 ml-0.5" weight="fill" />
+            )}
           </button>
           <button
             onClick={next}
-            className="p-2 hover:bg-secondary rounded-full transition-colors"
+            className="p-2 hover:bg-secondary rounded-full transition-colors disabled:opacity-40"
             disabled={!currentSong}
           >
-            <SkipForward className="h-5 w-5" />
+            <SkipForward className="h-5 w-5" weight="fill" />
           </button>
         </div>
 
         {/* Volume */}
-        <div className="hidden md:block relative">
+        <div className="hidden md:flex items-center gap-3 relative w-[320px] justify-end">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono tabular-nums">
+            <span>{formatTime(currentTime)}</span>
+            <span>/</span>
+            <span>{formatTime(duration)}</span>
+          </div>
           <button
             onClick={() => setShowVolume(!showVolume)}
             className="p-2 hover:bg-secondary rounded-full transition-colors"
             aria-label="Volume control"
             aria-expanded={showVolume}
           >
-            <VolumeIcon className="h-5 w-5" />
+            <VolumeIcon className="h-5 w-5" weight="fill" />
           </button>
 
           {showVolume && (
@@ -186,9 +220,9 @@ export function PlayerControls() {
                     aria-label={volume === 0 ? 'Unmute' : 'Mute'}
                   >
                     {volume === 0 ? (
-                      <VolumeX className="h-3.5 w-3.5" />
+                      <SpeakerX className="h-3.5 w-3.5" weight="fill" />
                     ) : (
-                      <Volume2 className="h-3.5 w-3.5" />
+                      <SpeakerHigh className="h-3.5 w-3.5" weight="fill" />
                     )}
                     {volume === 0 ? 'Unmute' : 'Mute'}
                   </button>

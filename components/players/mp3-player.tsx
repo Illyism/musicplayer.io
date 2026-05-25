@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { Song } from '@/lib/store/player-store'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
-import { Music } from 'lucide-react'
+import { MusicNote } from '@phosphor-icons/react'
 
 interface MP3PlayerProps {
   song: Song
@@ -129,7 +129,7 @@ export function MP3Player({ song }: MP3PlayerProps) {
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-secondary to-background">
-          <Music className="w-24 h-24 text-muted-foreground" />
+          <MusicNote className="w-24 h-24 text-muted-foreground" weight="fill" />
         </div>
       )}
       <audio ref={audioRef} src={song.url} preload="metadata" />

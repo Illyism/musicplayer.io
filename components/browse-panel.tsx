@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Search, Plus, Share2 } from 'lucide-react'
+import { MagnifyingGlass, Plus, ShareNetwork } from '@phosphor-icons/react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
 import _ from 'lodash'
@@ -151,11 +151,13 @@ export function BrowsePanel() {
   const groupedSubreddits = _.groupBy(subreddits, 'category')
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       {/* Header */}
-      <div className="p-6 border-b border-border">
-        <div className="mb-4">
-          <h2 className="text-xl font-bold">Browse Subreddits</h2>
+      <div className="p-4 border-b border-sidebar-border">
+        <div className="mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Browse
+          </h2>
         </div>
 
         {/* Search */}
@@ -166,22 +168,22 @@ export function BrowsePanel() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            className="flex-1 px-4 py-2.5 bg-secondary border-0 rounded-lg text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary"
+            className="flex-1 px-3 h-9 bg-background/70 border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary"
           />
           <button
             onClick={handleSearch}
-            className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            className="h-9 w-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
-            <Search className="h-4 w-4" />
+            <MagnifyingGlass className="h-4 w-4" weight="fill" />
           </button>
         </div>
       </div>
 
       {/* My Subreddit Playlist */}
-      <div className="p-6 border-b border-border bg-secondary/30">
+      <div className="p-4 border-b border-sidebar-border bg-secondary/25">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-base font-bold mb-1">My Subreddit Playlist</h3>
+            <h3 className="text-sm font-bold mb-0.5">Your Library</h3>
             <p className="text-xs text-muted-foreground">
               {mounted
                 ? `${selectedSubreddits.length} subreddit${selectedSubreddits.length !== 1 ? 's' : ''} selected`
@@ -193,7 +195,7 @@ export function BrowsePanel() {
             className="p-2 hover:bg-secondary rounded-lg transition-colors"
             title="Share Playlist"
           >
-            <Share2 className="h-4 w-4" />
+            <ShareNetwork className="h-4 w-4" weight="fill" />
           </button>
         </div>
 
@@ -202,7 +204,7 @@ export function BrowsePanel() {
             {selectedSubreddits.map((sub, index) => (
               <div
                 key={`${sub}-${index}`}
-                className="flex items-center justify-between px-4 py-2.5 bg-secondary rounded-lg"
+                className="flex items-center justify-between px-3 py-2 bg-secondary rounded-lg"
               >
                 <span className="text-sm font-medium">{sub}</span>
                 <button
@@ -215,14 +217,14 @@ export function BrowsePanel() {
             ))}
           </div>
         ) : (
-          <div className="py-8 text-center text-sm text-muted-foreground">
+          <div className="py-6 text-center text-xs text-muted-foreground">
             No subreddits selected
           </div>
         )}
 
         {/* Add Custom Subreddit */}
         <div className="flex gap-2 items-center">
-          <div className="px-3 h-11 bg-card rounded-lg flex items-center justify-center text-sm font-medium text-muted-foreground border border-border shrink-0">
+          <div className="px-3 h-9 bg-background/70 rounded-lg flex items-center justify-center text-sm font-medium text-muted-foreground border border-border shrink-0">
             /r/
           </div>
           <input
@@ -231,13 +233,13 @@ export function BrowsePanel() {
             value={customSubreddit}
             onChange={e => setCustomSubreddit(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addCustomSubreddit()}
-            className="flex-1 min-w-0 px-3 h-11 bg-card border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="flex-1 min-w-0 px-3 h-9 bg-background/70 border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           <button
             onClick={addCustomSubreddit}
-            className="h-11 w-11 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shrink-0"
+            className="h-9 w-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shrink-0"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" weight="bold" />
           </button>
         </div>
       </div>
@@ -247,8 +249,8 @@ export function BrowsePanel() {
         {Object.entries(groupedSubreddits).map(([category, subs]) => (
           <div key={category} className="border-b border-border last:border-0">
             {/* Category Header - More Prominent */}
-            <div className="sticky top-0 z-10 px-6 py-3 bg-primary/10 border-l-4 border-primary backdrop-blur-xs">
-              <h4 className="text-sm font-bold text-primary uppercase tracking-wide">{category}</h4>
+            <div className="sticky top-0 z-10 px-4 py-2.5 bg-sidebar/95 border-l-2 border-primary backdrop-blur-xs">
+              <h4 className="text-xs font-bold text-primary uppercase tracking-wide">{category}</h4>
               <p className="text-xs text-muted-foreground">{subs.length} subreddits</p>
             </div>
 
@@ -269,12 +271,12 @@ export function BrowsePanel() {
                       e.preventDefault()
                       toggleSubreddit(sub.key)
                     }}
-                    className={`w-full flex items-center justify-between px-6 py-3 hover:bg-secondary/50 transition-colors ${
-                      isSelected ? 'bg-primary/10' : ''
+                    className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-secondary/50 transition-colors ${
+                      isSelected ? 'bg-primary/15 text-primary' : ''
                     }`}
                   >
                     <div className="flex-1 text-left">
-                      <div className="text-sm font-medium">{sub.name}</div>
+                      <div className="text-sm font-medium leading-tight">{sub.name}</div>
                       {sub.subscribers && (
                         <div className="text-xs text-muted-foreground">
                           {sub.subscribers.toLocaleString()} members
@@ -284,7 +286,7 @@ export function BrowsePanel() {
                     {isSelected ? (
                       <div className="text-xs text-primary font-medium">✓</div>
                     ) : (
-                      <Plus className="h-4 w-4 text-muted-foreground" />
+                      <Plus className="h-4 w-4 text-muted-foreground" weight="bold" />
                     )}
                   </a>
                 )

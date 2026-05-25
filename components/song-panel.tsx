@@ -3,7 +3,16 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-import { Music, ArrowUp, ArrowDown, ExternalLink, X } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowSquareOut,
+  ArrowUp,
+  Buildings,
+  ChatCircle,
+  MusicNote,
+  TrendUp,
+  X,
+} from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
@@ -15,7 +24,6 @@ import { VimeoPlayer } from '@/components/players/vimeo-player'
 import { MP3Player } from '@/components/players/mp3-player'
 import { Comments } from '@/components/comments'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
-import { MessageCircle, Building2, TrendingUp } from 'lucide-react'
 
 interface SongPanelProps {
   onClose?: () => void
@@ -89,7 +97,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
             className="group flex items-start gap-4 p-4 rounded-lg bg-card border border-border hover:bg-secondary hover:border-primary/30 transition-all duration-200"
           >
             <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <MessageCircle className="w-5 h-5 text-primary" />
+              <ChatCircle className="w-5 h-5 text-primary" weight="fill" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
@@ -109,7 +117,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
             className="group flex items-start gap-4 p-4 rounded-lg bg-card border border-border hover:bg-secondary hover:border-primary/30 transition-all duration-200"
           >
             <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Building2 className="w-5 h-5 text-primary" />
+              <Buildings className="w-5 h-5 text-primary" weight="fill" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
@@ -129,7 +137,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
             className="group flex items-start gap-4 p-4 rounded-lg bg-card border border-border hover:bg-secondary hover:border-primary/30 transition-all duration-200"
           >
             <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <TrendingUp className="w-5 h-5 text-primary" />
+              <TrendUp className="w-5 h-5 text-primary" weight="fill" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
@@ -166,7 +174,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
             className="@md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all "
             aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" weight="bold" />
           </button>
         )}
       </div>
@@ -201,7 +209,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-secondary">
-                <Music className="w-16 h-16 text-muted-foreground" />
+                <MusicNote className="w-16 h-16 text-muted-foreground" weight="fill" />
               </div>
             )}
             <div className="absolute inset-0 flex items-center justify-center">
@@ -229,7 +237,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
           >
             <ArrowUp
               className={`w-5 h-5 mb-1 mx-auto ${voteDirection === 1 ? 'text-primary' : 'text-muted-foreground'}`}
-              strokeWidth={3}
+              weight="fill"
             />
             <span className="text-xs text-center">Upvote</span>
           </button>
@@ -244,7 +252,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
           >
             <ArrowDown
               className={`w-5 h-5 mb-1 mx-auto ${voteDirection === -1 ? 'text-destructive' : 'text-muted-foreground'}`}
-              strokeWidth={3}
+              weight="fill"
             />
             <span className="text-xs text-center">Downvote</span>
           </button>
@@ -302,7 +310,7 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
                 </>
               ) : (
                 <>
-                  <ExternalLink className="w-5 h-5 mb-1 mx-auto" />
+                  <ArrowSquareOut className="w-5 h-5 mb-1 mx-auto" weight="fill" />
                   <span className="text-xs text-center">{currentSong.domain}</span>
                 </>
               )}

@@ -1,6 +1,13 @@
 'use client'
 
-import { ArrowUp, ArrowDown, ExternalLink, Music2, MessageCircle, Send } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowSquareOut,
+  ArrowUp,
+  ChatCircle,
+  MusicNote,
+  PaperPlaneTilt,
+} from '@phosphor-icons/react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
 import { MediaPlayerFrame } from './media-player-frame'
@@ -44,7 +51,7 @@ function CommentItem({
             onClick={() => onLogin('vote')}
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
-            <ArrowUp className="h-3 w-3" />
+            <ArrowUp className="h-3 w-3" weight="fill" />
             <span>{comment.score}</span>
           </button>
           <button
@@ -131,7 +138,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
           {/* Current Song Header */}
           <div className="p-6 border-b border-border">
             <div className="flex items-center gap-3">
-              <Music2 className="h-5 w-5" />
+              <MusicNote className="h-5 w-5" weight="fill" />
               <h3 className="text-lg font-bold">Current Song</h3>
             </div>
           </div>
@@ -140,7 +147,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
           <div className="p-6 space-y-6">
             <div className="text-center py-8">
               <div className="w-16 h-16 rounded-full bg-secondary mx-auto mb-4 flex items-center justify-center">
-                <Music2 className="h-8 w-8 text-muted-foreground" />
+                <MusicNote className="h-8 w-8 text-muted-foreground" weight="fill" />
               </div>
               <p className="text-sm text-muted-foreground">Select a song to start playing</p>
             </div>
@@ -151,7 +158,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
                 href="#"
                 className="flex items-start gap-3 p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
               >
-                <MessageCircle className="h-5 w-5 mt-0.5" />
+                <ChatCircle className="h-5 w-5 mt-0.5" weight="fill" />
                 <div>
                   <div className="font-medium text-sm">SEO Audit</div>
                   <div className="text-xs text-muted-foreground">
@@ -221,43 +228,43 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
   return (
     <div className="hidden lg:flex w-full h-full bg-card flex-col">
       <div className="flex-1 overflow-y-auto pb-24">
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Video Player - FIRST! */}
           {/* Only render player on desktop to prevent duplicate players */}
           {isDesktop && <MediaPlayerFrame song={currentSong} playerKeyPrefix="desktop-player" />}
 
           {/* Content with padding */}
-          <div className="space-y-8">
+          <div className="space-y-5">
             {/* Song Title & Actions */}
-            <div className="px-6">
-              <h2 className="text-base md:text-lg font-bold mb-2 leading-tight line-clamp-2">
+            <div className="px-4">
+              <h2 className="text-base font-bold mb-1.5 leading-tight line-clamp-2">
                 {currentSong.title}
               </h2>
-              <p className="text-sm text-muted-foreground mb-6">
-                by <span className="font-medium">{currentSong.author}</span>
+              <p className="text-xs text-muted-foreground mb-4">
+                by <span className="font-medium">u/{currentSong.author}</span>
               </p>
 
               {/* Action Buttons - Clean & Polished */}
-              <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="grid grid-cols-4 gap-2 mb-4">
                 <button
                   onClick={() => handleLogin('upvote')}
-                  className="group flex flex-col items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 min-h-[70px] text-center text-muted-foreground hover:text-primary hover:bg-primary/10 hover:shadow-lg hover:shadow-primary/20"
+                  className="group flex flex-col items-center justify-center px-2 py-2.5 rounded-lg transition-colors min-h-[58px] text-center text-primary bg-primary/10 hover:bg-primary/15"
                   title="Upvote"
                 >
                   <ArrowUp
-                    className="w-6 h-6 mb-1.5 mx-auto transition-transform group-hover:scale-110"
-                    strokeWidth={2.5}
+                    className="w-5 h-5 mb-1 mx-auto transition-transform group-active:scale-95"
+                    weight="fill"
                   />
                   <span className="text-xs font-medium">Upvote</span>
                 </button>
                 <button
                   onClick={() => handleLogin('downvote')}
-                  className="group flex flex-col items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 min-h-[70px] text-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:shadow-lg hover:shadow-destructive/20"
+                  className="group flex flex-col items-center justify-center px-2 py-2.5 rounded-lg transition-colors min-h-[58px] text-center text-muted-foreground bg-secondary/60 hover:text-destructive hover:bg-destructive/10"
                   title="Downvote"
                 >
                   <ArrowDown
-                    className="w-6 h-6 mb-1.5 mx-auto transition-transform group-hover:scale-110"
-                    strokeWidth={2.5}
+                    className="w-5 h-5 mb-1 mx-auto transition-transform group-active:scale-95"
+                    weight="fill"
                   />
                   <span className="text-xs font-medium">Downvote</span>
                 </button>
@@ -265,11 +272,11 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
                   href={`https://www.reddit.com${currentSong.permalink}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex flex-col items-center justify-center px-4 py-3 rounded-xl text-muted-foreground hover:text-accent hover:bg-accent/10 transition-all duration-200 min-h-[70px] text-center hover:shadow-lg hover:shadow-accent/20"
+                  className="group flex flex-col items-center justify-center px-2 py-2.5 rounded-lg text-muted-foreground bg-secondary/60 hover:text-primary hover:bg-primary/10 transition-colors min-h-[58px] text-center"
                   title="View on Reddit"
                 >
                   <svg
-                    className="w-6 h-6 mb-1.5 mx-auto transition-transform group-hover:scale-110"
+                    className="w-5 h-5 mb-1 mx-auto transition-transform group-active:scale-95"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                     xmlns="http://www.w3.org/2000/svg"
@@ -294,17 +301,17 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
                     href={currentSong.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`group flex flex-col items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 min-h-[70px] text-center ${
+                    className={`group flex flex-col items-center justify-center px-2 py-2.5 rounded-lg transition-colors min-h-[58px] text-center ${
                       currentSong.domain === 'youtube.com' || currentSong.domain === 'youtu.be'
-                        ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:shadow-lg hover:shadow-destructive/20'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary hover:shadow-lg'
+                        ? 'text-muted-foreground bg-secondary/60 hover:text-destructive hover:bg-destructive/10'
+                        : 'text-muted-foreground bg-secondary/60 hover:text-foreground hover:bg-secondary'
                     }`}
                     title={`Open on ${currentSong.domain === 'youtube.com' || currentSong.domain === 'youtu.be' ? 'YouTube' : currentSong.domain}`}
                   >
                     {currentSong.domain === 'youtube.com' || currentSong.domain === 'youtu.be' ? (
                       <>
                         <svg
-                          className="w-6 h-6 mb-1.5 mx-auto transition-transform group-hover:scale-110"
+                          className="w-5 h-5 mb-1 mx-auto transition-transform group-active:scale-95"
                           fill="currentColor"
                           viewBox="0 0 24 24"
                           xmlns="http://www.w3.org/2000/svg"
@@ -315,7 +322,10 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
                       </>
                     ) : (
                       <>
-                        <ExternalLink className="w-6 h-6 mb-1.5 mx-auto transition-transform group-hover:scale-110" />
+                        <ArrowSquareOut
+                          className="w-5 h-5 mb-1 mx-auto transition-transform group-active:scale-95"
+                          weight="fill"
+                        />
                         <span className="text-xs font-medium">{getPlatformName()}</span>
                       </>
                     )}
@@ -324,16 +334,16 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
               </div>
 
               {/* Metadata - 2x2 Grid Only */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="group p-4 bg-secondary rounded-xl border border-border hover:border-primary/30 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
-                  <div className="text-xl font-bold text-primary mb-1.5 leading-none">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="group p-3 bg-secondary rounded-lg border border-border hover:border-primary/30 transition-colors">
+                  <div className="text-lg font-bold text-primary mb-1 leading-none">
                     {currentSong.score?.toLocaleString() || '0'}
                   </div>
                   <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Karma
                   </div>
                 </div>
-                <div className="group p-4 bg-secondary rounded-xl border border-border hover:border-border/80 transition-all duration-200 hover:shadow-lg">
+                <div className="group p-3 bg-secondary rounded-lg border border-border hover:border-border/80 transition-colors">
                   <div
                     className="text-sm font-bold mb-1.5 truncate leading-tight"
                     title={`/u/${currentSong.author}`}
@@ -344,7 +354,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
                     Author
                   </div>
                 </div>
-                <div className="group p-4 bg-secondary rounded-xl border border-border hover:border-border/80 transition-all duration-200 hover:shadow-lg">
+                <div className="group p-3 bg-secondary rounded-lg border border-border hover:border-border/80 transition-colors">
                   <div className="text-sm font-bold mb-1.5 leading-tight">
                     {currentSong.created_ago ? currentSong.created_ago.replace(' ago', '') : 'N/A'}
                   </div>
@@ -352,7 +362,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
                     Age
                   </div>
                 </div>
-                <div className="group p-4 bg-secondary rounded-xl border border-border hover:border-border/80 transition-all duration-200 hover:shadow-lg">
+                <div className="group p-3 bg-secondary rounded-lg border border-border hover:border-border/80 transition-colors">
                   <div
                     className="text-sm font-bold mb-1.5 truncate leading-tight"
                     title={`/r/${currentSong.subreddit}`}
@@ -368,7 +378,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
 
             {/* Selftext */}
             {currentSong.selftext && (
-              <div className="mx-6 p-6 bg-card rounded-2xl border border-border hover:border-border/80 transition-all duration-300 shadow-xl">
+              <div className="mx-4 p-4 bg-card rounded-xl border border-border hover:border-border/80 transition-colors">
                 <div className="text-sm leading-relaxed prose prose-invert max-w-none">
                   <div dangerouslySetInnerHTML={{ __html: currentSong.selftext }} />
                 </div>
@@ -376,8 +386,8 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
             )}
 
             {/* Comments Section */}
-            <div className="px-6">
-              <h3 className="text-lg font-bold mb-4">Comments</h3>
+            <div className="px-4">
+              <h3 className="text-base font-bold mb-3">Comments</h3>
 
               {/* Comment Input */}
               <div className="space-y-3">
@@ -385,13 +395,13 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   placeholder="Share your thoughts..."
-                  className="w-full h-32 px-4 py-3 bg-background border border-border rounded-lg resize-none focus:outline-hidden focus:ring-2 focus:ring-primary text-sm"
+                  className="w-full h-24 px-3 py-2.5 bg-background border border-border rounded-lg resize-none focus:outline-hidden focus:ring-2 focus:ring-primary text-sm"
                 />
                 <button
                   onClick={handleAddComment}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
                 >
-                  <Send className="h-4 w-4" />
+                  <PaperPlaneTilt className="h-4 w-4" weight="fill" />
                   Add Comment
                 </button>
               </div>

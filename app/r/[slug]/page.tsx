@@ -28,9 +28,9 @@ function SubredditContent() {
   // Update page title when song changes
   useEffect(() => {
     if (currentSong) {
-      document.title = `${currentSong.title} - Reddit Music Player`
+      document.title = `${currentSong.title} - Music Player for Reddit`
     } else {
-      document.title = 'Reddit Music Player'
+      document.title = 'Music Player for Reddit'
     }
   }, [currentSong])
 
@@ -59,10 +59,10 @@ function SubredditContent() {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {/* Browse Panel - Left */}
             <ResizablePanel
-              defaultSize="20%"
-              minSize="15%"
-              maxSize="35%"
-              className="bg-card border-r border-border overflow-y-auto"
+              defaultSize="18%"
+              minSize="14%"
+              maxSize="28%"
+              className="bg-sidebar border-r border-border overflow-y-auto"
             >
               <BrowsePanel />
             </ResizablePanel>
@@ -71,7 +71,7 @@ function SubredditContent() {
 
             {/* Playlist Panel - Center */}
             <ResizablePanel
-              defaultSize="50%"
+              defaultSize="52%"
               minSize="30%"
               className="bg-background overflow-y-auto"
             >
