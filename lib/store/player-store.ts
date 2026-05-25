@@ -48,6 +48,7 @@ export interface PlayerState {
 
   // UI
   mobileView: 'browse' | 'playlist' | 'player'
+  isTheatreMode: boolean
 }
 
 export interface PlayerActions {
@@ -76,6 +77,8 @@ export interface PlayerActions {
 
   // UI actions
   setMobileView: (view: PlayerState['mobileView']) => void
+  setTheatreMode: (enabled: boolean) => void
+  toggleTheatreMode: () => void
 }
 
 export type PlayerStore = PlayerState & PlayerActions
@@ -134,6 +137,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   volume: 100, // Static default
 
   mobileView: 'playlist',
+  isTheatreMode: false,
 
   // ========================================
   // PLAYLIST ACTIONS
@@ -335,5 +339,13 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   // ========================================
   setMobileView: view => {
     set({ mobileView: view })
+  },
+
+  setTheatreMode: enabled => {
+    set({ isTheatreMode: enabled })
+  },
+
+  toggleTheatreMode: () => {
+    set(state => ({ isTheatreMode: !state.isTheatreMode }))
   },
 }))

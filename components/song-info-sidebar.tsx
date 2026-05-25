@@ -3,10 +3,7 @@
 import { ArrowUp, ArrowDown, ExternalLink, Music2, MessageCircle, Send } from 'lucide-react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
-import { YouTubePlayer } from './players/youtube-player'
-import { SoundCloudPlayer } from './players/soundcloud-player'
-import { VimeoPlayer } from './players/vimeo-player'
-import { MP3Player } from './players/mp3-player'
+import { MediaPlayerFrame } from './media-player-frame'
 import { useState, useEffect } from 'react'
 
 interface Comment {
@@ -86,6 +83,8 @@ interface SongInfoSidebarProps {
 
 export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
   const { currentSong } = usePlayerStore()
+  const currentSongId = currentSong?.id
+  const currentSongPermalink = currentSong?.permalink
   const [comment, setComment] = useState('')
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [loginAction, setLoginAction] = useState('')
@@ -104,7 +103,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
 
   // Load comments when song ID changes (not when object reference changes)
   useEffect(() => {
-    if (!currentSong) {
+    if (!currentSongPermalink) {
       setComments([])
       return
     }
@@ -113,7 +112,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
       setLoadingComments(true)
       try {
         const { getComments } = await import('@/lib/actions/reddit')
-        const data = await getComments(currentSong.permalink)
+        const data = await getComments(currentSongPermalink)
         setComments(data.comments || [])
       } catch (error) {
         console.error('Failed to load comments:', error)
@@ -123,7 +122,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
     }
 
     loadComments()
-  }, [currentSong?.id]) // Only reload when song ID changes, not object reference
+  }, [currentSongId, currentSongPermalink]) // Only reload when song identity changes
 
   if (!currentSong) {
     return (
@@ -225,25 +224,7 @@ export function SongInfoSidebar({ isDesktop }: SongInfoSidebarProps) {
         <div className="space-y-6">
           {/* Video Player - FIRST! */}
           {/* Only render player on desktop to prevent duplicate players */}
-          {isDesktop && (
-            <div className="aspect-video bg-black">
-              {currentSong.type === 'youtube' && (
-                <YouTubePlayer key="youtube-player" song={currentSong} />
-              )}
-              {currentSong.type === 'soundcloud' && (
-                <SoundCloudPlayer key="soundcloud-player" song={currentSong} />
-              )}
-              {currentSong.type === 'vimeo' && (
-                <VimeoPlayer key="vimeo-player" song={currentSong} />
-              )}
-              {currentSong.type === 'mp3' && <MP3Player key="mp3-player" song={currentSong} />}
-              {currentSong.type === 'none' && (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-muted-foreground">Cannot play this media</p>
-                </div>
-              )}
-            </div>
-          )}
+          {isDesktop && <MediaPlayerFrame song={currentSong} playerKeyPrefix="desktop-player" />}
 
           {/* Content with padding */}
           <div className="space-y-8">

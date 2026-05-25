@@ -3,10 +3,7 @@
 import { Music, ExternalLink, MessageCircle, ArrowUp } from 'lucide-react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
-import { YouTubePlayer } from './players/youtube-player'
-import { SoundCloudPlayer } from './players/soundcloud-player'
-import { VimeoPlayer } from './players/vimeo-player'
-import { MP3Player } from './players/mp3-player'
+import { MediaPlayerFrame } from './media-player-frame'
 import { useState, useEffect } from 'react'
 
 interface Comment {
@@ -135,23 +132,7 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
       {/* Player */}
       {/* Only render player on mobile to prevent duplicate players */}
       {!isDesktop && (
-        <div className="relative aspect-video bg-black shrink-0">
-          {currentSong.type === 'youtube' && (
-            <YouTubePlayer key="youtube-player-mobile" song={currentSong} />
-          )}
-          {currentSong.type === 'soundcloud' && (
-            <SoundCloudPlayer key="soundcloud-player-mobile" song={currentSong} />
-          )}
-          {currentSong.type === 'vimeo' && (
-            <VimeoPlayer key="vimeo-player-mobile" song={currentSong} />
-          )}
-          {currentSong.type === 'mp3' && <MP3Player key="mp3-player-mobile" song={currentSong} />}
-          {currentSong.type === 'none' && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Cannot play this media</p>
-            </div>
-          )}
-        </div>
+        <MediaPlayerFrame song={currentSong} playerKeyPrefix="mobile-player" className="shrink-0" />
       )}
 
       {/* Song Info */}

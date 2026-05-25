@@ -1,6 +1,6 @@
 'use client'
 
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react'
 import { useState, useRef } from 'react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { formatTime } from '@/lib/utils/song-utils'
@@ -74,6 +74,7 @@ export function PlayerControls() {
   }
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 50 ? Volume1 : Volume2
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
@@ -133,8 +134,9 @@ export function PlayerControls() {
             onClick={() => setShowVolume(!showVolume)}
             className="p-2 hover:bg-secondary rounded-full transition-colors"
             aria-label="Volume control"
+            aria-expanded={showVolume}
           >
-            {volume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            <VolumeIcon className="h-5 w-5" />
           </button>
 
           {showVolume && (
@@ -142,36 +144,54 @@ export function PlayerControls() {
               {/* Backdrop */}
               <div className="fixed inset-0 z-40" onClick={() => setShowVolume(false)} />
 
-              {/* Volume Popup - Ultra Minimalistic */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50">
-                <div className="bg-card rounded-lg p-2 shadow-xl border border-border w-8">
-                  {/* Just Slider */}
-                  <div className="flex justify-center">
-                    <div className="relative h-24 w-1 bg-secondary rounded-full overflow-hidden">
-                      {/* Fill */}
+                <div className="animate-volume-popover w-20 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-sm">
+                  <div className="mb-3 text-center">
+                    <p className="font-mono text-xs font-semibold tabular-nums">{volume}%</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Volume
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center py-1">
+                    <div className="relative flex h-32 w-10 items-center justify-center">
+                      <div className="relative h-full w-2 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="absolute bottom-0 left-0 right-0 rounded-full bg-primary transition-[height] duration-150 ease-out motion-reduce:transition-none"
+                          style={{ height: `${volume}%` }}
+                        />
+                      </div>
+
                       <div
-                        className="absolute bottom-0 left-0 right-0 bg-primary rounded-full transition-all duration-150"
-                        style={{ height: `${volume}%` }}
+                        className="pointer-events-none absolute left-1/2 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-card bg-primary shadow-lg"
+                        style={{ bottom: `calc(${volume}% - ${volume / 100}rem)` }}
                       />
 
-                      {/* Slider Input */}
                       <input
                         type="range"
                         min="0"
                         max="100"
                         value={volume}
                         onChange={e => setVolume(Number(e.target.value))}
-                        className="absolute inset-0 w-24 h-1 origin-center -rotate-90 opacity-0 cursor-pointer"
-                        style={{
-                          transform: 'rotate(-90deg) translateX(-50%)',
-                          transformOrigin: 'left center',
-                          left: '50%',
-                          top: '50%',
-                          marginTop: '-0.25rem',
-                        }}
+                        aria-label="Volume"
+                        className="absolute left-1/2 top-1/2 h-10 w-32 -translate-x-1/2 -translate-y-1/2 -rotate-90 cursor-pointer opacity-0"
                       />
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setVolume(volume === 0 ? 80 : 0)}
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-secondary px-2 py-1.5 text-xs font-medium transition-colors hover:bg-secondary/80"
+                    aria-label={volume === 0 ? 'Unmute' : 'Mute'}
+                  >
+                    {volume === 0 ? (
+                      <VolumeX className="h-3.5 w-3.5" />
+                    ) : (
+                      <Volume2 className="h-3.5 w-3.5" />
+                    )}
+                    {volume === 0 ? 'Unmute' : 'Mute'}
+                  </button>
                 </div>
               </div>
             </>
