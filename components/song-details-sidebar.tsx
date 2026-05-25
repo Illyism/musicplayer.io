@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { ThumbsUp, ThumbsDown, MessageCircle, ExternalLink, LogIn } from 'lucide-react'
 import { usePlayerStore } from '@/lib/store/player-store'
+import { isRedditHostedImage } from '@/lib/utils/song-utils'
 import { useState } from 'react'
 
 export function SongDetailsSidebar() {
@@ -43,26 +44,18 @@ export function SongDetailsSidebar() {
         {/* pb-24 = 96px for player controls */}
         <div className="p-6 space-y-6">
           {/* Thumbnail */}
-          {currentSong.thumbnail &&
-            currentSong.thumbnail !== 'self' &&
-            currentSong.thumbnail !== 'default' &&
-            currentSong.thumbnail !== 'nsfw' &&
-            (currentSong.thumbnail.startsWith('http') ||
-              currentSong.thumbnail.startsWith('//')) && (
-              <div className="aspect-video rounded-lg overflow-hidden bg-secondary relative">
-                <Image
-                  src={
-                    currentSong.thumbnail.startsWith('//')
-                      ? `https:${currentSong.thumbnail}`
-                      : currentSong.thumbnail
-                  }
-                  alt={currentSong.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            )}
+          {currentSong.thumbnail && (
+            <div className="aspect-video rounded-lg overflow-hidden bg-secondary relative">
+              <Image
+                src={currentSong.thumbnail}
+                alt={currentSong.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                unoptimized={isRedditHostedImage(currentSong.thumbnail)}
+              />
+            </div>
+          )}
 
           {/* Title & Author */}
           <div>

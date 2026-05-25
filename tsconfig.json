@@ -21,7 +21,7 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "types": ["react", "react-dom"]
+    "types": ["react", "react-dom", "bun"]
   },
   "include": [
     "next-env.d.ts",

@@ -14,6 +14,7 @@ import { SoundCloudPlayer } from '@/components/players/soundcloud-player'
 import { VimeoPlayer } from '@/components/players/vimeo-player'
 import { MP3Player } from '@/components/players/mp3-player'
 import { Comments } from '@/components/comments'
+import { isRedditHostedImage } from '@/lib/utils/song-utils'
 import { MessageCircle, Building2, TrendingUp } from 'lucide-react'
 
 interface SongPanelProps {
@@ -189,21 +190,14 @@ export function SongPanel({ onClose }: SongPanelProps = {}) {
         )}
         {currentSong.type === 'mp3' && (
           <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl ring-1 ring-border">
-            {currentSong.thumbnail &&
-            currentSong.thumbnail !== 'self' &&
-            currentSong.thumbnail !== 'default' &&
-            currentSong.thumbnail !== 'nsfw' &&
-            (currentSong.thumbnail.startsWith('http') || currentSong.thumbnail.startsWith('//')) ? (
+            {currentSong.thumbnail ? (
               <Image
-                src={
-                  currentSong.thumbnail.startsWith('//')
-                    ? `https:${currentSong.thumbnail}`
-                    : currentSong.thumbnail
-                }
+                src={currentSong.thumbnail}
                 alt={currentSong.title}
                 fill
                 className="object-cover"
                 sizes="100vw"
+                unoptimized={isRedditHostedImage(currentSong.thumbnail)}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-secondary">

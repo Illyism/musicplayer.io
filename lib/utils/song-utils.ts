@@ -4,24 +4,43 @@ import { Song } from '@/lib/store/player-store'
 // SONG PARSER
 // ============================================================================
 
+/** Decode HTML entities in Reddit CDN URLs (e.g. &amp; → &) */
+export function decodeHtmlEntities(url: string): string {
+  return url
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+}
+
+/** Normalize a Reddit thumbnail/preview URL for use in img/Image src */
+export function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): string | undefined {
+  let url = previewUrl || thumbnail
+  if (!url || url === 'self' || url === 'default' || url === 'nsfw' || url === 'spoiler') {
+    return undefined
+  }
+
+  url = decodeHtmlEntities(url)
+
+  if (url.startsWith('http:')) {
+    url = url.replace('http:', 'https:')
+  } else if (url.startsWith('//')) {
+    url = 'https:' + url
+  }
+
+  return url.startsWith('https://') ? url : undefined
+}
+
+/** Reddit CDN blocks Next.js image optimization; load these directly */
+export function isRedditHostedImage(url: string): boolean {
+  return /redd\.it/i.test(url)
+}
+
 /**
  * Parse Reddit post data into Song object
  */
 export function parseSong(data: any): Song {
-  // Parse thumbnail
-  let thumbnail = data.thumbnail
-  if (thumbnail) {
-    if (thumbnail.startsWith('http:')) {
-      thumbnail = thumbnail.replace('http:', 'https:')
-    } else if (thumbnail.startsWith('//')) {
-      thumbnail = 'https:' + thumbnail
-    }
-
-    // Use higher quality preview if available
-    if (data.preview?.images?.[0]?.source?.url) {
-      thumbnail = data.preview.images[0].source.url.replace(/&amp;/g, '&')
-    }
-  }
+  const thumbnail = normalizeThumbnailUrl(data.thumbnail, data.preview?.images?.[0]?.source?.url)
 
   // Determine media type and playability
   const { type, playable } = determineMediaType(data)

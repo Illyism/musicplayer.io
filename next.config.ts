@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
   cacheComponents: true,
+  cacheHandlers: {
+    remote: require.resolve('./cache-handlers/redis-handler.js'),
+  },
   logging: {
     fetches: {
       fullUrl: true,

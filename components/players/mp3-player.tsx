@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useRef } from 'react'
 import { Song } from '@/lib/store/player-store'
 import { usePlayerStore } from '@/lib/store/player-store'
+import { isRedditHostedImage } from '@/lib/utils/song-utils'
 import { Music } from 'lucide-react'
 
 interface MP3PlayerProps {
@@ -12,7 +13,8 @@ interface MP3PlayerProps {
 
 export function MP3Player({ song }: MP3PlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
-  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay, play, pause } = usePlayerStore()
+  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay, play, pause } =
+    usePlayerStore()
 
   useEffect(() => {
     const audio = audioRef.current
@@ -67,14 +69,18 @@ export function MP3Player({ song }: MP3PlayerProps) {
 
     // Restore saved currentTime when audio is loaded
     const state = usePlayerStore.getState()
-    if (state.currentTime > 0 && (!state.duration || state.currentTime < state.duration) && audio.readyState >= 2) {
+    if (
+      state.currentTime > 0 &&
+      (!state.duration || state.currentTime < state.duration) &&
+      audio.readyState >= 2
+    ) {
       audio.currentTime = state.currentTime
     }
 
     if (isPlaying) {
       const playPromise = audio.play()
       if (playPromise !== undefined) {
-        playPromise.catch((error) => {
+        playPromise.catch(error => {
           // Autoplay was prevented - this is expected in some browsers
           // User will need to interact to start playback
           console.debug('Autoplay prevented:', error)
@@ -112,8 +118,15 @@ export function MP3Player({ song }: MP3PlayerProps) {
 
   return (
     <div className="relative w-full h-full cursor-pointer" onClick={togglePlay}>
-      {song.thumbnail && song.thumbnail !== 'self' ? (
-        <Image src={song.thumbnail} alt={song.title} fill className="object-cover" sizes="100vw" />
+      {song.thumbnail ? (
+        <Image
+          src={song.thumbnail}
+          alt={song.title}
+          fill
+          className="object-cover"
+          sizes="100vw"
+          unoptimized={isRedditHostedImage(song.thumbnail)}
+        />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-secondary to-background">
           <Music className="w-24 h-24 text-muted-foreground" />

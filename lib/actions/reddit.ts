@@ -1,6 +1,7 @@
 'use server'
 
 import { handleRedditApiError } from '@/lib/utils/error-handler'
+import { redditFetch, slimListingResponse } from '@/lib/utils/reddit-response'
 import { cacheLife } from 'next/cache'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
@@ -114,7 +115,7 @@ async function fetchSubredditPostsCached(
   limit: string,
   accessToken: string | undefined
 ) {
-  'use cache'
+  'use cache: remote'
   cacheLife('hours') // Cache for hours - Reddit data updated multiple times per day
 
   const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
@@ -130,16 +131,13 @@ async function fetchSubredditPostsCached(
 
   const url = `${baseUrl}/r/${subreddit}/${sort}.json?${params}`
 
-  const response = await fetch(url, {
-    headers,
-    next: { revalidate: 3600 }, // Revalidate after 1 hour (in seconds)
-  })
+  const response = await redditFetch(url, headers)
 
   if (!response.ok) {
     await handleRedditApiError(response)
   }
 
-  return response.json()
+  return slimListingResponse(await response.json())
 }
 
 async function searchRedditCached(
@@ -150,7 +148,7 @@ async function searchRedditCached(
   limit: string,
   accessToken: string | undefined
 ) {
-  'use cache'
+  'use cache: remote'
   cacheLife('hours') // Cache for hours - Reddit search results updated multiple times per day
 
   const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
@@ -170,20 +168,17 @@ async function searchRedditCached(
 
   const url = `${baseUrl}/search.json?${params}`
 
-  const response = await fetch(url, {
-    headers,
-    next: { revalidate: 3600 }, // Revalidate after 1 hour (in seconds)
-  })
+  const response = await redditFetch(url, headers)
 
   if (!response.ok) {
     await handleRedditApiError(response)
   }
 
-  return response.json()
+  return slimListingResponse(await response.json())
 }
 
 async function getCommentsCached(permalink: string, accessToken: string | undefined) {
-  'use cache'
+  'use cache: remote'
   cacheLife('hours') // Cache for hours - Comments updated multiple times per day
 
   const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
@@ -195,10 +190,7 @@ async function getCommentsCached(permalink: string, accessToken: string | undefi
 
   const url = `${baseUrl}${permalink}.json?limit=100&depth=10&sort=top`
 
-  const response = await fetch(url, {
-    headers,
-    next: { revalidate: 3600 }, // Revalidate after 1 hour (in seconds)
-  })
+  const response = await redditFetch(url, headers)
 
   if (!response.ok) {
     await handleRedditApiError(response)

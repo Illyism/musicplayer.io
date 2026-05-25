@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Play, Shuffle, ChevronDown } from 'lucide-react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
+import { isRedditHostedImage } from '@/lib/utils/song-utils'
 
 export function PlaylistPanel() {
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -210,13 +211,14 @@ export function PlaylistPanel() {
                       </td>
                       <td className="py-3 px-4 overflow-hidden">
                         <div className="flex items-center gap-3 min-w-0">
-                          {song.thumbnail && song.thumbnail !== 'self' && (
+                          {song.thumbnail && (
                             <Image
                               src={song.thumbnail}
                               alt=""
                               width={40}
                               height={40}
                               className="rounded object-cover shrink-0"
+                              unoptimized={isRedditHostedImage(song.thumbnail)}
                             />
                           )}
                           <div className="min-w-0 flex-1">
@@ -259,13 +261,14 @@ export function PlaylistPanel() {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    {song.thumbnail && song.thumbnail !== 'self' && (
+                    {song.thumbnail && (
                       <Image
                         src={song.thumbnail}
                         alt=""
                         width={48}
                         height={48}
                         className="rounded object-cover shrink-0"
+                        unoptimized={isRedditHostedImage(song.thumbnail)}
                       />
                     )}
                     <div className="min-w-0 flex-1">
