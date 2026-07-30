@@ -33,7 +33,7 @@ export async function handleRedditApiError(response: Response): Promise<never> {
     throw new RedditError(
       `Access denied (403). ${errorMessage}`,
       403,
-      reason || 'The subreddit may be private or you may be rate-limited.'
+      reason || 'The subreddit may be private, quarantined, or banned.'
     )
   }
 

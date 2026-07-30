@@ -1,3 +1,10 @@
+import {
+  getAppAccessToken,
+  invalidateAppAccessToken,
+  REDDIT_API_BASE,
+  USER_AGENT,
+} from './reddit-token'
+
 /**
  * Slim Reddit listing responses before caching.
  * Full search results (limit=100) can exceed Next.js's 2MB cache limit.
@@ -71,4 +78,43 @@ export async function redditFetch(
   }
 
   return lastResponse!
+}
+
+/**
+ * Fetch an oauth.reddit.com endpoint with a bearer token.
+ *
+ * Uses the signed-in user's token when present, otherwise an app-only token.
+ * A rejected token (401/403) is retried once with a freshly minted app token,
+ * which covers both an expired app token and a stale user cookie.
+ */
+export async function redditApiFetch(
+  path: string,
+  params: URLSearchParams,
+  accessToken?: string
+): Promise<Response> {
+  // raw_json=1 stops Reddit HTML-escaping &, < and > in titles and selftext
+  params.set('raw_json', '1')
+  const url = `${REDDIT_API_BASE}${path}?${params}`
+
+  const buildHeaders = (token: string): HeadersInit => ({
+    'User-Agent': USER_AGENT,
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+  })
+
+  const token = accessToken ?? (await getAppAccessToken())
+  const response = await redditFetch(url, buildHeaders(token))
+
+  if (response.status !== 401 && response.status !== 403) {
+    return response
+  }
+
+  // Token was rejected — mint a fresh app token and try once more
+  invalidateAppAccessToken()
+  const freshToken = await getAppAccessToken(true)
+  if (freshToken === token) {
+    return response
+  }
+
+  return redditFetch(url, buildHeaders(freshToken))
 }

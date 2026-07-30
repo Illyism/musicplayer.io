@@ -1,30 +1,17 @@
 'use server'
 
 import { handleRedditApiError } from '@/lib/utils/error-handler'
-import { redditFetch, slimListingResponse } from '@/lib/utils/reddit-response'
+import { redditApiFetch, slimListingResponse } from '@/lib/utils/reddit-response'
 import { cacheLife } from 'next/cache'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 
-// Reddit requires User-Agent in format: <platform>:<app ID>:<version> (by /u/<username>)
-const REDDIT_USERNAME = process.env.REDDIT_USERNAME || 'musicplayer'
-const USER_AGENT = `web:musicplayer.io:v0.6.14 (by /u/${REDDIT_USERNAME})`
-
-// Reddit client ID for API authentication (better rate limits)
-const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID
-if (!REDDIT_CLIENT_ID) {
-  throw new Error('Missing REDDIT_CLIENT_ID environment variable. Required for Reddit API calls.')
-}
-
-// Create Basic auth header with client ID (empty secret for unauthenticated requests)
-// This provides better rate limits than completely unauthenticated requests
-const getAuthHeader = (accessToken?: string): string => {
-  if (accessToken) {
-    return `Bearer ${accessToken}`
-  }
-  // Use Basic auth with client ID for unauthenticated requests
-  // Format: client_id: (empty password)
-  return 'Basic ' + btoa(`${REDDIT_CLIENT_ID}:`)
+// Every request goes through oauth.reddit.com with a bearer token — either the
+// signed-in user's or an app-only one. See lib/utils/reddit-token.ts.
+if (!process.env.REDDIT_CLIENT_ID || !process.env.REDDIT_CLIENT_SECRET) {
+  throw new Error(
+    'Missing REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET environment variables. Required for Reddit API calls.'
+  )
 }
 
 // Validation schemas
@@ -118,20 +105,11 @@ async function fetchSubredditPostsCached(
   'use cache: remote'
   cacheLife('hours') // Cache for hours - Reddit data updated multiple times per day
 
-  const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
-  const headers: HeadersInit = {
-    'User-Agent': USER_AGENT,
-    Accept: 'application/json',
-    Authorization: getAuthHeader(accessToken),
-  }
-
   const params = new URLSearchParams({ limit })
   if (timePeriod) params.append('t', timePeriod)
   if (after) params.append('after', after)
 
-  const url = `${baseUrl}/r/${subreddit}/${sort}.json?${params}`
-
-  const response = await redditFetch(url, headers)
+  const response = await redditApiFetch(`/r/${subreddit}/${sort}`, params, accessToken)
 
   if (!response.ok) {
     await handleRedditApiError(response)
@@ -151,13 +129,6 @@ async function searchRedditCached(
   'use cache: remote'
   cacheLife('hours') // Cache for hours - Reddit search results updated multiple times per day
 
-  const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
-  const headers: HeadersInit = {
-    'User-Agent': USER_AGENT,
-    Accept: 'application/json',
-    Authorization: getAuthHeader(accessToken),
-  }
-
   const params = new URLSearchParams({
     q: query,
     limit,
@@ -166,9 +137,7 @@ async function searchRedditCached(
     ...(after && { after }),
   })
 
-  const url = `${baseUrl}/search.json?${params}`
-
-  const response = await redditFetch(url, headers)
+  const response = await redditApiFetch('/search', params, accessToken)
 
   if (!response.ok) {
     await handleRedditApiError(response)
@@ -181,16 +150,9 @@ async function getCommentsCached(permalink: string, accessToken: string | undefi
   'use cache: remote'
   cacheLife('hours') // Cache for hours - Comments updated multiple times per day
 
-  const baseUrl = accessToken ? 'https://oauth.reddit.com' : 'https://www.reddit.com'
-  const headers: HeadersInit = {
-    'User-Agent': USER_AGENT,
-    Accept: 'application/json',
-    Authorization: getAuthHeader(accessToken),
-  }
+  const params = new URLSearchParams({ limit: '100', depth: '10', sort: 'top' })
 
-  const url = `${baseUrl}${permalink}.json?limit=100&depth=10&sort=top`
-
-  const response = await redditFetch(url, headers)
+  const response = await redditApiFetch(permalink, params, accessToken)
 
   if (!response.ok) {
     await handleRedditApiError(response)
