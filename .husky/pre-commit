@@ -1,0 +1,27 @@
+#!/bin/sh
+# Staged files only — never whole-tree fix in hooks
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -z "$STAGED_FILES" ]; then
+  echo "No staged files"
+  exit 0
+fi
+
+# Run scoped ultracite fix on staged files
+FIX_EXIT_CODE=0
+# shellcheck disable=SC2086
+bun x ultracite fix $STAGED_FILES || FIX_EXIT_CODE=$?
+
+# Re-stage files that were fixed
+echo "$STAGED_FILES" | while IFS= read -r file; do
+  if [ -f "$file" ]; then
+    git add -- "$file"
+  fi
+done
+
+if [ $FIX_EXIT_CODE -ne 0 ]; then
+  echo "Ultracite found issues that could not be auto-fixed."
+  exit $FIX_EXIT_CODE
+fi
+
+# Typecheck + co-located tests for changed code
+bun run scripts/pre-commit-checks.mjs $STAGED_FILES || exit $?

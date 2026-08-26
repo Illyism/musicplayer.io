@@ -17,8 +17,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Lint/typecheck run in CI and pre-commit (TS7), not here.
+# DOCKER_BUILD skips Next's embedded TS6 typecheck; build is the only gate in the image.
+ENV DOCKER_BUILD=true
+
 # Build Next.js application
-RUN bun run build
+RUN --mount=type=cache,id=musicplayer-next,target=/app/.next/cache \
+    bun run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

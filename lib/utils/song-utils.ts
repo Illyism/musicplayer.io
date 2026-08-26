@@ -1,4 +1,4 @@
-import { Song } from '@/lib/store/player-store'
+import type { Song } from '@/lib/store/player-store'
 
 // ============================================================================
 // SONG PARSER
@@ -25,15 +25,23 @@ export function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): 
   if (url.startsWith('http:')) {
     url = url.replace('http:', 'https:')
   } else if (url.startsWith('//')) {
-    url = 'https:' + url
+    url = `https:${url}`
   }
 
   return url.startsWith('https://') ? url : undefined
 }
 
+// Module-level regexes (compiled once)
+const YOUTUBE_ID_PATTERNS = [
+  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+  /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
+]
+const VIMEO_ID_REGEX = /vimeo\.com\/(\d+)/
+const REDDIT_CDN_REGEX = /redd\.it/i
+
 /** Reddit CDN blocks Next.js image optimization; load these directly */
 export function isRedditHostedImage(url: string): boolean {
-  return /redd\.it/i.test(url)
+  return REDDIT_CDN_REGEX.test(url)
 }
 
 /**
@@ -46,27 +54,27 @@ export function parseSong(data: any): Song {
   const { type, playable } = determineMediaType(data)
 
   return {
-    id: data.id,
-    name: data.name, // Reddit fullname
-    title: data.title,
     author: data.author,
-    url: data.url,
-    domain: data.domain,
-    thumbnail,
-    score: data.score || 0,
-    ups: data.ups || 0,
-    downs: data.downs || 0,
-    created_utc: data.created_utc,
     created_ago: formatTimeAgo(new Date(data.created_utc * 1000)),
+    created_utc: data.created_utc,
+    domain: data.domain,
+    downs: data.downs || 0,
+    id: data.id,
+    is_self: data.is_self,
+    media: data.media,
+    name: data.name, // Reddit fullname
     num_comments: data.num_comments || 0,
-    subreddit: data.subreddit,
     permalink: data.permalink,
-    is_self: data.is_self || false,
+    playable,
+    score: data.score || 0,
     selftext: data.selftext,
     selftext_html: data.selftext_html,
+    subreddit: data.subreddit,
+    thumbnail,
+    title: data.title,
     type,
-    playable,
-    media: data.media,
+    ups: data.ups || 0,
+    url: data.url,
   }
 }
 
@@ -87,26 +95,26 @@ function determineMediaType(data: any): {
     domain === 'm.youtube.com' ||
     domain === 'www.youtube.com'
   ) {
-    return { type: 'youtube', playable: true }
+    return { playable: true, type: 'youtube' }
   }
 
   // SoundCloud
   if (domain === 'soundcloud.com' || domain === 'www.soundcloud.com') {
-    return { type: 'soundcloud', playable: true }
+    return { playable: true, type: 'soundcloud' }
   }
 
   // Vimeo
   if (domain === 'vimeo.com' || domain === 'www.vimeo.com') {
-    return { type: 'vimeo', playable: true }
+    return { playable: true, type: 'vimeo' }
   }
 
   // MP3
   if (url.endsWith('.mp3')) {
-    return { type: 'mp3', playable: true }
+    return { playable: true, type: 'mp3' }
   }
 
   // Not playable
-  return { type: 'none', playable: false }
+  return { playable: false, type: 'none' }
 }
 
 /**
@@ -116,12 +124,12 @@ function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
   const intervals = {
-    year: 31536000,
-    month: 2592000,
-    week: 604800,
-    day: 86400,
+    day: 86_400,
     hour: 3600,
     minute: 60,
+    month: 2_592_000,
+    week: 604_800,
+    year: 31_536_000,
   }
 
   for (const [unit, secondsInUnit] of Object.entries(intervals)) {
@@ -142,15 +150,21 @@ function formatTimeAgo(date: Date): string {
  * Filter Reddit posts to only include playable media
  */
 export function filterPlayableSongs(posts: any[]): any[] {
-  if (!Array.isArray(posts)) return []
+  if (!Array.isArray(posts)) {
+    return []
+  }
 
   return posts.filter(post => {
-    if (!post?.data) return false
+    if (!post?.data) {
+      return false
+    }
 
-    const data = post.data
+    const { data } = post
 
     // Exclude self posts
-    if (data.is_self) return false
+    if (data.is_self) {
+      return false
+    }
 
     const domain = data.domain?.toLowerCase() || ''
     const url = data.url?.toLowerCase() || ''
@@ -178,16 +192,15 @@ export function filterPlayableSongs(posts: any[]): any[] {
  * Extract YouTube video ID from URL
  */
 export function extractYouTubeId(url: string): string | null {
-  if (!url) return null
+  if (!url) {
+    return null
+  }
 
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-  ]
-
-  for (const pattern of patterns) {
+  for (const pattern of YOUTUBE_ID_PATTERNS) {
     const match = url.match(pattern)
-    if (match?.[1]) return match[1]
+    if (match?.[1]) {
+      return match[1]
+    }
   }
 
   return null
@@ -197,9 +210,11 @@ export function extractYouTubeId(url: string): string | null {
  * Extract Vimeo video ID from URL
  */
 export function extractVimeoId(url: string): string | null {
-  if (!url) return null
+  if (!url) {
+    return null
+  }
 
-  const match = url.match(/vimeo\.com\/(\d+)/)
+  const match = url.match(VIMEO_ID_REGEX)
   return match?.[1] || null
 }
 
@@ -207,7 +222,9 @@ export function extractVimeoId(url: string): string | null {
  * Format seconds to MM:SS
  */
 export function formatTime(seconds: number): string {
-  if (!isFinite(seconds) || isNaN(seconds)) return '0:00'
+  if (!Number.isFinite(seconds) || Number.isNaN(seconds)) {
+    return '0:00'
+  }
 
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -218,11 +235,11 @@ export function formatTime(seconds: number): string {
  * Format large numbers (e.g., 1234 -> 1.2k)
  */
 export function formatNumber(num: number): string {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M`
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K'
+    return `${(num / 1000).toFixed(1)}K`
   }
   return num.toString()
 }
@@ -231,7 +248,9 @@ export function formatNumber(num: number): string {
  * Validate if URL is a valid media URL
  */
 export function isValidMediaUrl(url: string): boolean {
-  if (!url) return false
+  if (!url) {
+    return false
+  }
 
   try {
     const urlObj = new URL(url)
@@ -256,10 +275,10 @@ export function getPlatformName(domain: string): string {
   const normalizedDomain = domain.toLowerCase().replace('www.', '')
 
   const platforms: Record<string, string> = {
-    'youtube.com': 'YouTube',
-    'youtu.be': 'YouTube',
     'soundcloud.com': 'SoundCloud',
     'vimeo.com': 'Vimeo',
+    'youtu.be': 'YouTube',
+    'youtube.com': 'YouTube',
   }
 
   return platforms[normalizedDomain] || domain
@@ -283,7 +302,9 @@ export function isSongPlaying(song: Song, currentSong: Song | null, isPlaying: b
  * Get song duration in human-readable format
  */
 export function formatDuration(seconds: number): string {
-  if (!seconds || !isFinite(seconds)) return 'Unknown'
+  if (!(seconds && Number.isFinite(seconds))) {
+    return 'Unknown'
+  }
 
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
@@ -300,7 +321,9 @@ export function formatDuration(seconds: number): string {
  * Calculate progress percentage
  */
 export function calculateProgress(currentTime: number, duration: number): number {
-  if (!duration || duration === 0) return 0
+  if (!duration || duration === 0) {
+    return 0
+  }
   return Math.min(100, Math.max(0, (currentTime / duration) * 100))
 }
 
@@ -309,7 +332,7 @@ export function calculateProgress(currentTime: number, duration: number): number
  */
 export function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array]
-  for (let i = shuffled.length - 1; i > 0; i--) {
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
@@ -331,7 +354,9 @@ export function debounce<T extends (...args: any[]) => any>(
       func(...args)
     }
 
-    if (timeout) clearTimeout(timeout)
+    if (timeout) {
+      clearTimeout(timeout)
+    }
     timeout = setTimeout(later, wait)
   }
 }
@@ -343,13 +368,15 @@ export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
-  let inThrottle: boolean = false
+  let inThrottle = false
 
   return function executedFunction(...args: Parameters<T>) {
     if (!inThrottle) {
       func(...args)
       inThrottle = true
-      setTimeout(() => (inThrottle = false), limit)
+      setTimeout(() => {
+        inThrottle = false
+      }, limit)
     }
   }
 }

@@ -1,0 +1,60 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next"
+  ],
+  "files": {
+    "includes": [
+      "!!public/fonts",
+      "!!public/images",
+      "!!subreddits.yaml",
+      "!!subs.yaml"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "semicolons": "asNeeded",
+      "trailingCommas": "es5",
+      "arrowParentheses": "asNeeded",
+      "bracketSameLine": false
+    }
+  },
+  "linter": {
+    "rules": {
+      "correctness": {
+        // Zustand selectors and hydration effects produce stable-but-untracked deps
+        "useExhaustiveDependencies": "warn"
+      },
+      "suspicious": {
+        // Reddit API responses are untyped payloads; any is intentional at boundaries
+        "noExplicitAny": "off",
+        // Redundant truthiness guards kept intentionally during strictNullChecks rollout
+        "noUnnecessaryConditions": "warn",
+        // `count && <jsx>` patterns; migrate to ternaries incrementally
+        "noLeakedRender": "warn"
+      },
+      "performance": {
+        // shadcn/ui generates `import * as React from 'react'`
+        "noNamespaceImport": "off",
+        // Inline arrow handlers are the established idiom in this codebase
+        "noJsxPropsBind": "off"
+      },
+      "complexity": {
+        // Legacy player/comment components exceed thresholds; refactor separately
+        "noExcessiveCognitiveComplexity": "off"
+      }
+    }
+  }
+}

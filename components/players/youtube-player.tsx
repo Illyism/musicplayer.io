@@ -1,15 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Song } from '@/lib/store/player-store'
-import { usePlayerStore } from '@/lib/store/player-store'
+import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { extractYouTubeId } from '@/lib/utils/song-utils'
 
 declare global {
   interface Window {
-    YT: any
-    onYouTubeIframeAPIReady: () => void
     __youtubePlayer?: any
+    onYouTubeIframeAPIReady: () => void
+    YT: any
   }
 }
 
@@ -23,16 +22,17 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
   const videoIdRef = useRef<string | null>(null)
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay } =
-    usePlayerStore()
+  const { isPlaying, volume, setCurrentTime, setDuration } = usePlayerStore()
 
   const videoId = extractYouTubeId(song.url)
 
   // Initialize YouTube player (only once, keep persistent)
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current) {
+      return
+    }
 
-    const container = containerRef.current
+    const _container = containerRef.current
     let mounted = true
     let player: any = null
 
@@ -42,10 +42,14 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
     }
 
     const initPlayer = () => {
-      if (!window.YT?.Player || !mounted || !containerRef.current) return
+      if (!(window.YT?.Player && mounted && containerRef.current)) {
+        return
+      }
 
       // Only create player if it doesn't exist
-      if (playerRef.current) return
+      if (playerRef.current) {
+        return
+      }
 
       const container = containerRef.current
 
@@ -59,7 +63,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
           oldPlayer.stopVideo()
           oldPlayer.destroy()
           window.__youtubePlayer = undefined
-        } catch (_e) {
+        } catch {
           // Ignore errors
         }
       }
@@ -73,18 +77,14 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
 
       try {
         player = new window.YT.Player(playerDiv, {
-          videoId: videoId || '', // Use current videoId or empty
-          width: '100%',
-          height: '100%',
-          playerVars: {
-            autoplay: 0, // Don't autoplay, we'll handle it explicitly
-            controls: 0,
-            modestbranding: 1,
-            rel: 0,
-          },
           events: {
+            onError: (event: any) => {
+              console.error('YouTube player error:', event.data)
+            },
             onReady: (event: any) => {
-              if (!mounted) return
+              if (!mounted) {
+                return
+              }
 
               playerRef.current = event.target
               window.__youtubePlayer = event.target
@@ -107,7 +107,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
                     // Handle autoplay rejection
                   })
                 }
-              } catch (_e) {
+              } catch {
                 // Silently handle errors
               }
 
@@ -116,25 +116,29 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
                 clearInterval(updateIntervalRef.current)
               }
               updateIntervalRef.current = setInterval(() => {
-                if (!mounted || !playerRef.current || videoIdRef.current === null) return
+                if (!(mounted && playerRef.current) || videoIdRef.current === null) {
+                  return
+                }
 
                 try {
                   const time = playerRef.current.getCurrentTime()
                   const dur = playerRef.current.getDuration()
 
-                  if (typeof time === 'number' && time >= 0 && isFinite(time)) {
+                  if (typeof time === 'number' && time >= 0 && Number.isFinite(time)) {
                     setCurrentTime(time)
                   }
-                  if (typeof dur === 'number' && dur > 0 && isFinite(dur)) {
+                  if (typeof dur === 'number' && dur > 0 && Number.isFinite(dur)) {
                     setDuration(dur)
                   }
-                } catch (_e) {
+                } catch {
                   // Ignore errors during cleanup
                 }
               }, 100)
             },
             onStateChange: (event: any) => {
-              if (!mounted || videoIdRef.current === null) return
+              if (!mounted || videoIdRef.current === null) {
+                return
+              }
 
               const state = usePlayerStore.getState()
 
@@ -147,17 +151,21 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
                 if (!state.isPlaying) {
                   state.play()
                 }
-              } else if (event.data === 2) {
+              } else if (event.data === 2 && state.isPlaying) {
                 // Paused - sync store state
-                if (state.isPlaying) {
-                  state.pause()
-                }
+                state.pause()
               }
             },
-            onError: (event: any) => {
-              console.error('YouTube player error:', event.data)
-            },
           },
+          height: '100%',
+          playerVars: {
+            autoplay: 0, // Don't autoplay, we'll handle it explicitly
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+          },
+          videoId: videoId || '', // Use current videoId or empty
+          width: '100%',
         })
       } catch (error) {
         console.error('YouTube player init error:', error)
@@ -165,17 +173,17 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
     }
 
     // Load YouTube API if needed
-    if (!window.YT) {
+    if (window.YT) {
+      initPlayer()
+    } else {
       const tag = document.createElement('script')
       tag.src = 'https://www.youtube.com/iframe_api'
       tag.async = true
 
-      const firstScript = document.getElementsByTagName('script')[0]
-      firstScript.parentNode?.insertBefore(tag, firstScript)
+      const [firstScript] = document.getElementsByTagName('script')
+      firstScript?.parentNode?.insertBefore(tag, firstScript)
 
       window.onYouTubeIframeAPIReady = initPlayer
-    } else {
-      initPlayer()
     }
 
     // Cleanup (only on unmount, not on videoId change)
@@ -198,7 +206,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
           if (window.__youtubePlayer === playerInstance) {
             window.__youtubePlayer = undefined
           }
-        } catch (_e) {
+        } catch {
           // Silently ignore cleanup errors
         }
       }
@@ -216,11 +224,13 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
       setIsReady(false)
       videoIdRef.current = null
     }
-  }, [setCurrentTime, setDuration]) // Only run once on mount
+  }, [setCurrentTime, setDuration, volume, videoId]) // Only run once on mount
 
   // Handle videoId changes - load new video without destroying player
   useEffect(() => {
-    if (!videoId) return
+    if (!videoId) {
+      return
+    }
 
     // If player is ready and videoId changed, load new video
     if (isReady && playerRef.current && videoIdRef.current !== videoId) {
@@ -233,11 +243,11 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
 
         // Load the new video
         playerInstance.loadVideoById({
-          videoId,
           startSeconds:
             state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)
               ? state.currentTime
               : 0,
+          videoId,
         })
 
         // Explicitly play if needed
@@ -249,13 +259,13 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
                 playerInstance.playVideo().catch(() => {
                   // Handle autoplay rejection
                 })
-              } catch (_e) {
+              } catch {
                 // Handle autoplay rejection
               }
             }
           }, 100)
         }
-      } catch (_e) {
+      } catch {
         // Silently handle errors
       }
     } else if (!isReady && videoId) {
@@ -266,7 +276,9 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
 
   // Handle play/pause
   useEffect(() => {
-    if (!isReady || !playerRef.current || videoIdRef.current !== videoId) return
+    if (!(isReady && playerRef.current) || videoIdRef.current !== videoId) {
+      return
+    }
 
     try {
       if (isPlaying) {
@@ -276,33 +288,35 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
       } else {
         playerRef.current.pauseVideo()
       }
-    } catch (_e) {
+    } catch {
       // Silently handle errors
     }
   }, [isPlaying, isReady, videoId])
 
   // Handle volume
   useEffect(() => {
-    if (!isReady || !playerRef.current || videoIdRef.current !== videoId) return
+    if (!(isReady && playerRef.current) || videoIdRef.current !== videoId) {
+      return
+    }
 
     try {
       playerRef.current.setVolume(volume)
-    } catch (_e) {
+    } catch {
       // Ignore
     }
   }, [volume, isReady, videoId])
 
   if (!videoId) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-gray-400">
+      <div className="flex h-full w-full items-center justify-center text-gray-400">
         Invalid YouTube URL
       </div>
     )
   }
 
   return (
-    <div className="relative w-full h-full">
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="relative h-full w-full">
+      <div className="h-full w-full" ref={containerRef} />
     </div>
   )
 }

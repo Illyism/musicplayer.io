@@ -8,8 +8,7 @@ interface KeyboardShortcutsProps {
 }
 
 export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
-  const { isPlaying, volume, togglePlay, next, previous, setVolume, shufflePlaylist } =
-    usePlayerStore()
+  const { togglePlay, next, previous, setVolume, shufflePlaylist } = usePlayerStore()
 
   // Store previous volume for unmute
   const previousVolumeRef = useRef<number>(100)
@@ -53,7 +52,7 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
       // Arrow Up - Volume Up
       if (e.key === 'ArrowUp') {
         e.preventDefault()
-        const newVolume = Math.min(100, volume + 10)
+        const newVolume = Math.min(100, usePlayerStore.getState().volume + 10)
         setVolume(newVolume)
         if (newVolume > 0) {
           previousVolumeRef.current = newVolume
@@ -63,7 +62,7 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
       // Arrow Down - Volume Down
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        const newVolume = Math.max(0, volume - 10)
+        const newVolume = Math.max(0, usePlayerStore.getState().volume - 10)
         setVolume(newVolume)
         if (newVolume > 0) {
           previousVolumeRef.current = newVolume
@@ -71,33 +70,29 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
       }
 
       // S - Shuffle
-      if (e.key === 's' || e.key === 'S') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault()
-          shufflePlaylist()
-        }
+      if ((e.key === 's' || e.key === 'S') && !(e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        shufflePlaylist()
       }
 
       // M - Mute/Unmute
-      if (e.key === 'm' || e.key === 'M') {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault()
-          const currentVolume = usePlayerStore.getState().volume
-          if (currentVolume > 0) {
-            // Mute: save current volume and set to 0
-            previousVolumeRef.current = currentVolume
-            setVolume(0)
-          } else {
-            // Unmute: restore previous volume (or 100 if never set)
-            setVolume(previousVolumeRef.current || 100)
-          }
+      if ((e.key === 'm' || e.key === 'M') && !(e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        const currentVolume = usePlayerStore.getState().volume
+        if (currentVolume > 0) {
+          // Mute: save current volume and set to 0
+          previousVolumeRef.current = currentVolume
+          setVolume(0)
+        } else {
+          // Unmute: restore previous volume (or 100 if never set)
+          setVolume(previousVolumeRef.current || 100)
         }
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [isPlaying, volume, togglePlay, next, previous, setVolume, shufflePlaylist, onShowShortcuts])
+  }, [togglePlay, next, previous, setVolume, shufflePlaylist, onShowShortcuts])
 
   return null
 }

@@ -1,13 +1,15 @@
 {
   "recommendations": [
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
+    "biomejs.biome",
+    "TypeScriptTeam.native-preview",
     "bradlc.vscode-tailwindcss",
-    "ms-vscode.vscode-typescript-next",
     "usernamehw.errorlens",
     "formulahendry.auto-rename-tag",
     "christian-kohler.path-intellisense",
     "ms-vscode.vscode-json"
   ],
-  "unwantedRecommendations": []
+  "unwantedRecommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode"
+  ]
 }

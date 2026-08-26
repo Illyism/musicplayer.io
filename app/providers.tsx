@@ -12,8 +12,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       {plausibleDomain && (
         <Script
-          defer
           data-domain={plausibleDomain}
+          defer
           src={`${plausibleHost}/js/script.outbound-links.js`}
           strategy="afterInteractive"
         />

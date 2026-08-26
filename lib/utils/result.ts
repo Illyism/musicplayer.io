@@ -10,14 +10,14 @@ export type Result<T, E = string> = { success: true; data: T } | { success: fals
  * Create a success result
  */
 export function success<T>(data: T): Result<T> {
-  return { success: true, data }
+  return { data, success: true }
 }
 
 /**
  * Create an error result
  */
 export function failure<E>(error: E): Result<never, E> {
-  return { success: false, error }
+  return { error, success: false }
 }
 
 /**

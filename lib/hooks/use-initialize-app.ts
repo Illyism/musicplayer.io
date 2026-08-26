@@ -1,9 +1,11 @@
 'use client'
 
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import { useSearchParams, usePathname } from 'next/navigation'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { useRedditAPI } from './use-reddit-api'
+
+const REDDIT_PATH_REGEX = /^\/r\/(.+)$/
 
 /**
  * Initialize app on mount
@@ -31,7 +33,7 @@ export function useInitializeApp() {
   // ==========================================
   useEffect(() => {
     // Check path: /r/music+listentothis
-    const pathMatch = pathname.match(/^\/r\/(.+)$/)
+    const pathMatch = pathname.match(REDDIT_PATH_REGEX)
     if (pathMatch) {
       const subs = pathMatch[1]
         .split('+')
@@ -145,6 +147,8 @@ export function useInitializeApp() {
           case 'ArrowDown':
             e.preventDefault()
             setVolume(Math.max(0, volume - 10))
+            break
+          default:
             break
         }
       }

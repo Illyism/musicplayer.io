@@ -6,13 +6,13 @@
  * contains all necessary information in a plain string format.
  */
 export class RedditError extends Error {
-  public readonly statusCode?: number
-  public readonly reason?: string
+  readonly statusCode?: number
+  readonly reason?: string
 
-  constructor(message: string, statusCode?: number, reason?: string) {
+  constructor(message: string, statusCode?: number, reason?: string, options?: ErrorOptions) {
     // Include all info in the message for Next.js serialization
     const fullMessage = reason || message
-    super(fullMessage)
+    super(fullMessage, options)
     this.name = 'RedditError'
     this.statusCode = statusCode
     this.reason = reason
@@ -44,10 +44,10 @@ export class RedditError extends Error {
    */
   toJSON() {
     return {
-      name: this.name,
       message: this.getUserMessage(),
-      statusCode: this.statusCode,
+      name: this.name,
       reason: this.reason,
+      statusCode: this.statusCode,
     }
   }
 }

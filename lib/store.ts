@@ -2,40 +2,53 @@
 import { create } from 'zustand'
 
 export interface Song {
-  id: string
-  name: string
-  title: string
   author: string
-  url: string
-  domain: string
-  thumbnail?: string
-  score: number
-  ups: number
-  downs: number
-  created_utc: number
   created_ago?: string
-  num_comments: number
-  subreddit: string
-  permalink: string
+  created_utc: number
+  domain: string
+  downs: number
+  id: string
   is_self: boolean
+  media?: any
+  name: string
+  num_comments: number
+  permalink: string
+  playable: boolean
+  score: number
   selftext?: string
   selftext_html?: string
+  subreddit: string
+  thumbnail?: string
+  title: string
   type: 'youtube' | 'soundcloud' | 'vimeo' | 'mp3' | 'none'
-  playable: boolean
-  media?: any
+  ups: number
+  url: string
 }
 
 interface PlaylistStore {
-  songs: Song[]
+  addMessage: (message: {
+    type: 'error' | 'success' | 'info'
+    text: string
+    buttons?: Array<{
+      text: string
+      className?: string
+      url?: string
+      callback?: () => void
+      action?: 'close'
+    }>
+  }) => void
+  addSongs: (songs: Song[]) => void
+  after: string | null
+  backward: () => void
   currentIndex: number
   currentSong: Song | null
   currentSongId: string | null // Track current song ID to prevent stale updates
-  selectedSubreddits: string[]
-  sortMethod: 'hot' | 'new' | 'top'
-  topMethod: 'day' | 'week' | 'month' | 'year' | 'all'
+  currentTime: number
+  duration: number
+  forward: () => void
+  // Player state
+  isPlaying: boolean
   loading: boolean
-  after: string | null
-  searchQuery: string | null // Reddit search query
   // Messages
   messages: Array<{
     id: string
@@ -49,49 +62,38 @@ interface PlaylistStore {
       action?: 'close'
     }>
   }>
-  // Player state
-  isPlaying: boolean
-  currentTime: number
-  duration: number
-  volume: number
   // Mobile navigation
   mobileView: 'browse' | 'playlist' | 'song'
-
-  setSelectedSubreddits: (subreddits: string[]) => void
-  setSortMethod: (method: 'hot' | 'new' | 'top') => void
-  setTopMethod: (method: 'day' | 'week' | 'month' | 'year' | 'all') => void
-  setSongs: (songs: Song[]) => void
-  addSongs: (songs: Song[]) => void
-  setCurrentSong: (index: number) => void
-  setLoading: (loading: boolean) => void
-  setAfter: (after: string | null) => void
-  setSearchQuery: (query: string | null) => void
-  addMessage: (message: {
-    type: 'error' | 'success' | 'info'
-    text: string
-    buttons?: Array<{
-      text: string
-      className?: string
-      url?: string
-      callback?: () => void
-      action?: 'close'
-    }>
-  }) => void
+  playPause: () => void
   removeMessage: (id: string) => void
-  setIsPlaying: (isPlaying: boolean) => void
+  searchQuery: string | null // Reddit search query
+  seekTo: (time: number) => void
+  selectedSubreddits: string[]
+  setAfter: (after: string | null) => void
+  setCurrentSong: (index: number) => void
   setCurrentTime: (time: number, songId?: string) => void
   setDuration: (duration: number, songId?: string) => void
-  setVolume: (volume: number) => void
-  playPause: () => void
-  forward: () => void
-  backward: () => void
-  seekTo: (time: number) => void
+  setIsPlaying: (isPlaying: boolean) => void
+  setLoading: (loading: boolean) => void
   setMobileView: (view: 'browse' | 'playlist' | 'song') => void
+  setSearchQuery: (query: string | null) => void
+
+  setSelectedSubreddits: (subreddits: string[]) => void
+  setSongs: (songs: Song[]) => void
+  setSortMethod: (method: 'hot' | 'new' | 'top') => void
+  setTopMethod: (method: 'day' | 'week' | 'month' | 'year' | 'all') => void
+  setVolume: (volume: number) => void
+  songs: Song[]
+  sortMethod: 'hot' | 'new' | 'top'
+  topMethod: 'day' | 'week' | 'month' | 'year' | 'all'
+  volume: number
 }
 
 // Load from localStorage on initialization
 const _loadSubredditsFromStorage = (): string[] => {
-  if (typeof window === 'undefined') return []
+  if (typeof window === 'undefined') {
+    return []
+  }
   try {
     const stored = localStorage.getItem('redditMusicPlayer_subreddits')
     if (stored) {
@@ -106,7 +108,9 @@ const _loadSubredditsFromStorage = (): string[] => {
 
 // Load sort method from localStorage
 const _loadSortMethodFromStorage = (): 'hot' | 'new' | 'top' => {
-  if (typeof window === 'undefined') return 'hot'
+  if (typeof window === 'undefined') {
+    return 'hot'
+  }
   try {
     const stored = localStorage.getItem('redditMusicPlayer_sortMethod')
     if (stored && (stored === 'hot' || stored === 'new' || stored === 'top')) {
@@ -120,7 +124,9 @@ const _loadSortMethodFromStorage = (): 'hot' | 'new' | 'top' => {
 
 // Load top method from localStorage
 const _loadTopMethodFromStorage = (): 'day' | 'week' | 'month' | 'year' | 'all' => {
-  if (typeof window === 'undefined') return 'week'
+  if (typeof window === 'undefined') {
+    return 'week'
+  }
   try {
     const stored = localStorage.getItem('redditMusicPlayer_topMethod')
     if (stored && ['day', 'week', 'month', 'year', 'all'].includes(stored)) {
@@ -133,24 +139,115 @@ const _loadTopMethodFromStorage = (): 'day' | 'week' | 'month' | 'year' | 'all' 
 }
 
 export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
-  songs: [],
+  addMessage: message => {
+    const id = Math.random().toString(36).slice(7)
+    set(state => ({
+      messages: [...state.messages, { ...message, id }],
+    }))
+    // Auto-remove success/info messages after 5 seconds
+    if (message.type !== 'error') {
+      setTimeout(() => {
+        usePlaylistStore.getState().removeMessage(id)
+      }, 5000)
+    }
+  },
+  addSongs: songs => set(state => ({ songs: [...state.songs, ...songs] })),
+  after: null,
+  backward: () => {
+    const state = get()
+    if (state.currentIndex > 0) {
+      let prevIndex = state.currentIndex - 1
+      let prevSong = state.songs[prevIndex]
+      // Skip non-playable songs
+      while (prevSong && !prevSong.playable && prevIndex > 0) {
+        prevIndex -= 1
+        prevSong = state.songs[prevIndex]
+      }
+      if (prevSong?.playable) {
+        set({
+          currentIndex: prevIndex,
+          currentSong: prevSong,
+          currentSongId: prevSong.id,
+          currentTime: 0,
+          duration: 0,
+          isPlaying: true, // Auto-play previous song
+        })
+      }
+    }
+  },
   currentIndex: -1,
   currentSong: null,
   currentSongId: null,
-  selectedSubreddits: [], // Initialize empty, load from localStorage on client
-  sortMethod: 'hot', // Initialize with default, load from localStorage on client
-  topMethod: 'week', // Initialize with default, load from localStorage on client
-  loading: false,
-  after: null,
-  searchQuery: null,
-  messages: [],
-  // Player state
-  isPlaying: false,
   currentTime: 0,
   duration: 0,
-  volume: 100,
+  forward: () => {
+    const state = get()
+    if (state.currentIndex < state.songs.length - 1) {
+      let nextIndex = state.currentIndex + 1
+      let nextSong = state.songs[nextIndex]
+      // Skip non-playable songs
+      while (nextSong && !nextSong.playable && nextIndex < state.songs.length - 1) {
+        nextIndex += 1
+        nextSong = state.songs[nextIndex]
+      }
+      if (nextSong?.playable) {
+        set({
+          currentIndex: nextIndex,
+          currentSong: nextSong,
+          currentSongId: nextSong.id,
+          currentTime: 0,
+          duration: 0,
+          isPlaying: true, // Auto-play next song
+        })
+      }
+    }
+  },
+  // Player state
+  isPlaying: false,
+  loading: false,
+  messages: [],
   // Mobile navigation
   mobileView: 'playlist',
+  playPause: () => set(state => ({ isPlaying: !state.isPlaying })),
+  removeMessage: id =>
+    set(state => ({
+      messages: state.messages.filter(m => m.id !== id),
+    })),
+  searchQuery: null,
+  seekTo: time => set({ currentTime: time }),
+  selectedSubreddits: [], // Initialize empty, load from localStorage on client
+  setAfter: after => set({ after }),
+  setCurrentSong: index =>
+    set(state => {
+      const song = state.songs[index] || null
+      return {
+        currentIndex: index,
+        currentSong: song,
+        currentSongId: song?.id || null,
+        currentTime: 0,
+        duration: 0,
+        // Always auto-play when clicking a song (if playable)
+        isPlaying: song?.playable,
+      }
+    }),
+  setCurrentTime: (time, songId) => {
+    const state = get()
+    // Only update if this update is for the current song (prevent stale updates from old players)
+    if (!songId || songId === state.currentSongId) {
+      set({ currentTime: time })
+    }
+  },
+  setDuration: (duration, songId) => {
+    const state = get()
+    // Only update if this update is for the current song (prevent stale updates from old players)
+    if (!songId || songId === state.currentSongId) {
+      set({ duration })
+    }
+  },
+  setIsPlaying: isPlaying => set({ isPlaying }),
+  setLoading: loading => set({ loading }),
+  setMobileView: view => set({ mobileView: view }),
+  setSearchQuery: query => set({ searchQuery: query }),
 
   setSelectedSubreddits: subreddits => {
     set({ selectedSubreddits: subreddits })
@@ -163,6 +260,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
       }
     }
   },
+  setSongs: songs => set({ currentIndex: -1, currentSong: null, currentSongId: null, songs }),
   setSortMethod: method => {
     set({ sortMethod: method })
     // Persist to localStorage
@@ -185,101 +283,9 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
       }
     }
   },
-  setSongs: songs => set({ songs, currentIndex: -1, currentSong: null, currentSongId: null }),
-  addSongs: songs => set(state => ({ songs: [...state.songs, ...songs] })),
-  setCurrentSong: index =>
-    set(state => {
-      const song = state.songs[index] || null
-      return {
-        currentIndex: index,
-        currentSong: song,
-        currentSongId: song?.id || null,
-        currentTime: 0,
-        duration: 0,
-        // Always auto-play when clicking a song (if playable)
-        isPlaying: song !== null && song.playable,
-      }
-    }),
-  setLoading: loading => set({ loading }),
-  setAfter: after => set({ after }),
-  setSearchQuery: query => set({ searchQuery: query }),
-  addMessage: message => {
-    const id = Math.random().toString(36).substring(7)
-    set(state => ({
-      messages: [...state.messages, { ...message, id }],
-    }))
-    // Auto-remove success/info messages after 5 seconds
-    if (message.type !== 'error') {
-      setTimeout(() => {
-        usePlaylistStore.getState().removeMessage(id)
-      }, 5000)
-    }
-  },
-  removeMessage: id =>
-    set(state => ({
-      messages: state.messages.filter(m => m.id !== id),
-    })),
-  setIsPlaying: isPlaying => set({ isPlaying }),
-  setCurrentTime: (time, songId) => {
-    const state = get()
-    // Only update if this update is for the current song (prevent stale updates from old players)
-    if (!songId || songId === state.currentSongId) {
-      set({ currentTime: time })
-    }
-  },
-  setDuration: (duration, songId) => {
-    const state = get()
-    // Only update if this update is for the current song (prevent stale updates from old players)
-    if (!songId || songId === state.currentSongId) {
-      set({ duration })
-    }
-  },
   setVolume: volume => set({ volume }),
-  playPause: () => set(state => ({ isPlaying: !state.isPlaying })),
-  forward: () => {
-    const state = get()
-    if (state.currentIndex < state.songs.length - 1) {
-      let nextIndex = state.currentIndex + 1
-      let nextSong = state.songs[nextIndex]
-      // Skip non-playable songs
-      while (nextSong && !nextSong.playable && nextIndex < state.songs.length - 1) {
-        nextIndex++
-        nextSong = state.songs[nextIndex]
-      }
-      if (nextSong && nextSong.playable) {
-        set({
-          currentIndex: nextIndex,
-          currentSong: nextSong,
-          currentSongId: nextSong.id,
-          currentTime: 0,
-          duration: 0,
-          isPlaying: true, // Auto-play next song
-        })
-      }
-    }
-  },
-  backward: () => {
-    const state = get()
-    if (state.currentIndex > 0) {
-      let prevIndex = state.currentIndex - 1
-      let prevSong = state.songs[prevIndex]
-      // Skip non-playable songs
-      while (prevSong && !prevSong.playable && prevIndex > 0) {
-        prevIndex--
-        prevSong = state.songs[prevIndex]
-      }
-      if (prevSong && prevSong.playable) {
-        set({
-          currentIndex: prevIndex,
-          currentSong: prevSong,
-          currentSongId: prevSong.id,
-          currentTime: 0,
-          duration: 0,
-          isPlaying: true, // Auto-play previous song
-        })
-      }
-    }
-  },
-  seekTo: time => set({ currentTime: time }),
-  setMobileView: view => set({ mobileView: view }),
+  songs: [],
+  sortMethod: 'hot', // Initialize with default, load from localStorage on client
+  topMethod: 'week', // Initialize with default, load from localStorage on client
+  volume: 100,
 }))

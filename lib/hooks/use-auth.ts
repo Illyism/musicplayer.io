@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getAuthStatus, logout as logoutAction } from '@/lib/actions/auth'
 
 export function useAuth() {
@@ -23,9 +23,9 @@ export function useAuth() {
 
   const login = useCallback(() => {
     const clientId = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || 'YOUR_CLIENT_ID'
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback')
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
     const scope = 'identity,read,vote,submit'
-    const state = Math.random().toString(36).substring(2)
+    const state = Math.random().toString(36).slice(2)
 
     // Store state in localStorage for verification (client-side only)
     if (typeof window !== 'undefined') {
@@ -45,9 +45,9 @@ export function useAuth() {
 
   return {
     isAuthenticated: authState.isAuthenticated,
-    username: authState.username,
     isLoading,
     login,
     logout,
+    username: authState.username,
   }
 }

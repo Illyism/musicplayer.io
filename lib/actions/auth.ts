@@ -3,14 +3,13 @@
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 
-const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID
-const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET
-const REDDIT_REDIRECT_URI = process.env.NEXT_PUBLIC_SITE_URL + '/auth/callback'
+const { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } = process.env
+const REDDIT_REDIRECT_URI = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
 // Reddit requires User-Agent in format: <platform>:<app ID>:<version> (by /u/<username>)
 const REDDIT_USERNAME = process.env.REDDIT_USERNAME || 'musicplayer'
 const USER_AGENT = `web:musicplayer.io:v0.6.14 (by /u/${REDDIT_USERNAME})`
 
-if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) {
+if (!(REDDIT_CLIENT_ID && REDDIT_CLIENT_SECRET)) {
   throw new Error(
     'Missing Reddit OAuth credentials. Please set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET environment variables.'
   )
@@ -25,8 +24,8 @@ const RedditTokenResponseSchema = z.union([
   // Success response
   z.object({
     access_token: z.string(),
-    refresh_token: z.string().optional(),
     expires_in: z.number().optional(),
+    refresh_token: z.string().optional(),
   }),
   // Error response
   z.object({
@@ -46,7 +45,7 @@ const UsernameSchema = z
     'Username can only contain alphanumeric characters, underscores, and hyphens'
   )
   .max(50)
-  .transform(val => val.substring(0, 50))
+  .transform(val => val.slice(0, 50))
 
 export async function loginWithReddit(code: string) {
   try {
@@ -55,17 +54,17 @@ export async function loginWithReddit(code: string) {
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: 'Basic ' + btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`),
-        'User-Agent': USER_AGENT,
-      },
       body: new URLSearchParams({
-        grant_type: 'authorization_code',
         code: validatedCode,
+        grant_type: 'authorization_code',
         redirect_uri: REDDIT_REDIRECT_URI,
       }),
+      headers: {
+        Authorization: `Basic ${btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': USER_AGENT,
+      },
+      method: 'POST',
     })
 
     const tokenDataRaw = await tokenResponse.json()
@@ -73,18 +72,18 @@ export async function loginWithReddit(code: string) {
 
     // Check if this is an error response (no access_token means error)
     if (!('access_token' in tokenData)) {
-      const errorMsg =
-        'error' in tokenData && typeof tokenData.error === 'string'
-          ? tokenData.error
-          : 'error' in tokenData && typeof tokenData.error === 'number'
-            ? `HTTP ${tokenData.error}`
-            : 'Unknown error'
+      let errorMsg = 'Unknown error'
+      if ('error' in tokenData && typeof tokenData.error === 'string') {
+        errorMsg = tokenData.error
+      } else if ('error' in tokenData && typeof tokenData.error === 'number') {
+        errorMsg = `HTTP ${tokenData.error}`
+      }
       const errorDescription =
         'error_description' in tokenData ? tokenData.error_description : undefined
       console.error('Reddit token exchange error:', errorMsg, errorDescription)
       return {
-        success: false,
         error: errorDescription || 'Failed to exchange authorization code',
+        success: false,
       }
     }
 
@@ -101,7 +100,7 @@ export async function loginWithReddit(code: string) {
 
     if (!userResponse.ok) {
       console.error('Reddit user info error:', userResponse.status)
-      return { success: false, error: 'Failed to fetch user information' }
+      return { error: 'Failed to fetch user information', success: false }
     }
 
     const userDataRaw = await userResponse.json()
@@ -116,21 +115,21 @@ export async function loginWithReddit(code: string) {
     // Access token - HTTP-only, secure in production
     cookieStore.set('reddit_access_token', successTokenData.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
       maxAge: successTokenData.expires_in || 3600, // Default to 1 hour if not provided
       path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
     })
 
     // Refresh token - HTTP-only, secure in production
     if (successTokenData.refresh_token) {
       cookieStore.set('reddit_refresh_token', successTokenData.refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
         // Refresh tokens typically don't expire, but set a long maxAge
         maxAge: 60 * 60 * 24 * 365, // 1 year
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
       })
     }
 
@@ -138,10 +137,10 @@ export async function loginWithReddit(code: string) {
     // Safe because it's just a display value, not sensitive
     cookieStore.set('reddit_username', sanitizedUsername, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 365, // 1 year
       path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
     })
 
     return {
@@ -151,10 +150,10 @@ export async function loginWithReddit(code: string) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error:', error)
-      return { success: false, error: 'Invalid input data' }
+      return { error: 'Invalid input data', success: false }
     }
     console.error('Reddit auth error:', error)
-    return { success: false, error: 'Authentication failed. Please try again.' }
+    return { error: 'Authentication failed. Please try again.', success: false }
   }
 }
 

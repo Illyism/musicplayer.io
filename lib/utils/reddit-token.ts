@@ -8,8 +8,7 @@ export const USER_AGENT = `web:musicplayer.io:v0.6.14 (by /u/${REDDIT_USERNAME})
 // endpoints now reject anonymous traffic with 403, so a token is always required.
 export const REDDIT_API_BASE = 'https://oauth.reddit.com'
 
-const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID
-const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET
+const { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } = process.env
 
 // Refresh a little before the real expiry so an in-flight request never races it
 const EXPIRY_SKEW_MS = 60_000
@@ -27,7 +26,7 @@ let inflight: Promise<string> | null = null
  * Tokens are cached in module scope and shared across requests until they expire.
  */
 export async function getAppAccessToken(forceRefresh = false): Promise<string> {
-  if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) {
+  if (!(REDDIT_CLIENT_ID && REDDIT_CLIENT_SECRET)) {
     throw new RedditError(
       'Reddit API credentials are not configured.',
       500,
@@ -50,14 +49,14 @@ export async function getAppAccessToken(forceRefresh = false): Promise<string> {
 
   inflight = (async () => {
     const response = await fetch('https://www.reddit.com/api/v1/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': USER_AGENT,
-        Authorization: 'Basic ' + btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`),
-      },
       body: new URLSearchParams({ grant_type: 'client_credentials' }),
       cache: 'no-store',
+      headers: {
+        Authorization: `Basic ${btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': USER_AGENT,
+      },
+      method: 'POST',
     })
 
     if (!response.ok) {
@@ -81,8 +80,8 @@ export async function getAppAccessToken(forceRefresh = false): Promise<string> {
 
     const ttlMs = (data.expires_in ?? 3600) * 1000
     cachedToken = {
-      token: data.access_token,
       expiresAt: Date.now() + Math.max(ttlMs - EXPIRY_SKEW_MS, 30_000),
+      token: data.access_token,
     }
 
     return data.access_token

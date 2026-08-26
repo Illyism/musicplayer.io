@@ -1,18 +1,19 @@
 #!/usr/bin/env bun
+
 /**
  * SSH tunnel to production Dragonfly/Redis.
  *
  * Usage: bun scripts/ssh-tunnel.ts [localPort]
  */
 
-import { $, spawn } from 'bun'
 import { isIP } from 'node:net'
+import { $, spawn } from 'bun'
 
 const SSH = 'illyism@94.130.66.215'
 const SSH_PORT = '10001'
 const DEFAULT_REDIS_PORT = '6379'
 
-const PROD_REDIS_URL = process.env.PROD_REDIS_URL
+const { PROD_REDIS_URL } = process.env
 
 if (!PROD_REDIS_URL) {
   console.error('❌ Set PROD_REDIS_URL in your .env')
@@ -59,8 +60,8 @@ console.log(`\n💡 REDIS_URL="${localUrl}"\n`)
 
 const tunnel = spawn({
   cmd: ['ssh', '-N', '-L', `${localPort}:${tunnelTarget}:${remotePort}`, '-p', SSH_PORT, SSH],
-  stdout: 'inherit',
   stderr: 'inherit',
+  stdout: 'inherit',
 })
 
 process.on('SIGINT', () => {

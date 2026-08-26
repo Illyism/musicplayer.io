@@ -1,9 +1,9 @@
-import { useRef, useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { toast } from 'sonner'
-import { usePlayerStore } from '@/lib/store/player-store'
-import { parseSong, filterPlayableSongs } from '@/lib/utils/song-utils'
 import { getSubredditPosts, searchReddit } from '@/lib/actions/reddit'
 import { getErrorMessage } from '@/lib/errors/reddit-error'
+import { usePlayerStore } from '@/lib/store/player-store'
+import { filterPlayableSongs, parseSong } from '@/lib/utils/song-utils'
 
 // ============================================================================
 // REDDIT API HOOK
@@ -23,7 +23,9 @@ export function useRedditAPI() {
    */
   const fetchFromSubreddits = useCallback(async (subreddits: string[], pagination?: string) => {
     // Prevent concurrent requests
-    if (isFetchingRef.current) return []
+    if (isFetchingRef.current) {
+      return []
+    }
     isFetchingRef.current = true
 
     const state = storeRef.current
@@ -58,7 +60,7 @@ export function useRedditAPI() {
     } catch (error: any) {
       console.error('Error fetching from Reddit:', error)
       const errorMessage = getErrorMessage(error)
-      toast.error(errorMessage, { duration: 10000 })
+      toast.error(errorMessage, { duration: 10_000 })
       throw error
     } finally {
       state.setLoading(false)
@@ -70,10 +72,14 @@ export function useRedditAPI() {
    * Search Reddit
    */
   const fetchSearch = useCallback(async (query: string, pagination?: string) => {
-    if (!query?.trim()) return []
+    if (!query?.trim()) {
+      return []
+    }
 
     // Prevent concurrent requests
-    if (isFetchingRef.current) return []
+    if (isFetchingRef.current) {
+      return []
+    }
     isFetchingRef.current = true
 
     const state = storeRef.current
@@ -107,7 +113,7 @@ export function useRedditAPI() {
     } catch (error: any) {
       console.error('Search error:', error)
       const errorMessage = getErrorMessage(error)
-      toast.error(errorMessage, { duration: 10000 })
+      toast.error(errorMessage, { duration: 10_000 })
       throw error
     } finally {
       state.setLoading(false)
@@ -119,7 +125,7 @@ export function useRedditAPI() {
    * Fetch songs from Reddit
    */
   const fetchSongs = useCallback(
-    async (pagination?: string) => {
+    (pagination?: string) => {
       const state = storeRef.current
 
       // Use search if query exists
@@ -137,8 +143,8 @@ export function useRedditAPI() {
   )
 
   return {
-    fetchSongs,
     fetchFromSubreddits,
     fetchSearch,
+    fetchSongs,
   }
 }

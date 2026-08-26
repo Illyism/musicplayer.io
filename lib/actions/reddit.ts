@@ -1,20 +1,22 @@
 'use server'
 
-import { handleRedditApiError } from '@/lib/utils/error-handler'
-import { redditApiFetch, slimListingResponse } from '@/lib/utils/reddit-response'
 import { cacheLife } from 'next/cache'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { handleRedditApiError } from '@/lib/utils/error-handler'
+import { redditApiFetch, slimListingResponse } from '@/lib/utils/reddit-response'
 
 // Every request goes through oauth.reddit.com with a bearer token — either the
 // signed-in user's or an app-only one. See lib/utils/reddit-token.ts.
-if (!process.env.REDDIT_CLIENT_ID || !process.env.REDDIT_CLIENT_SECRET) {
+if (!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET)) {
   throw new Error(
     'Missing REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET environment variables. Required for Reddit API calls.'
   )
 }
 
 // Validation schemas
+const SUBREDDIT_NAME_REGEX = /^[a-zA-Z0-9_+-]+$/
+
 const SubredditSchema = z
   .string()
   .min(1)
@@ -25,7 +27,7 @@ const SubredditSchema = z
       const subreddits = val.split('+')
       // Validate each individual subreddit
       return subreddits.every(
-        sub => sub.length > 0 && sub.length <= 100 && /^[a-zA-Z0-9_+-]+$/.test(sub)
+        sub => sub.length > 0 && sub.length <= 100 && SUBREDDIT_NAME_REGEX.test(sub)
       )
     },
     {
@@ -41,24 +43,28 @@ const TimePeriodSchema = z.enum(['hour', 'day', 'week', 'month', 'year', 'all'])
 const LimitSchema = z
   .string()
   .transform(val => {
-    const num = parseInt(val, 10)
-    if (isNaN(num) || num < 1 || num > 100) return '100'
+    const num = Number.parseInt(val, 10)
+    if (Number.isNaN(num) || num < 1 || num > 100) {
+      return '100'
+    }
     return num.toString()
   })
   .default('100')
 
 const AfterSchema = z.string().max(50).optional()
 
+const REDDIT_PATH_REGEX = /^\/(r|user)\/.+$/
+
 const PermalinkSchema = z.string().refine(
   val => {
     // Must start with /r/ or /user/
-    if (!val.startsWith('/r/') && !val.startsWith('/user/')) {
+    if (!(val.startsWith('/r/') || val.startsWith('/user/'))) {
       return false
     }
     // Must be a valid path - allow most URL-safe characters
     // Reddit permalinks can contain various characters in post titles and paths
     // Examples: /r/subreddit/comments/post_id/title/ or /r/subreddit/comments/post_id/title/comment_id/
-    const isValidPath = /^\/r\/.+$/.test(val) || /^\/user\/.+$/.test(val)
+    const isValidPath = REDDIT_PATH_REGEX.test(val)
     return isValidPath && val.length <= 500 && val.length > 3
   },
   { message: 'Invalid permalink format' }
@@ -71,26 +77,26 @@ const SearchQuerySchema = z
   .max(200, 'Search query is too long')
 
 const GetSubredditPostsSchema = z.object({
-  subreddit: SubredditSchema,
-  sort: SortSchema,
-  timePeriod: TimePeriodSchema,
+  accessToken: z.string().optional(),
   after: AfterSchema,
   limit: LimitSchema,
-  accessToken: z.string().optional(),
+  sort: SortSchema,
+  subreddit: SubredditSchema,
+  timePeriod: TimePeriodSchema,
 })
 
 const SearchRedditSchema = z.object({
+  accessToken: z.string().optional(),
+  after: AfterSchema,
+  limit: LimitSchema,
   query: SearchQuerySchema,
   sort: SortSchema,
   timePeriod: TimePeriodSchema,
-  after: AfterSchema,
-  limit: LimitSchema,
-  accessToken: z.string().optional(),
 })
 
 const GetCommentsSchema = z.object({
-  permalink: PermalinkSchema,
   accessToken: z.string().optional(),
+  permalink: PermalinkSchema,
 })
 
 // Cached fetch functions - these cannot access cookies() directly
@@ -106,8 +112,12 @@ async function fetchSubredditPostsCached(
   cacheLife('hours') // Cache for hours - Reddit data updated multiple times per day
 
   const params = new URLSearchParams({ limit })
-  if (timePeriod) params.append('t', timePeriod)
-  if (after) params.append('after', after)
+  if (timePeriod) {
+    params.append('t', timePeriod)
+  }
+  if (after) {
+    params.append('after', after)
+  }
 
   const response = await redditApiFetch(`/r/${subreddit}/${sort}`, params, accessToken)
 
@@ -130,8 +140,8 @@ async function searchRedditCached(
   cacheLife('hours') // Cache for hours - Reddit search results updated multiple times per day
 
   const params = new URLSearchParams({
-    q: query,
     limit,
+    q: query,
     sort,
     ...(timePeriod && { t: timePeriod }),
     ...(after && { after }),
@@ -150,7 +160,7 @@ async function getCommentsCached(permalink: string, accessToken: string | undefi
   'use cache: remote'
   cacheLife('hours') // Cache for hours - Comments updated multiple times per day
 
-  const params = new URLSearchParams({ limit: '100', depth: '10', sort: 'top' })
+  const params = new URLSearchParams({ depth: '10', limit: '100', sort: 'top' })
 
   const response = await redditApiFetch(permalink, params, accessToken)
 
@@ -175,10 +185,10 @@ async function getCommentsCached(permalink: string, accessToken: string | undefi
 // Public API functions - these read cookies and call cached functions
 export async function getSubredditPosts(
   subreddit: string,
-  sort: string = 'hot',
+  sort = 'hot',
   timePeriod?: string,
   after?: string,
-  limit: string = '100'
+  limit = '100'
 ) {
   try {
     // Read cookies outside cached scope
@@ -187,12 +197,12 @@ export async function getSubredditPosts(
 
     // Validate and transform inputs
     const validated = GetSubredditPostsSchema.parse({
-      subreddit,
-      sort,
-      timePeriod,
+      accessToken,
       after,
       limit,
-      accessToken,
+      sort,
+      subreddit,
+      timePeriod,
     })
 
     // Call cached function with token as argument
@@ -209,7 +219,9 @@ export async function getSubredditPosts(
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error:', error.issues)
-      throw new Error(`Invalid input: ${error.issues.map(e => e.message).join(', ')}`)
+      throw new Error(`Invalid input: ${error.issues.map(e => e.message).join(', ')}`, {
+        cause: error,
+      })
     }
     // Re-throw RedditError as-is, it's already properly formatted
     throw error
@@ -218,10 +230,10 @@ export async function getSubredditPosts(
 
 export async function searchReddit(
   query: string,
-  sort: string = 'relevance',
+  sort = 'relevance',
   timePeriod?: string,
   after?: string,
-  limit: string = '100'
+  limit = '100'
 ) {
   try {
     // Read cookies outside cached scope
@@ -230,12 +242,12 @@ export async function searchReddit(
 
     // Validate and transform inputs
     const validated = SearchRedditSchema.parse({
+      accessToken,
+      after,
+      limit,
       query,
       sort,
       timePeriod,
-      after,
-      limit,
-      accessToken,
     })
 
     // Call cached function with token as argument
@@ -252,7 +264,9 @@ export async function searchReddit(
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error:', error.issues)
-      throw new Error(`Invalid input: ${error.issues.map(e => e.message).join(', ')}`)
+      throw new Error(`Invalid input: ${error.issues.map(e => e.message).join(', ')}`, {
+        cause: error,
+      })
     }
     console.error('Reddit search error:', error)
     throw error instanceof Error ? error : new Error('Search failed')
@@ -266,14 +280,16 @@ export async function getComments(permalink: string) {
     const accessToken = cookieStore.get('reddit_access_token')?.value
 
     // Validate permalink
-    const validated = GetCommentsSchema.parse({ permalink, accessToken })
+    const validated = GetCommentsSchema.parse({ accessToken, permalink })
 
     // Call cached function with token as argument
     return await getCommentsCached(validated.permalink, validated.accessToken)
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error:', error.issues)
-      throw new Error(`Invalid permalink: ${error.issues.map(e => e.message).join(', ')}`)
+      throw new Error(`Invalid permalink: ${error.issues.map(e => e.message).join(', ')}`, {
+        cause: error,
+      })
     }
     console.error('Comments fetch error:', error)
     throw error instanceof Error ? error : new Error('Failed to fetch comments')
@@ -288,7 +304,9 @@ function parseComments(children: any[]): any[] {
 
   for (const item of children) {
     // Skip non-comment items (like "more" links)
-    if (item.kind !== 't1') continue
+    if (item.kind !== 't1') {
+      continue
+    }
 
     const comment = item.data
 
@@ -298,18 +316,18 @@ function parseComments(children: any[]): any[] {
     }
 
     const formattedComment = {
-      id: comment.id,
       author: comment.author,
       body: comment.body,
       body_html: comment.body_html,
-      score: comment.score,
-      created_utc: comment.created_utc,
       created_ago: formatTimeAgo(comment.created_utc),
-      replies: [], // Will be filled below
+      created_utc: comment.created_utc,
+      id: comment.id,
+      replies: [] as any[], // Will be filled below
+      score: comment.score,
     }
 
     // Parse nested replies
-    if (comment.replies && comment.replies.data && comment.replies.data.children) {
+    if (comment.replies?.data?.children) {
       formattedComment.replies = parseComments(comment.replies.data.children)
     }
 
@@ -328,14 +346,24 @@ function formatTimeAgo(timestamp: number): string {
 
   const minutes = Math.floor(diff / 60)
   const hours = Math.floor(diff / 3600)
-  const days = Math.floor(diff / 86400)
-  const months = Math.floor(diff / 2592000)
-  const years = Math.floor(diff / 31536000)
+  const days = Math.floor(diff / 86_400)
+  const months = Math.floor(diff / 2_592_000)
+  const years = Math.floor(diff / 31_536_000)
 
-  if (years > 0) return `${years} year${years > 1 ? 's' : ''} ago`
-  if (months > 0) return `${months} month${months > 1 ? 's' : ''} ago`
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+  if (years > 0) {
+    return `${years} year${years > 1 ? 's' : ''} ago`
+  }
+  if (months > 0) {
+    return `${months} month${months > 1 ? 's' : ''} ago`
+  }
+  if (days > 0) {
+    return `${days} day${days > 1 ? 's' : ''} ago`
+  }
+  if (hours > 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`
+  }
+  if (minutes > 0) {
+    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+  }
   return 'just now'
 }

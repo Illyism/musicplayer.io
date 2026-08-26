@@ -1,10 +1,11 @@
 'use client'
 
-import Image from 'next/image'
 import { ArrowSquareOut, ChatCircle, SignIn, ThumbsDown, ThumbsUp } from '@phosphor-icons/react'
+import Image from 'next/image'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
-import { useState } from 'react'
 
 export function SongDetailsSidebar() {
   const { currentSong } = usePlayerStore()
@@ -12,11 +13,11 @@ export function SongDetailsSidebar() {
 
   if (!currentSong) {
     return (
-      <div className="hidden lg:flex lg:w-80 xl:w-96 border-l border-border">
-        <div className="flex-1 p-6 flex items-center justify-center text-center">
+      <div className="hidden border-border border-l lg:flex lg:w-80 xl:w-96">
+        <div className="flex flex-1 items-center justify-center p-6 text-center">
           <div>
             <ChatCircle
-              className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50"
+              className="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-50"
               weight="fill"
             />
             <p className="text-muted-foreground">Select a song to view details</p>
@@ -35,26 +36,26 @@ export function SongDetailsSidebar() {
   }
 
   return (
-    <div className="hidden lg:flex lg:w-80 xl:w-96 border-l border-border flex-col">
+    <div className="hidden flex-col border-border border-l lg:flex lg:w-80 xl:w-96">
       {/* Header */}
-      <div className="p-6 border-b border-border">
-        <h3 className="text-lg font-bold mb-1">Now Playing</h3>
-        <p className="text-sm text-muted-foreground">Song Details</p>
+      <div className="border-border border-b p-6">
+        <h3 className="mb-1 font-bold text-lg">Now Playing</h3>
+        <p className="text-muted-foreground text-sm">Song Details</p>
       </div>
 
       {/* Song Info */}
       <div className="flex-1 overflow-y-auto pb-24">
         {/* pb-24 = 96px for player controls */}
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 p-6">
           {/* Thumbnail */}
           {currentSong.thumbnail && (
-            <div className="aspect-video rounded-lg overflow-hidden bg-secondary relative">
+            <div className="relative aspect-video overflow-hidden rounded-lg bg-secondary">
               <Image
-                src={currentSong.thumbnail}
                 alt={currentSong.title}
-                fill
                 className="object-cover"
+                fill
                 sizes="(max-width: 768px) 100vw, 50vw"
+                src={currentSong.thumbnail}
                 unoptimized={isRedditHostedImage(currentSong.thumbnail)}
               />
             </div>
@@ -62,61 +63,63 @@ export function SongDetailsSidebar() {
 
           {/* Title & Author */}
           <div>
-            <h4 className="text-base font-semibold mb-2 leading-tight">{currentSong.title}</h4>
-            <p className="text-sm text-muted-foreground">by {currentSong.author}</p>
+            <h4 className="mb-2 font-semibold text-base leading-tight">{currentSong.title}</h4>
+            <p className="text-muted-foreground text-sm">by {currentSong.author}</p>
           </div>
 
           {/* Voting */}
           <div className="flex items-center gap-4">
             <button
+              className="flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-secondary"
               onClick={() => handleVote('up')}
-              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
+              type="button"
             >
               <ThumbsUp className="h-4 w-4" weight="fill" />
-              <span className="text-sm font-medium">{currentSong.ups}</span>
+              <span className="font-medium text-sm">{currentSong.ups}</span>
             </button>
             <button
+              className="flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-secondary"
               onClick={() => handleVote('down')}
-              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
+              type="button"
             >
               <ThumbsDown className="h-4 w-4" weight="fill" />
-              <span className="text-sm font-medium">{currentSong.downs || 0}</span>
+              <span className="font-medium text-sm">{currentSong.downs || 0}</span>
             </button>
-            <div className="ml-auto text-sm text-muted-foreground">Score: {currentSong.score}</div>
+            <div className="ml-auto text-muted-foreground text-sm">Score: {currentSong.score}</div>
           </div>
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-muted-foreground mb-1">Subreddit</p>
+              <p className="mb-1 text-muted-foreground">Subreddit</p>
               <a
+                className="flex items-center gap-1 text-primary hover:underline"
                 href={`https://reddit.com/r/${currentSong.subreddit}`}
-                target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline flex items-center gap-1"
+                target="_blank"
               >
                 r/{currentSong.subreddit}
                 <ArrowSquareOut className="h-3 w-3" weight="fill" />
               </a>
             </div>
             <div>
-              <p className="text-muted-foreground mb-1">Source</p>
+              <p className="mb-1 text-muted-foreground">Source</p>
               <a
+                className="flex items-center gap-1 text-primary capitalize hover:underline"
                 href={currentSong.url}
-                target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline flex items-center gap-1 capitalize"
+                target="_blank"
               >
                 {currentSong.type}
                 <ArrowSquareOut className="h-3 w-3" weight="fill" />
               </a>
             </div>
             <div>
-              <p className="text-muted-foreground mb-1">Comments</p>
+              <p className="mb-1 text-muted-foreground">Comments</p>
               <p className="font-medium">{currentSong.num_comments}</p>
             </div>
             <div>
-              <p className="text-muted-foreground mb-1">Posted</p>
+              <p className="mb-1 text-muted-foreground">Posted</p>
               <p className="font-medium">{currentSong.created_ago || 'Recently'}</p>
             </div>
           </div>
@@ -124,42 +127,47 @@ export function SongDetailsSidebar() {
           {/* Links */}
           <div className="space-y-2">
             <a
+              className="flex w-full items-center gap-2 rounded-md bg-secondary px-4 py-2 transition-colors hover:bg-secondary/80"
               href={`https://reddit.com${currentSong.permalink}`}
-              target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-md transition-colors"
+              target="_blank"
             >
               <ArrowSquareOut className="h-4 w-4" weight="fill" />
-              <span className="text-sm font-medium">View on Reddit</span>
+              <span className="font-medium text-sm">View on Reddit</span>
             </a>
             <a
+              className="flex w-full items-center gap-2 rounded-md bg-secondary px-4 py-2 transition-colors hover:bg-secondary/80"
               href={currentSong.url}
-              target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-md transition-colors"
+              target="_blank"
             >
               <ArrowSquareOut className="h-4 w-4" weight="fill" />
-              <span className="text-sm font-medium">Open {currentSong.type}</span>
+              <span className="font-medium text-sm">Open {currentSong.type}</span>
             </a>
           </div>
 
           {/* Comments Section */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-base font-semibold">Comments</h4>
-              <button onClick={handleComment} className="text-sm text-primary hover:underline">
+            <div className="mb-4 flex items-center justify-between">
+              <h4 className="font-semibold text-base">Comments</h4>
+              <button
+                className="text-primary text-sm hover:underline"
+                onClick={handleComment}
+                type="button"
+              >
                 Add Comment
               </button>
             </div>
             <div className="rounded-md border border-border bg-secondary/50 p-4 text-center">
               <ChatCircle
-                className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50"
+                className="mx-auto mb-2 h-8 w-8 text-muted-foreground opacity-50"
                 weight="fill"
               />
-              <p className="text-sm text-muted-foreground mb-3">Login to view and post comments</p>
+              <p className="mb-3 text-muted-foreground text-sm">Login to view and post comments</p>
               <button
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
                 onClick={() => setShowLoginPrompt(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                type="button"
               >
                 <SignIn className="h-4 w-4" weight="fill" />
                 Login with Reddit
@@ -171,32 +179,48 @@ export function SongDetailsSidebar() {
 
       {/* Login Prompt Modal */}
       {showLoginPrompt && (
+        // Backdrop is a dismissal affordance, not interactive content
+        // biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
           onClick={() => setShowLoginPrompt(false)}
+          onKeyDown={event => {
+            if (event.key === 'Escape') {
+              setShowLoginPrompt(false)
+            }
+          }}
+          role="presentation"
+          tabIndex={-1}
         >
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: stops bubbling to backdrop */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: escape handled on backdrop */}
           <div
-            className="bg-card rounded-lg p-6 max-w-sm w-full border border-border"
+            aria-label="Login required"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-lg border border-border bg-card p-6"
             onClick={e => e.stopPropagation()}
+            role="dialog"
           >
-            <h3 className="text-lg font-bold mb-2">Login Required</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <h3 className="mb-2 font-bold text-lg">Login Required</h3>
+            <p className="mb-4 text-muted-foreground text-sm">
               You need to login with your Reddit account to vote and comment.
             </p>
             <div className="flex gap-2">
               <button
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
                 onClick={() => {
                   setShowLoginPrompt(false)
-                  alert('Reddit OAuth login would be implemented here')
+                  toast.info('Reddit OAuth login is not configured yet.')
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                type="button"
               >
                 <SignIn className="h-4 w-4" weight="fill" />
                 Login
               </button>
               <button
+                className="flex-1 rounded-md bg-secondary px-4 py-2 font-medium text-sm transition-colors hover:bg-secondary/80"
                 onClick={() => setShowLoginPrompt(false)}
-                className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-md text-sm font-medium transition-colors"
+                type="button"
               >
                 Cancel
               </button>

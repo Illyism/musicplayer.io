@@ -10,19 +10,21 @@ import {
  * Full search results (limit=100) can exceed Next.js's 2MB cache limit.
  */
 export function slimListingResponse(data: any): any {
-  if (!data?.data?.children) return data
+  if (!data?.data?.children) {
+    return data
+  }
 
   return {
-    kind: data.kind,
     data: {
       after: data.data.after,
       before: data.data.before,
-      dist: data.data.dist,
       children: data.data.children.map((child: any) => ({
-        kind: child.kind,
         data: child.data ? slimPostData(child.data) : child.data,
+        kind: child.kind,
       })),
+      dist: data.data.dist,
     },
+    kind: data.kind,
   }
 }
 
@@ -30,27 +32,27 @@ function slimPostData(data: Record<string, unknown>) {
   const preview = data.preview as { images?: Array<{ source?: { url?: string } }> } | undefined
 
   return {
-    id: data.id,
-    name: data.name,
-    title: data.title,
     author: data.author,
-    url: data.url,
-    domain: data.domain,
-    thumbnail: data.thumbnail,
-    score: data.score,
-    ups: data.ups,
-    downs: data.downs,
     created_utc: data.created_utc,
-    num_comments: data.num_comments,
-    subreddit: data.subreddit,
-    permalink: data.permalink,
+    domain: data.domain,
+    downs: data.downs,
+    id: data.id,
     is_self: data.is_self,
-    selftext: data.selftext,
-    selftext_html: data.selftext_html,
     media: data.media,
+    name: data.name,
+    num_comments: data.num_comments,
+    permalink: data.permalink,
     preview: preview?.images?.[0]?.source?.url
       ? { images: [{ source: { url: preview.images[0].source.url } }] }
       : undefined,
+    score: data.score,
+    selftext: data.selftext,
+    selftext_html: data.selftext_html,
+    subreddit: data.subreddit,
+    thumbnail: data.thumbnail,
+    title: data.title,
+    ups: data.ups,
+    url: data.url,
   }
 }
 
@@ -65,8 +67,10 @@ export async function redditFetch(
 ): Promise<Response> {
   let lastResponse: Response | undefined
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    lastResponse = await fetch(url, { headers, cache: 'no-store' })
+  // Retries are inherently sequential — each attempt depends on the previous failure
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    // biome-ignore lint/performance/noAwaitInLoops: sequential retry with backoff
+    lastResponse = await fetch(url, { cache: 'no-store', headers })
 
     if (lastResponse.ok || lastResponse.status < 500) {
       return lastResponse
@@ -77,7 +81,10 @@ export async function redditFetch(
     }
   }
 
-  return lastResponse!
+  if (!lastResponse) {
+    throw new Error('Reddit API did not return a response')
+  }
+  return lastResponse
 }
 
 /**
@@ -96,10 +103,10 @@ export async function redditApiFetch(
   params.set('raw_json', '1')
   const url = `${REDDIT_API_BASE}${path}?${params}`
 
-  const buildHeaders = (token: string): HeadersInit => ({
-    'User-Agent': USER_AGENT,
+  const buildHeaders = (bearerToken: string): HeadersInit => ({
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${bearerToken}`,
+    'User-Agent': USER_AGENT,
   })
 
   const token = accessToken ?? (await getAppAccessToken())

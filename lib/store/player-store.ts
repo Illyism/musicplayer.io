@@ -5,79 +5,79 @@ import { create } from 'zustand'
 // ============================================================================
 
 export interface Song {
-  id: string
-  name: string // Reddit fullname (e.g., "t3_abc123")
-  title: string
   author: string
-  url: string
-  domain: string
-  thumbnail?: string
-  score: number
-  ups: number
-  downs: number
-  created_utc: number
   created_ago?: string
-  num_comments: number
-  subreddit: string
-  permalink: string
+  created_utc: number
+  domain: string
+  downs: number
+  id: string
   is_self: boolean
+  media?: any
+  name: string // Reddit fullname (e.g., "t3_abc123")
+  num_comments: number
+  permalink: string
+  playable: boolean
+  score: number
   selftext?: string
   selftext_html?: string
+  subreddit: string
+  thumbnail?: string
+  title: string
   type: 'youtube' | 'soundcloud' | 'vimeo' | 'mp3' | 'none'
-  playable: boolean
-  media?: any
+  ups: number
+  url: string
 }
 
 export interface PlayerState {
-  // Playlist
-  songs: Song[]
+  after: string | null // Pagination
   currentIndex: number
   currentSong: Song | null
-  selectedSubreddits: string[]
-  sortMethod: 'hot' | 'new' | 'top'
-  topPeriod: 'day' | 'week' | 'month' | 'year' | 'all'
-  searchQuery: string | null
-  loading: boolean
-  after: string | null // Pagination
+  currentTime: number
+  duration: number
 
   // Playback
   isPlaying: boolean
-  currentTime: number
-  duration: number
-  volume: number
+  isTheatreMode: boolean
+  loading: boolean
 
   // UI
   mobileView: 'browse' | 'playlist' | 'player'
-  isTheatreMode: boolean
+  searchQuery: string | null
+  selectedSubreddits: string[]
+  // Playlist
+  songs: Song[]
+  sortMethod: 'hot' | 'new' | 'top'
+  topPeriod: 'day' | 'week' | 'month' | 'year' | 'all'
+  volume: number
 }
 
 export interface PlayerActions {
-  // Playlist actions
-  setSongs: (songs: Song[]) => void
   addSongs: (songs: Song[]) => void
-  setCurrentSong: (index: number) => void
-  setSelectedSubreddits: (subreddits: string[]) => void
-  setSortMethod: (method: PlayerState['sortMethod']) => void
-  setTopPeriod: (period: PlayerState['topPeriod']) => void
-  setSearchQuery: (query: string | null) => void
-  setLoading: (loading: boolean) => void
-  setAfter: (after: string | null) => void
-  shufflePlaylist: () => void
+  next: () => void
+  pause: () => void
 
   // Playback actions
   play: () => void
-  pause: () => void
-  togglePlay: () => void
-  next: () => void
   previous: () => void
   seekTo: (time: number) => void
-  setVolume: (volume: number) => void
+  setAfter: (after: string | null) => void
+  setCurrentSong: (index: number) => void
   setCurrentTime: (time: number) => void
   setDuration: (duration: number) => void
+  setLoading: (loading: boolean) => void
 
   // UI actions
   setMobileView: (view: PlayerState['mobileView']) => void
+  setSearchQuery: (query: string | null) => void
+  setSelectedSubreddits: (subreddits: string[]) => void
+  // Playlist actions
+  setSongs: (songs: Song[]) => void
+  setSortMethod: (method: PlayerState['sortMethod']) => void
   setTheatreMode: (enabled: boolean) => void
+  setTopPeriod: (period: PlayerState['topPeriod']) => void
+  setVolume: (volume: number) => void
+  shufflePlaylist: () => void
+  togglePlay: () => void
   toggleTheatreMode: () => void
 }
 
@@ -88,14 +88,16 @@ export type PlayerStore = PlayerState & PlayerActions
 // ============================================================================
 
 const STORAGE_KEYS = {
-  subreddits: 'reddit_music_player_subreddits',
   sortMethod: 'reddit_music_player_sort_method',
+  subreddits: 'reddit_music_player_subreddits',
   topPeriod: 'reddit_music_player_top_period',
   volume: 'reddit_music_player_volume',
 } as const
 
 function _loadFromStorage<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined') return defaultValue
+  if (typeof window === 'undefined') {
+    return defaultValue
+  }
   try {
     const item = localStorage.getItem(key)
     return item ? JSON.parse(item) : defaultValue
@@ -105,7 +107,9 @@ function _loadFromStorage<T>(key: string, defaultValue: T): T {
 }
 
 function saveToStorage<T>(key: string, value: T): void {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') {
+    return
+  }
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch (error) {
@@ -118,26 +122,145 @@ function saveToStorage<T>(key: string, value: T): void {
 // ============================================================================
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
-  // ========================================
-  // STATE (static defaults - NO localStorage here)
-  // ========================================
-  songs: [],
+  addSongs: newSongs => {
+    set(state => {
+      // Filter out duplicates - only add songs that don't already exist
+      const existingIds = new Set(state.songs.map(song => song.id))
+      const uniqueNewSongs = newSongs.filter(song => !existingIds.has(song.id))
+      return {
+        songs: [...state.songs, ...uniqueNewSongs],
+      }
+    })
+  },
+  after: null,
   currentIndex: -1,
   currentSong: null,
-  selectedSubreddits: ['listentothis'], // Static default
-  sortMethod: 'hot', // Static default
-  topPeriod: 'week', // Static default
-  searchQuery: null,
-  loading: false,
-  after: null,
-
-  isPlaying: false,
   currentTime: 0,
   duration: 0,
-  volume: 100, // Static default
+
+  isPlaying: false,
+  isTheatreMode: false,
+  loading: false,
 
   mobileView: 'playlist',
-  isTheatreMode: false,
+
+  next: () => {
+    const { songs, currentIndex } = get()
+
+    // Find next playable song
+    let nextIndex = currentIndex + 1
+    while (nextIndex < songs.length) {
+      const song = songs[nextIndex]
+      if (song?.playable) {
+        get().setCurrentSong(nextIndex)
+        return
+      }
+      nextIndex += 1
+    }
+
+    // If no next song found, loop back to first playable song
+    nextIndex = 0
+    while (nextIndex < songs.length) {
+      const song = songs[nextIndex]
+      if (song?.playable) {
+        get().setCurrentSong(nextIndex)
+        return
+      }
+      nextIndex += 1
+    }
+  },
+
+  pause: () => {
+    set({ isPlaying: false })
+  },
+
+  // ========================================
+  // PLAYBACK ACTIONS
+  // ========================================
+  play: () => {
+    set({ isPlaying: true })
+  },
+
+  previous: () => {
+    const { songs, currentIndex } = get()
+
+    // Find previous playable song
+    let prevIndex = currentIndex - 1
+    while (prevIndex >= 0) {
+      const song = songs[prevIndex]
+      if (song?.playable) {
+        get().setCurrentSong(prevIndex)
+        return
+      }
+      prevIndex -= 1
+    }
+  },
+  searchQuery: null,
+
+  seekTo: time => {
+    set({ currentTime: time })
+  },
+  selectedSubreddits: ['listentothis'], // Static default
+
+  setAfter: after => {
+    set({ after })
+  },
+
+  setCurrentSong: index => {
+    const { songs } = get()
+    const song = songs.at(index)
+
+    if (!song) {
+      return
+    }
+
+    set({
+      currentIndex: index,
+      currentSong: song,
+      currentTime: 0,
+      duration: 0,
+      isPlaying: song.playable,
+    })
+  },
+
+  setCurrentTime: time => {
+    set({ currentTime: time })
+  },
+
+  setDuration: duration => {
+    if (duration > 0 && Number.isFinite(duration)) {
+      set({ duration })
+    }
+  },
+
+  setLoading: loading => {
+    set({ loading })
+  },
+
+  // ========================================
+  // UI ACTIONS
+  // ========================================
+  setMobileView: view => {
+    set({ mobileView: view })
+  },
+
+  setSearchQuery: query => {
+    set({ searchQuery: query })
+  },
+
+  setSelectedSubreddits: subreddits => {
+    // Deduplicate subreddits (keep first occurrence)
+    const seen = new Set<string>()
+    const unique = subreddits.filter(sub => {
+      if (seen.has(sub)) {
+        return false
+      }
+      seen.add(sub)
+      return true
+    })
+    set({ selectedSubreddits: unique })
+    saveToStorage(STORAGE_KEYS.subreddits, unique)
+  },
 
   // ========================================
   // PLAYLIST ACTIONS
@@ -156,7 +279,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     // Preserve current song if it still exists in the new list
     let newCurrentIndex = -1
-    let newCurrentSong = null
+    let newCurrentSong: Song | null = null
     let newCurrentTime = 0
     let newDuration = 0
 
@@ -172,52 +295,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
 
     set({
-      songs: uniqueSongs,
       currentIndex: newCurrentIndex,
       currentSong: newCurrentSong,
       currentTime: newCurrentTime,
       duration: newDuration,
+      songs: uniqueSongs,
     })
-  },
-
-  addSongs: newSongs => {
-    set(state => {
-      // Filter out duplicates - only add songs that don't already exist
-      const existingIds = new Set(state.songs.map(song => song.id))
-      const uniqueNewSongs = newSongs.filter(song => !existingIds.has(song.id))
-      return {
-        songs: [...state.songs, ...uniqueNewSongs],
-      }
-    })
-  },
-
-  setCurrentSong: index => {
-    const songs = get().songs
-    const song = songs[index]
-
-    if (!song) return
-
-    set({
-      currentIndex: index,
-      currentSong: song,
-      currentTime: 0,
-      duration: 0,
-      isPlaying: song.playable,
-    })
-  },
-
-  setSelectedSubreddits: subreddits => {
-    // Deduplicate subreddits (keep first occurrence)
-    const seen = new Set<string>()
-    const unique = subreddits.filter(sub => {
-      if (seen.has(sub)) {
-        return false
-      }
-      seen.add(sub)
-      return true
-    })
-    set({ selectedSubreddits: unique })
-    saveToStorage(STORAGE_KEYS.subreddits, unique)
   },
 
   setSortMethod: method => {
@@ -225,21 +308,19 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     saveToStorage(STORAGE_KEYS.sortMethod, method)
   },
 
+  setTheatreMode: enabled => {
+    set({ isTheatreMode: enabled })
+  },
+
   setTopPeriod: period => {
     set({ topPeriod: period })
     saveToStorage(STORAGE_KEYS.topPeriod, period)
   },
 
-  setSearchQuery: query => {
-    set({ searchQuery: query })
-  },
-
-  setLoading: loading => {
-    set({ loading })
-  },
-
-  setAfter: after => {
-    set({ after })
+  setVolume: volume => {
+    const clampedVolume = Math.max(0, Math.min(100, volume))
+    set({ volume: clampedVolume })
+    saveToStorage(STORAGE_KEYS.volume, clampedVolume)
   },
 
   shufflePlaylist: () => {
@@ -250,102 +331,26 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     if (currentSong) {
       const newIndex = shuffled.findIndex(song => song.id === currentSong.id)
       set({
-        songs: shuffled,
         currentIndex: newIndex >= 0 ? newIndex : -1,
+        songs: shuffled,
       })
     } else {
       set({ songs: shuffled })
     }
   },
-
   // ========================================
-  // PLAYBACK ACTIONS
+  // STATE (static defaults - NO localStorage here)
   // ========================================
-  play: () => {
-    set({ isPlaying: true })
-  },
-
-  pause: () => {
-    set({ isPlaying: false })
-  },
+  songs: [],
+  sortMethod: 'hot', // Static default
 
   togglePlay: () => {
     set(state => ({ isPlaying: !state.isPlaying }))
   },
 
-  next: () => {
-    const { songs, currentIndex } = get()
-
-    // Find next playable song
-    let nextIndex = currentIndex + 1
-    while (nextIndex < songs.length) {
-      const song = songs[nextIndex]
-      if (song?.playable) {
-        get().setCurrentSong(nextIndex)
-        return
-      }
-      nextIndex++
-    }
-
-    // If no next song found, loop back to first playable song
-    nextIndex = 0
-    while (nextIndex < songs.length) {
-      const song = songs[nextIndex]
-      if (song?.playable) {
-        get().setCurrentSong(nextIndex)
-        return
-      }
-      nextIndex++
-    }
-  },
-
-  previous: () => {
-    const { songs, currentIndex } = get()
-
-    // Find previous playable song
-    let prevIndex = currentIndex - 1
-    while (prevIndex >= 0) {
-      const song = songs[prevIndex]
-      if (song?.playable) {
-        get().setCurrentSong(prevIndex)
-        return
-      }
-      prevIndex--
-    }
-  },
-
-  seekTo: time => {
-    set({ currentTime: time })
-  },
-
-  setVolume: volume => {
-    const clampedVolume = Math.max(0, Math.min(100, volume))
-    set({ volume: clampedVolume })
-    saveToStorage(STORAGE_KEYS.volume, clampedVolume)
-  },
-
-  setCurrentTime: time => {
-    set({ currentTime: time })
-  },
-
-  setDuration: duration => {
-    if (duration > 0 && isFinite(duration)) {
-      set({ duration })
-    }
-  },
-
-  // ========================================
-  // UI ACTIONS
-  // ========================================
-  setMobileView: view => {
-    set({ mobileView: view })
-  },
-
-  setTheatreMode: enabled => {
-    set({ isTheatreMode: enabled })
-  },
-
   toggleTheatreMode: () => {
     set(state => ({ isTheatreMode: !state.isTheatreMode }))
   },
+  topPeriod: 'week', // Static default
+  volume: 100, // Static default
 }))

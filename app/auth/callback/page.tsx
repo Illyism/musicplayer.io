@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 
 function AuthCallbackContent() {
   const router = useRouter()
@@ -46,8 +46,8 @@ function AuthCallbackContent() {
 
         setStatus('Login successful! Redirecting...')
         setTimeout(() => router.push('/'), 1000)
-      } catch (error: any) {
-        setStatus(`Login failed: ${error.message}`)
+      } catch (callbackError: any) {
+        setStatus(`Login failed: ${callbackError.message}`)
         setTimeout(() => router.push('/'), 3000)
       }
     }
@@ -56,10 +56,10 @@ function AuthCallbackContent() {
   }, [searchParams, router])
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-lg font-medium">{status}</p>
+        <div className="mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="font-medium text-lg">{status}</p>
       </div>
     </div>
   )
@@ -69,10 +69,10 @@ export default function AuthCallback() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex min-h-screen items-center justify-center bg-background">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-lg font-medium">Loading...</p>
+            <div className="mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="font-medium text-lg">Loading...</p>
           </div>
         </div>
       }

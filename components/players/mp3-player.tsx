@@ -1,11 +1,10 @@
 'use client'
 
+import { MusicNote } from '@phosphor-icons/react'
 import Image from 'next/image'
 import { useEffect, useRef } from 'react'
-import { Song } from '@/lib/store/player-store'
-import { usePlayerStore } from '@/lib/store/player-store'
+import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
-import { MusicNote } from '@phosphor-icons/react'
 
 interface MP3PlayerProps {
   song: Song
@@ -13,12 +12,14 @@ interface MP3PlayerProps {
 
 export function MP3Player({ song }: MP3PlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
-  const { isPlaying, volume, currentTime, setCurrentTime, setDuration, togglePlay, play, pause } =
+  const { isPlaying, volume, setCurrentTime, setDuration, togglePlay, play, pause } =
     usePlayerStore()
 
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio) {
+      return
+    }
 
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime)
@@ -65,7 +66,9 @@ export function MP3Player({ song }: MP3PlayerProps) {
 
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio) {
+      return
+    }
 
     // Restore saved currentTime when audio is loaded
     const state = usePlayerStore.getState()
@@ -89,12 +92,14 @@ export function MP3Player({ song }: MP3PlayerProps) {
     } else {
       audio.pause()
     }
-  }, [isPlaying, currentTime])
+  }, [isPlaying])
 
   // Restore saved position when audio metadata loads
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio) {
+      return
+    }
 
     const handleLoadedMetadata = () => {
       const state = usePlayerStore.getState()
@@ -107,32 +112,41 @@ export function MP3Player({ song }: MP3PlayerProps) {
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
-  }, [song.url])
+  }, [])
 
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio) {
+      return
+    }
 
     audio.volume = volume / 100
   }, [volume])
 
   return (
-    <div className="relative w-full h-full cursor-pointer" onClick={togglePlay}>
+    <button
+      aria-label={isPlaying ? 'Pause' : 'Play'}
+      className="relative block h-full w-full cursor-pointer"
+      onClick={togglePlay}
+      type="button"
+    >
       {song.thumbnail ? (
         <Image
-          src={song.thumbnail}
           alt={song.title}
-          fill
           className="object-cover"
+          fill
           sizes="100vw"
+          src={song.thumbnail}
           unoptimized={isRedditHostedImage(song.thumbnail)}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-secondary to-background">
-          <MusicNote className="w-24 h-24 text-muted-foreground" weight="fill" />
+        <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-secondary to-background">
+          <MusicNote className="h-24 w-24 text-muted-foreground" weight="fill" />
         </div>
       )}
-      <audio ref={audioRef} src={song.url} preload="metadata" />
-    </div>
+      <audio preload="metadata" ref={audioRef} src={song.url}>
+        <track kind="captions" />
+      </audio>
+    </button>
   )
 }

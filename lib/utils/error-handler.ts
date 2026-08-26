@@ -1,4 +1,4 @@
-import { RedditError, getErrorMessage, isRedditError } from '@/lib/errors/reddit-error'
+import { getErrorMessage, isRedditError, RedditError } from '@/lib/errors/reddit-error'
 
 /**
  * Handle Reddit API response errors
@@ -15,14 +15,16 @@ export async function handleRedditApiError(response: Response): Promise<never> {
       .json()
       .catch(() => null)
     if (errorData?.reason) {
-      reason = errorData.reason
-      errorMessage = errorData.reason
+      const { reason: apiReason } = errorData
+      reason = apiReason
+      errorMessage = apiReason
     } else if (errorData?.message) {
       reason = errorData.message
       errorMessage = errorData.message
     } else if (errorData?.error) {
-      reason = typeof errorData.error === 'string' ? errorData.error : String(errorData.error)
-      errorMessage = reason
+      const detail = typeof errorData.error === 'string' ? errorData.error : String(errorData.error)
+      reason = detail
+      errorMessage = detail
     }
   } catch {
     // If JSON parsing fails, use default message
@@ -71,7 +73,8 @@ export function wrapServerActionError<T extends (...args: any[]) => Promise<any>
       }
       // Wrap other errors
       const message = getErrorMessage(error)
-      throw new RedditError(message)
+      // biome-ignore lint/style/useErrorCause: cause forwarded via RedditError's ErrorOptions
+      throw new RedditError(message, undefined, undefined, { cause: error })
     }
   }) as T
 }

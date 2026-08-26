@@ -1,20 +1,20 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { load as loadYaml } from 'js-yaml'
 import { NextResponse } from 'next/server'
-import { readFileSync } from 'fs'
-import { join } from 'path'
-import yaml from 'js-yaml'
 
 /**
  * Get list of all subreddits from YAML file
  * Reads from subreddits.yaml in project root
  */
-export async function GET() {
+export function GET() {
   try {
     // Path to your YAML file in project root
     const yamlPath = join(process.cwd(), 'subreddits.yaml')
 
     // Read and parse YAML file
     const fileContents = readFileSync(yamlPath, 'utf8')
-    const subreddits = yaml.load(fileContents) as any[]
+    const subreddits = loadYaml(fileContents) as any[]
 
     // Return the subreddits
     return NextResponse.json(subreddits)

@@ -1,19 +1,19 @@
 'use client'
 
 import { ArrowSquareOut, ArrowUp, ChatCircle, MusicNote } from '@phosphor-icons/react'
+import { useEffect, useState } from 'react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { LoginModal } from './login-modal'
 import { MediaPlayerFrame } from './media-player-frame'
-import { useState, useEffect } from 'react'
 
 interface Comment {
-  id: string
   author: string
   body: string
   body_html: string
-  score: number
   created_ago: string
+  id: string
   replies: Comment[]
+  score: number
 }
 
 // Comment Component for Mobile
@@ -30,25 +30,27 @@ function CommentItem({
   const hasReplies = comment.replies && comment.replies.length > 0
 
   return (
-    <div className={depth > 0 ? 'ml-4 pl-4 border-l-2 border-border' : ''}>
-      <div className="p-3 rounded-lg bg-secondary mb-2">
-        <div className="flex items-center gap-2 mb-2 text-xs">
+    <div className={depth > 0 ? 'ml-4 border-border border-l-2 pl-4' : ''}>
+      <div className="mb-2 rounded-lg bg-secondary p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs">
           <span className="font-medium">/u/{comment.author}</span>
           <span className="text-muted-foreground">• {comment.created_ago}</span>
         </div>
-        <p className="text-sm whitespace-pre-wrap wrap-break-word mb-2">{comment.body}</p>
+        <p className="wrap-break-word mb-2 whitespace-pre-wrap text-sm">{comment.body}</p>
         <div className="flex items-center gap-3">
           <button
+            className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
             onClick={() => onLogin('vote')}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            type="button"
           >
             <ArrowUp className="h-3 w-3" weight="fill" />
             <span>{comment.score}</span>
           </button>
           {hasReplies && (
             <button
+              className="text-muted-foreground text-xs hover:text-foreground"
               onClick={() => setShowReplies(!showReplies)}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              type="button"
             >
               {showReplies ? 'Hide' : 'Show'} {comment.replies.length}{' '}
               {comment.replies.length === 1 ? 'reply' : 'replies'}
@@ -59,7 +61,7 @@ function CommentItem({
       {hasReplies && showReplies && (
         <div className="mt-2">
           {comment.replies.map(reply => (
-            <CommentItem key={reply.id} comment={reply} depth={depth + 1} onLogin={onLogin} />
+            <CommentItem comment={reply} depth={depth + 1} key={reply.id} onLogin={onLogin} />
           ))}
         </div>
       )}
@@ -105,8 +107,7 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
     }
 
     loadComments()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSong?.id]) // Only reload when song ID changes, not object reference
+  }, [currentSong?.id, currentSong?.title, currentSong?.permalink, currentSong]) // Only reload when song ID changes, not object reference
 
   const handleLogin = (action: string) => {
     setLoginAction(action)
@@ -115,12 +116,12 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
 
   if (!currentSong) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <MusicNote className="w-10 h-10 text-primary" weight="fill" />
+      <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+          <MusicNote className="h-10 w-10 text-primary" weight="fill" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">No song playing</h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
+        <h3 className="mb-2 font-semibold text-lg">No song playing</h3>
+        <p className="max-w-xs text-muted-foreground text-sm">
           Select a song from the playlist to start listening
         </p>
       </div>
@@ -128,38 +129,38 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto pb-24">
+    <div className="flex h-full flex-col overflow-y-auto pb-24">
       {/* Player */}
       {/* Only render player on mobile to prevent duplicate players */}
       {!isDesktop && (
-        <MediaPlayerFrame song={currentSong} playerKeyPrefix="mobile-player" className="shrink-0" />
+        <MediaPlayerFrame className="shrink-0" playerKeyPrefix="mobile-player" song={currentSong} />
       )}
 
       {/* Song Info */}
-      <div className="p-4 space-y-4">
+      <div className="space-y-4 p-4">
         {/* Title & Artist */}
         <div>
-          <h2 className="text-lg font-bold mb-1 line-clamp-2">{currentSong.title}</h2>
-          <p className="text-sm text-muted-foreground">by {currentSong.author}</p>
+          <h2 className="mb-1 line-clamp-2 font-bold text-lg">{currentSong.title}</h2>
+          <p className="text-muted-foreground text-sm">by {currentSong.author}</p>
         </div>
 
         {/* Stats - 2x2 Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-secondary rounded-lg">
-            <p className="text-xl font-bold text-primary">{currentSong.score.toLocaleString()}</p>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Karma</p>
+          <div className="rounded-lg bg-secondary p-3">
+            <p className="font-bold text-primary text-xl">{currentSong.score.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Karma</p>
           </div>
-          <div className="p-3 bg-secondary rounded-lg">
-            <p className="text-xl font-bold">{currentSong.num_comments.toLocaleString()}</p>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Comments</p>
+          <div className="rounded-lg bg-secondary p-3">
+            <p className="font-bold text-xl">{currentSong.num_comments.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Comments</p>
           </div>
-          <div className="p-3 bg-secondary rounded-lg">
-            <p className="text-sm font-medium truncate">{currentSong.author}</p>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Author</p>
+          <div className="rounded-lg bg-secondary p-3">
+            <p className="truncate font-medium text-sm">{currentSong.author}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Author</p>
           </div>
-          <div className="p-3 bg-secondary rounded-lg">
-            <p className="text-sm font-medium">{currentSong.created_ago}</p>
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Age</p>
+          <div className="rounded-lg bg-secondary p-3">
+            <p className="font-medium text-sm">{currentSong.created_ago}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Age</p>
           </div>
         </div>
 
@@ -171,27 +172,27 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Domain</span>
-            <span className="font-medium truncate ml-2">{currentSong.domain}</span>
+            <span className="ml-2 truncate font-medium">{currentSong.domain}</span>
           </div>
         </div>
 
         {/* Links */}
         <div className="flex gap-2">
           <a
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-secondary px-4 py-2 font-medium text-sm transition-colors hover:bg-secondary/80"
             href={`https://reddit.com${currentSong.permalink}`}
-            target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
+            target="_blank"
           >
             <ArrowSquareOut className="h-4 w-4" weight="fill" />
             Reddit
           </a>
           {currentSong.url && (
             <a
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-secondary px-4 py-2 font-medium text-sm transition-colors hover:bg-secondary/80"
               href={currentSong.url}
-              target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
+              target="_blank"
             >
               <ArrowSquareOut className="h-4 w-4" weight="fill" />
               Source
@@ -200,47 +201,55 @@ export function PlayerPanel({ isDesktop }: PlayerPanelProps) {
         </div>
 
         {/* Comments Section */}
-        <div className="border-t border-border pt-4 mt-4">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="mt-4 border-border border-t pt-4">
+          <div className="mb-4 flex items-center gap-2">
             <ChatCircle className="h-5 w-5 text-primary" weight="fill" />
-            <h3 className="text-base font-bold">Comments</h3>
-            <span className="text-sm text-muted-foreground">
+            <h3 className="font-bold text-base">Comments</h3>
+            <span className="text-muted-foreground text-sm">
               ({currentSong.num_comments.toLocaleString()})
             </span>
           </div>
 
-          {loadingComments ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground">Loading comments...</p>
-            </div>
-          ) : comments.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground mb-2">
-                Showing {comments.length} top comments
-              </p>
-              {comments.map(comment => (
-                <CommentItem key={comment.id} comment={comment} onLogin={handleLogin} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-secondary/30 rounded-lg border border-border">
-              <ChatCircle
-                className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50"
-                weight="fill"
-              />
-              <p className="text-sm font-medium mb-1">No comments yet</p>
-              <p className="text-xs text-muted-foreground">Be the first to comment on Reddit!</p>
-            </div>
-          )}
+          {(() => {
+            if (loadingComments) {
+              return (
+                <div className="flex flex-col items-center justify-center gap-3 py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  <p className="text-muted-foreground text-sm">Loading comments...</p>
+                </div>
+              )
+            }
+            if (comments.length > 0) {
+              return (
+                <div className="space-y-2">
+                  <p className="mb-2 text-muted-foreground text-xs">
+                    Showing {comments.length} top comments
+                  </p>
+                  {comments.map(songComment => (
+                    <CommentItem comment={songComment} key={songComment.id} onLogin={handleLogin} />
+                  ))}
+                </div>
+              )
+            }
+            return (
+              <div className="rounded-lg border border-border bg-secondary/30 py-12 text-center">
+                <ChatCircle
+                  className="mx-auto mb-3 h-12 w-12 text-muted-foreground opacity-50"
+                  weight="fill"
+                />
+                <p className="mb-1 font-medium text-sm">No comments yet</p>
+                <p className="text-muted-foreground text-xs">Be the first to comment on Reddit!</p>
+              </div>
+            )
+          })()}
         </div>
       </div>
 
       {/* Login Modal */}
       <LoginModal
+        action={loginAction}
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        action={loginAction}
       />
     </div>
   )

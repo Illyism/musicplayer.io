@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "bun run .cursor/hooks/after-file-edit.mjs",
+        "timeout": 30,
+        "matcher": "Write"
+      }
+    ],
+    "afterTabFileEdit": [
+      {
+        "command": "bun run .cursor/hooks/after-file-edit.mjs",
+        "timeout": 30
+      }
+    ]
+  }
+}

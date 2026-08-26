@@ -1,17 +1,17 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { BrowsePanel } from '@/components/browse-panel'
-import { PlaylistPanel } from '@/components/playlist-panel'
-import { PlayerPanel } from '@/components/player-panel'
-import { SongInfoSidebar } from '@/components/song-info-sidebar'
-import { PlayerControls } from '@/components/player-controls'
 import { Header } from '@/components/header'
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts'
-import { usePlayerStore } from '@/lib/store/player-store'
+import { PlayerControls } from '@/components/player-controls'
+import { PlayerPanel } from '@/components/player-panel'
+import { PlaylistPanel } from '@/components/playlist-panel'
+import { SongInfoSidebar } from '@/components/song-info-sidebar'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { useInitializeApp } from '@/lib/hooks/use-initialize-app'
 import { usePlayerHydration } from '@/lib/hooks/use-player-hydration'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import { usePlayerStore } from '@/lib/store/player-store'
 
 function HomeContent() {
   // Hydrate from localStorage (client-only)
@@ -46,23 +46,23 @@ function HomeContent() {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex h-screen flex-col bg-background">
       {/* Global Keyboard Shortcuts */}
       <KeyboardShortcuts onShowShortcuts={() => setShowKeyboardModal(true)} />
 
       {/* Header */}
-      <Header showKeyboardModal={showKeyboardModal} setShowKeyboardModal={setShowKeyboardModal} />
+      <Header setShowKeyboardModal={setShowKeyboardModal} showKeyboardModal={showKeyboardModal} />
 
       {/* Main Content */}
       <main className="flex flex-1 overflow-hidden">
         {isDesktop ? (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanelGroup className="h-full" direction="horizontal">
             {/* Browse Panel - Left */}
             <ResizablePanel
+              className="overflow-y-auto border-border border-r bg-sidebar"
               defaultSize="18%"
-              minSize="14%"
               maxSize="28%"
-              className="bg-sidebar border-r border-border overflow-y-auto"
+              minSize="14%"
             >
               <BrowsePanel />
             </ResizablePanel>
@@ -71,9 +71,9 @@ function HomeContent() {
 
             {/* Playlist Panel - Center */}
             <ResizablePanel
+              className="overflow-y-auto bg-background"
               defaultSize="52%"
               minSize="30%"
-              className="bg-background overflow-y-auto"
             >
               <PlaylistPanel />
             </ResizablePanel>
@@ -82,10 +82,10 @@ function HomeContent() {
 
             {/* Song Info Sidebar - Right */}
             <ResizablePanel
+              className="flex flex-col border-border border-l bg-card"
               defaultSize="30%"
-              minSize="20%"
               maxSize="45%"
-              className="bg-card border-l border-border flex flex-col"
+              minSize="20%"
             >
               <SongInfoSidebar isDesktop={isDesktop} />
             </ResizablePanel>
@@ -94,21 +94,14 @@ function HomeContent() {
           /* Mobile Layout - Non-resizable */
           <>
             <div
-              className={`
-                w-full
-                bg-card border-r border-border
-                overflow-y-auto
-                ${mobileView === 'browse' ? 'block' : 'hidden'}
+              className={`w-full overflow-y-auto border-border border-r bg-card ${mobileView === 'browse' ? 'block' : 'hidden'}
               `}
             >
               <BrowsePanel />
             </div>
 
             <div
-              className={`
-                w-full bg-background
-                overflow-y-auto
-                ${mobileView === 'playlist' ? 'block' : 'hidden'}
+              className={`w-full overflow-y-auto bg-background ${mobileView === 'playlist' ? 'block' : 'hidden'}
               `}
             >
               <PlaylistPanel />
@@ -116,11 +109,7 @@ function HomeContent() {
 
             {!isDesktop && (
               <div
-                className={`
-                  w-full
-                  bg-card border-l border-border
-                  overflow-y-auto
-                  ${mobileView === 'player' ? 'block' : 'hidden'}
+                className={`w-full overflow-y-auto border-border border-l bg-card ${mobileView === 'player' ? 'block' : 'hidden'}
                 `}
               >
                 <PlayerPanel isDesktop={isDesktop} />
@@ -140,9 +129,9 @@ export default function Home() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center h-screen bg-background">
+        <div className="flex h-screen items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             <p className="text-muted-foreground">Loading...</p>
           </div>
         </div>

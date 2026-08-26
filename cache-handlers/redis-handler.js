@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 const { createClient } = require('redis')
 
 const CACHE_PREFIX = process.env.NEXT_CACHE_PREFIX || 'rmp:next-cache'
@@ -12,7 +11,7 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-async function getClient() {
+function getClient() {
   if (!process.env.REDIS_URL) {
     if (!warnedMissingUrl) {
       console.warn('REDIS_URL is not set; Next remote cache will be disabled.')
@@ -27,11 +26,11 @@ async function getClient() {
 
   if (!clientPromise) {
     const client = createClient({
-      url: process.env.REDIS_URL,
       socket: {
         connectTimeout: Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 5000),
         reconnectStrategy: false,
       },
+      url: process.env.REDIS_URL,
     })
 
     client.on('error', error => {
@@ -43,7 +42,7 @@ async function getClient() {
       .then(() => client)
       .catch(error => {
         clientPromise = undefined
-        reconnectAfter = Date.now() + Number(process.env.REDIS_RETRY_COOLDOWN_MS || 30000)
+        reconnectAfter = Date.now() + Number(process.env.REDIS_RETRY_COOLDOWN_MS || 30_000)
         console.warn('Redis cache handler connection failed:', errorMessage(error))
         return null
       })
@@ -66,8 +65,11 @@ async function streamToBuffer(stream) {
 
   try {
     while (true) {
+      // biome-ignore lint/performance/noAwaitInLoops: sequential stream read
       const { done, value } = await reader.read()
-      if (done) break
+      if (done) {
+        break
+      }
       chunks.push(Buffer.from(value))
     }
   } finally {
@@ -92,61 +94,87 @@ function redisSetOptions(entry) {
   if (Number.isFinite(ttl) && ttl > 0) {
     return { EX: Math.ceil(ttl) }
   }
-
-  return undefined
 }
 
 module.exports = {
   async get(cacheKey, softTags = []) {
     try {
       const client = await getClient()
-      if (!client) return undefined
+      if (!client) {
+        return
+      }
 
       const stored = await client.get(entryKey(cacheKey))
-      if (!stored) return undefined
+      if (!stored) {
+        return
+      }
 
       const data = JSON.parse(stored)
       const now = Date.now()
       const revalidate = Number(data.revalidate)
 
       if (Number.isFinite(revalidate) && now > data.timestamp + revalidate * 1000) {
-        return undefined
+        return
       }
 
       const tags = [...(data.tags || []), ...softTags]
       const tagExpiration = await this.getExpiration(tags)
       if (tagExpiration > data.timestamp) {
-        return undefined
+        return
       }
 
       return {
-        value: bufferToStream(Buffer.from(data.value, 'base64')),
-        tags: data.tags || [],
-        stale: data.stale,
-        timestamp: data.timestamp,
         expire: data.expire,
         revalidate: data.revalidate,
+        stale: data.stale,
+        tags: data.tags || [],
+        timestamp: data.timestamp,
+        value: bufferToStream(Buffer.from(data.value, 'base64')),
       }
     } catch (error) {
       console.error('Redis cache get failed:', error)
-      return undefined
     }
+  },
+
+  async getExpiration(tags = []) {
+    try {
+      if (tags.length === 0) {
+        return 0
+      }
+
+      const client = await getClient()
+      if (!client) {
+        return 0
+      }
+
+      const values = await client.mGet(tags.map(tagKey))
+      return values.reduce((latest, value) => Math.max(latest, Number(value) || 0), 0)
+    } catch (error) {
+      console.error('Redis cache tag expiration lookup failed:', error)
+      return 0
+    }
+  },
+
+  async refreshTags() {
+    // Tag timestamps are read directly from Redis in getExpiration().
   },
 
   async set(cacheKey, pendingEntry) {
     try {
       const client = await getClient()
-      if (!client) return
+      if (!client) {
+        return
+      }
 
       const entry = await pendingEntry
       const body = await streamToBuffer(entry.value)
       const payload = JSON.stringify({
-        value: body.toString('base64'),
-        tags: entry.tags || [],
-        stale: entry.stale,
-        timestamp: entry.timestamp,
         expire: entry.expire,
         revalidate: entry.revalidate,
+        stale: entry.stale,
+        tags: entry.tags || [],
+        timestamp: entry.timestamp,
+        value: body.toString('base64'),
       })
 
       const options = redisSetOptions(entry)
@@ -160,31 +188,16 @@ module.exports = {
     }
   },
 
-  async refreshTags() {
-    // Tag timestamps are read directly from Redis in getExpiration().
-  },
-
-  async getExpiration(tags = []) {
-    try {
-      if (tags.length === 0) return 0
-
-      const client = await getClient()
-      if (!client) return 0
-
-      const values = await client.mGet(tags.map(tagKey))
-      return values.reduce((latest, value) => Math.max(latest, Number(value) || 0), 0)
-    } catch (error) {
-      console.error('Redis cache tag expiration lookup failed:', error)
-      return 0
-    }
-  },
-
   async updateTags(tags = []) {
     try {
-      if (tags.length === 0) return
+      if (tags.length === 0) {
+        return
+      }
 
       const client = await getClient()
-      if (!client) return
+      if (!client) {
+        return
+      }
 
       const now = String(Date.now())
       const pipeline = client.multi()

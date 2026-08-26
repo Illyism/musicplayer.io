@@ -1,9 +1,10 @@
 {
   // Editor settings
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "biomejs.biome",
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
   },
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
@@ -27,43 +28,38 @@
     "**/node_modules": true,
     "**/.next": true,
     "**/out": true,
-    "**/dist": true,
-    "**/.turbo": true
+    "**/dist": true
   },
   "search.exclude": {
     "**/node_modules": true,
     "**/.next": true,
     "**/out": true,
     "**/dist": true,
-    "**/.turbo": true,
     "**/package-lock.json": true,
-    "**/yarn.lock": true,
-    "**/pnpm-lock.yaml": true,
-    "**/bun.lockb": true
+    "**/bun.lock": true
   },
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
     "**/node_modules/**": true,
     "**/.next/**": true,
+    "**/.swc/**": true,
+    "**/.well-known/**": true,
     "**/out/**": true,
-    "**/dist/**": true,
-    "**/.turbo/**": true
+    "**/dist/**": true
   },
 
-  // TypeScript settings
-  "typescript.tsdk": "node_modules/typescript/lib",
+  // TypeScript 7 (native) via @typescript/native — not ./node_modules/typescript (that's TS6 for Next builds)
+  "js/ts.tsdk.path": "./node_modules/@typescript/native",
+  "js/ts.experimental.useTsgo": true,
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.importModuleSpecifier": "non-relative",
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.suggest.autoImports": true,
   "typescript.preferences.quoteStyle": "single",
-
-  // ESLint settings
-  "eslint.enable": true,
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
-  "eslint.format.enable": true,
-  "eslint.lintTask.enable": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "javascript.preferences.quoteStyle": "single",
+  "javascript.suggest.autoImports": true,
 
   // Tailwind CSS IntelliSense
   "tailwindCSS.experimental.classRegex": [
@@ -82,42 +78,6 @@
     "**/dist/**"
   ],
 
-  // Prettier settings
-  "prettier.requireConfig": true,
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[css]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[scss]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[yaml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-
   // Next.js specific
   "emmet.includeLanguages": {
     "typescript": "html",
@@ -129,9 +89,6 @@
   "git.autofetch": true,
 
   // Other useful settings
-  "javascript.updateImportsOnFileMove.enabled": "always",
-  "javascript.preferences.quoteStyle": "single",
-  "javascript.suggest.autoImports": true,
   "css.validate": false, // Disable built-in CSS validation in favor of Tailwind
   "scss.validate": false
 }
