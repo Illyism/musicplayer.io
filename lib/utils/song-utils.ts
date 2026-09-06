@@ -68,7 +68,6 @@ export function parseSong(data: any): Song {
     playable,
     score: data.score || 0,
     selftext: data.selftext,
-    selftext_html: data.selftext_html,
     subreddit: data.subreddit,
     thumbnail,
     title: data.title,

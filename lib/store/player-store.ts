@@ -19,7 +19,6 @@ export interface Song {
   playable: boolean
   score: number
   selftext?: string
-  selftext_html?: string
   subreddit: string
   thumbnail?: string
   title: string

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { cn } from './cn'
+import { cn } from '@/lib/utils'
 
 describe('cn', () => {
   it('ignores falsy inputs', () => {

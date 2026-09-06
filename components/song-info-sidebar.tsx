@@ -16,7 +16,6 @@ import { MediaPlayerFrame } from './media-player-frame'
 interface Comment {
   author: string
   body: string
-  body_html: string
   created_ago: string
   id: string
   replies: Comment[] // Changed from number to array

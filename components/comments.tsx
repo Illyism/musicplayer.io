@@ -8,7 +8,6 @@ import { getErrorMessage } from '@/lib/errors/reddit-error'
 interface Comment {
   author: string
   body: string
-  body_html: string
   created_ago: string
   id: string
   replies: Comment[]

@@ -47,7 +47,6 @@ function slimPostData(data: Record<string, unknown>) {
       : undefined,
     score: data.score,
     selftext: data.selftext,
-    selftext_html: data.selftext_html,
     subreddit: data.subreddit,
     thumbnail: data.thumbnail,
     title: data.title,
@@ -88,17 +87,10 @@ export async function redditFetch(
 }
 
 /**
- * Fetch an oauth.reddit.com endpoint with a bearer token.
- *
- * Catalog reads use the app-only token so cache entries are shared across
- * visitors. Pass a user token only for endpoints that must be personalized.
+ * Fetch an oauth.reddit.com endpoint with the app-only bearer token.
  * A rejected token (401/403) is retried once with a freshly minted app token.
  */
-export async function redditApiFetch(
-  path: string,
-  params: URLSearchParams,
-  accessToken?: string
-): Promise<Response> {
+export async function redditApiFetch(path: string, params: URLSearchParams): Promise<Response> {
   // raw_json=1 stops Reddit HTML-escaping &, < and > in titles and selftext
   params.set('raw_json', '1')
   const url = `${REDDIT_API_BASE}${path}?${params}`
@@ -109,7 +101,7 @@ export async function redditApiFetch(
     'User-Agent': USER_AGENT,
   })
 
-  const token = accessToken ?? (await getAppAccessToken())
+  const token = await getAppAccessToken()
   const response = await redditFetch(url, buildHeaders(token))
 
   if (response.status !== 401 && response.status !== 403) {

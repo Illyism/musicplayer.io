@@ -96,7 +96,7 @@ const GetCommentsSchema = z.object({
   permalink: PermalinkSchema,
 })
 
-// Cached fetch functions - these cannot access cookies() directly
+// Cached fetch functions
 async function fetchSubredditPostsCached(
   subreddit: string,
   sort: string,
@@ -177,7 +177,7 @@ async function getCommentsCached(permalink: string) {
   }
 }
 
-// Public API — cached fetches use the app-only token so listings are shared.
+// Public API
 export async function getSubredditPosts(
   subreddit: string,
   sort = 'hot',
@@ -290,9 +290,7 @@ function parseComments(children: any[]): any[] {
     const formattedComment = {
       author: comment.author,
       body: comment.body,
-      body_html: comment.body_html,
       created_ago: formatTimeAgo(comment.created_utc),
-      created_utc: comment.created_utc,
       id: comment.id,
       replies: [] as any[], // Will be filled below
       score: comment.score,
