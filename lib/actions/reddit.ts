@@ -6,8 +6,8 @@ import { handleRedditApiError } from '@/lib/utils/error-handler'
 import { redditApiFetch, slimListingResponse } from '@/lib/utils/reddit-response'
 
 // Every request goes through oauth.reddit.com with a bearer token.
-// Cached listing/search/comment reads use the app-only token so the remote
-// cache is shared instead of keyed per user OAuth token.
+// Cached listing/search/comment reads use the app-only token so the
+// in-memory cache is shared instead of keyed per user OAuth token.
 if (!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET)) {
   throw new Error(
     'Missing REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET environment variables. Required for Reddit API calls.'
@@ -104,7 +104,7 @@ async function fetchSubredditPostsCached(
   after: string | undefined,
   limit: string
 ) {
-  'use cache: remote'
+  'use cache'
   cacheLife('hours') // Cache for hours - Reddit data updated multiple times per day
 
   const params = new URLSearchParams({ limit })
@@ -131,7 +131,7 @@ async function searchRedditCached(
   after: string | undefined,
   limit: string
 ) {
-  'use cache: remote'
+  'use cache'
   cacheLife('hours') // Cache for hours - Reddit search results updated multiple times per day
 
   const params = new URLSearchParams({
@@ -152,7 +152,7 @@ async function searchRedditCached(
 }
 
 async function getCommentsCached(permalink: string) {
-  'use cache: remote'
+  'use cache'
   cacheLife('hours') // Cache for hours - Comments updated multiple times per day
 
   const params = new URLSearchParams({ depth: '10', limit: '100', sort: 'top' })
@@ -177,7 +177,7 @@ async function getCommentsCached(permalink: string) {
   }
 }
 
-// Public API functions - cached fetches use the app-only token so listings are shared.
+// Public API — cached fetches use the app-only token so listings are shared.
 export async function getSubredditPosts(
   subreddit: string,
   sort = 'hot',

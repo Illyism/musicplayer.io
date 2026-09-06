@@ -90,7 +90,7 @@ export async function redditFetch(
 /**
  * Fetch an oauth.reddit.com endpoint with a bearer token.
  *
- * Cached catalog reads use the app-only token so entries are shared across
+ * Catalog reads use the app-only token so cache entries are shared across
  * visitors. Pass a user token only for endpoints that must be personalized.
  * A rejected token (401/403) is retried once with a freshly minted app token.
  */

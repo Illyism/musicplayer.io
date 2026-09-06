@@ -2,9 +2,6 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
-  cacheHandlers: {
-    remote: require.resolve('./cache-handlers/redis-handler.js'),
-  },
   experimental: {
     // Keep Turbopack FS cache on so BuildKit .next/cache mounts work in Docker builds
     turbopackFileSystemCacheForBuild: true,
