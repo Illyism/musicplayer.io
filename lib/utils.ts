@@ -1,6 +1,2 @@
-import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+// biome-ignore lint/performance/noBarrelFile: official shadcn cn re-export
+export { cn } from 'cn'
