@@ -90,9 +90,9 @@ export async function redditFetch(
 /**
  * Fetch an oauth.reddit.com endpoint with a bearer token.
  *
- * Uses the signed-in user's token when present, otherwise an app-only token.
- * A rejected token (401/403) is retried once with a freshly minted app token,
- * which covers both an expired app token and a stale user cookie.
+ * Cached catalog reads use the app-only token so entries are shared across
+ * visitors. Pass a user token only for endpoints that must be personalized.
+ * A rejected token (401/403) is retried once with a freshly minted app token.
  */
 export async function redditApiFetch(
   path: string,

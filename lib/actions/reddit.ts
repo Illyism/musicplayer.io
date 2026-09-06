@@ -1,13 +1,13 @@
 'use server'
 
 import { cacheLife } from 'next/cache'
-import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { handleRedditApiError } from '@/lib/utils/error-handler'
 import { redditApiFetch, slimListingResponse } from '@/lib/utils/reddit-response'
 
-// Every request goes through oauth.reddit.com with a bearer token — either the
-// signed-in user's or an app-only one. See lib/utils/reddit-token.ts.
+// Every request goes through oauth.reddit.com with a bearer token.
+// Cached listing/search/comment reads use the app-only token so the remote
+// cache is shared instead of keyed per user OAuth token.
 if (!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET)) {
   throw new Error(
     'Missing REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET environment variables. Required for Reddit API calls.'
@@ -77,7 +77,6 @@ const SearchQuerySchema = z
   .max(200, 'Search query is too long')
 
 const GetSubredditPostsSchema = z.object({
-  accessToken: z.string().optional(),
   after: AfterSchema,
   limit: LimitSchema,
   sort: SortSchema,
@@ -86,7 +85,6 @@ const GetSubredditPostsSchema = z.object({
 })
 
 const SearchRedditSchema = z.object({
-  accessToken: z.string().optional(),
   after: AfterSchema,
   limit: LimitSchema,
   query: SearchQuerySchema,
@@ -95,7 +93,6 @@ const SearchRedditSchema = z.object({
 })
 
 const GetCommentsSchema = z.object({
-  accessToken: z.string().optional(),
   permalink: PermalinkSchema,
 })
 
@@ -105,8 +102,7 @@ async function fetchSubredditPostsCached(
   sort: string,
   timePeriod: string | undefined,
   after: string | undefined,
-  limit: string,
-  accessToken: string | undefined
+  limit: string
 ) {
   'use cache: remote'
   cacheLife('hours') // Cache for hours - Reddit data updated multiple times per day
@@ -119,7 +115,7 @@ async function fetchSubredditPostsCached(
     params.append('after', after)
   }
 
-  const response = await redditApiFetch(`/r/${subreddit}/${sort}`, params, accessToken)
+  const response = await redditApiFetch(`/r/${subreddit}/${sort}`, params)
 
   if (!response.ok) {
     await handleRedditApiError(response)
@@ -133,8 +129,7 @@ async function searchRedditCached(
   sort: string,
   timePeriod: string | undefined,
   after: string | undefined,
-  limit: string,
-  accessToken: string | undefined
+  limit: string
 ) {
   'use cache: remote'
   cacheLife('hours') // Cache for hours - Reddit search results updated multiple times per day
@@ -147,7 +142,7 @@ async function searchRedditCached(
     ...(after && { after }),
   })
 
-  const response = await redditApiFetch('/search', params, accessToken)
+  const response = await redditApiFetch('/search', params)
 
   if (!response.ok) {
     await handleRedditApiError(response)
@@ -156,13 +151,13 @@ async function searchRedditCached(
   return slimListingResponse(await response.json())
 }
 
-async function getCommentsCached(permalink: string, accessToken: string | undefined) {
+async function getCommentsCached(permalink: string) {
   'use cache: remote'
   cacheLife('hours') // Cache for hours - Comments updated multiple times per day
 
   const params = new URLSearchParams({ depth: '10', limit: '100', sort: 'top' })
 
-  const response = await redditApiFetch(permalink, params, accessToken)
+  const response = await redditApiFetch(permalink, params)
 
   if (!response.ok) {
     await handleRedditApiError(response)
@@ -182,7 +177,7 @@ async function getCommentsCached(permalink: string, accessToken: string | undefi
   }
 }
 
-// Public API functions - these read cookies and call cached functions
+// Public API functions - cached fetches use the app-only token so listings are shared.
 export async function getSubredditPosts(
   subreddit: string,
   sort = 'hot',
@@ -191,13 +186,7 @@ export async function getSubredditPosts(
   limit = '100'
 ) {
   try {
-    // Read cookies outside cached scope
-    const cookieStore = await cookies()
-    const accessToken = cookieStore.get('reddit_access_token')?.value
-
-    // Validate and transform inputs
     const validated = GetSubredditPostsSchema.parse({
-      accessToken,
       after,
       limit,
       sort,
@@ -205,14 +194,12 @@ export async function getSubredditPosts(
       timePeriod,
     })
 
-    // Call cached function with token as argument
     const data = await fetchSubredditPostsCached(
       validated.subreddit,
       validated.sort,
       validated.timePeriod,
       validated.after,
-      validated.limit,
-      validated.accessToken
+      validated.limit
     )
 
     return data
@@ -236,13 +223,7 @@ export async function searchReddit(
   limit = '100'
 ) {
   try {
-    // Read cookies outside cached scope
-    const cookieStore = await cookies()
-    const accessToken = cookieStore.get('reddit_access_token')?.value
-
-    // Validate and transform inputs
     const validated = SearchRedditSchema.parse({
-      accessToken,
       after,
       limit,
       query,
@@ -250,14 +231,12 @@ export async function searchReddit(
       timePeriod,
     })
 
-    // Call cached function with token as argument
     const data = await searchRedditCached(
       validated.query,
       validated.sort,
       validated.timePeriod,
       validated.after,
-      validated.limit,
-      validated.accessToken
+      validated.limit
     )
 
     return data
@@ -275,15 +254,8 @@ export async function searchReddit(
 
 export async function getComments(permalink: string) {
   try {
-    // Read cookies outside cached scope
-    const cookieStore = await cookies()
-    const accessToken = cookieStore.get('reddit_access_token')?.value
-
-    // Validate permalink
-    const validated = GetCommentsSchema.parse({ accessToken, permalink })
-
-    // Call cached function with token as argument
-    return await getCommentsCached(validated.permalink, validated.accessToken)
+    const validated = GetCommentsSchema.parse({ permalink })
+    return await getCommentsCached(validated.permalink)
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error:', error.issues)

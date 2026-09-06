@@ -1,7 +1,9 @@
 const { createClient } = require('redis')
 
 const CACHE_PREFIX = process.env.NEXT_CACHE_PREFIX || 'rmp:next-cache'
-const TAG_SET_KEY = `${CACHE_PREFIX}:revalidated-tags`
+const DEFAULT_TTL_SECONDS = Number(process.env.NEXT_CACHE_TTL_SECONDS || 3600)
+const MAX_TTL_SECONDS = Number(process.env.NEXT_CACHE_MAX_TTL_SECONDS || 6 * 60 * 60)
+const MAX_ENTRY_BYTES = Number(process.env.NEXT_CACHE_MAX_ENTRY_BYTES || 512 * 1024)
 
 let clientPromise
 let warnedMissingUrl = false
@@ -88,12 +90,10 @@ function bufferToStream(buffer) {
   })
 }
 
-function redisSetOptions(entry) {
-  const ttl = Number(entry.expire || entry.revalidate)
-
-  if (Number.isFinite(ttl) && ttl > 0) {
-    return { EX: Math.ceil(ttl) }
-  }
+function ttlSeconds(entry) {
+  const raw = Number(entry.expire || entry.revalidate)
+  const ttl = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TTL_SECONDS
+  return Math.max(60, Math.min(Math.ceil(ttl), MAX_TTL_SECONDS))
 }
 
 module.exports = {
@@ -104,16 +104,17 @@ module.exports = {
         return
       }
 
-      const stored = await client.get(entryKey(cacheKey))
+      const key = entryKey(cacheKey)
+      const stored = await client.get(key)
       if (!stored) {
         return
       }
 
       const data = JSON.parse(stored)
-      const now = Date.now()
       const revalidate = Number(data.revalidate)
 
-      if (Number.isFinite(revalidate) && now > data.timestamp + revalidate * 1000) {
+      if (Number.isFinite(revalidate) && Date.now() > data.timestamp + revalidate * 1000) {
+        await client.del(key).catch(() => undefined)
         return
       }
 
@@ -168,6 +169,11 @@ module.exports = {
 
       const entry = await pendingEntry
       const body = await streamToBuffer(entry.value)
+
+      if (body.length > MAX_ENTRY_BYTES) {
+        return
+      }
+
       const payload = JSON.stringify({
         expire: entry.expire,
         revalidate: entry.revalidate,
@@ -177,12 +183,7 @@ module.exports = {
         value: body.toString('base64'),
       })
 
-      const options = redisSetOptions(entry)
-      if (options) {
-        await client.set(entryKey(cacheKey), payload, options)
-      } else {
-        await client.set(entryKey(cacheKey), payload)
-      }
+      await client.set(entryKey(cacheKey), payload, { EX: ttlSeconds(entry) })
     } catch (error) {
       console.error('Redis cache set failed:', error)
     }
@@ -203,8 +204,7 @@ module.exports = {
       const pipeline = client.multi()
 
       for (const tag of tags) {
-        pipeline.set(tagKey(tag), now)
-        pipeline.sAdd(TAG_SET_KEY, tag)
+        pipeline.set(tagKey(tag), now, { EX: MAX_TTL_SECONDS })
       }
 
       await pipeline.exec()
