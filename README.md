@@ -34,7 +34,7 @@ npm install
 
 # Set up environment variables
 cp .env.local.example .env.local
-# Edit .env.local with your Reddit OAuth credentials (optional, for voting/commenting)
+# Edit .env.local with your Reddit OAuth credentials
 
 # Run development server
 npm run dev
@@ -70,24 +70,28 @@ The app will be available at `http://localhost:3000`
 
 - Node.js 22+
 - npm or yarn
-- Reddit OAuth app (optional, for authentication features)
+- Reddit OAuth app credentials (required to fetch Reddit listings)
 
 ## 🔧 Configuration
 
-### Reddit OAuth (Optional)
+### Reddit OAuth
 
-To enable authentication, voting, and comment posting:
+Reddit app credentials are required for listing reads and for sign-in, voting, and comment posting:
 
-1. Create a Reddit OAuth app at https://www.reddit.com/prefs/apps
-2. Set redirect URI: `http://localhost:3000/api/auth/reddit/callback`
+1. Create a **web app** at https://www.reddit.com/prefs/apps
+2. Set redirect URI: `http://localhost:3000/auth/callback`
 3. Add to `.env.local`:
    ```env
    REDDIT_CLIENT_ID=your_client_id
    REDDIT_CLIENT_SECRET=your_client_secret
-   REDDIT_REDIRECT_URI=http://localhost:3000/api/auth/reddit/callback
+   REDDIT_REDIRECT_URI=http://localhost:3000/auth/callback
    ```
 
-See [SETUP.md](./SETUP.md) for detailed setup instructions.
+For production, set `REDDIT_REDIRECT_URI=https://musicplayer.io/auth/callback` (replace the origin with your deployment's public address) and register that **exact** address in Reddit's app settings. Use the same hostname to open the website and sign in. `NEXT_PUBLIC_SITE_URL` is an optional fallback when `REDDIT_REDIRECT_URI` is unset; otherwise the authorization request's origin is used.
+
+Authorization and token exchange use `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` on the server at runtime. A separate `NEXT_PUBLIC_REDDIT_CLIENT_ID` is no longer required, including in Docker deployments. Missing configuration produces a sign-in error instead of breaking the page. Never publish the client secret.
+
+If Reddit rejects sign-in, verify that the app type is **web app**, its client ID and secret match the runtime configuration, and the callback address is exact. Expired/used authorization codes require starting a new sign-in.
 
 ## 📖 Usage
 

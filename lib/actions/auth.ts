@@ -1,38 +1,30 @@
 'use server'
 
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { z } from 'zod'
 
-const { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } = process.env
-const REDDIT_REDIRECT_URI = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
-// Reddit requires User-Agent in format: <platform>:<app ID>:<version> (by /u/<username>)
-const REDDIT_USERNAME = process.env.REDDIT_USERNAME || 'musicplayer'
-const USER_AGENT = `web:musicplayer.io:v0.6.14 (by /u/${REDDIT_USERNAME})`
+import {
+  buildRedditAuthorizationUrl,
+  getRedditOAuthConfig,
+  getRedditTokenError,
+} from '@/lib/utils/reddit-oauth'
+import { USER_AGENT } from '@/lib/utils/reddit-token'
 
-if (!(REDDIT_CLIENT_ID && REDDIT_CLIENT_SECRET)) {
-  throw new Error(
-    'Missing Reddit OAuth credentials. Please set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET environment variables.'
-  )
-}
+const OAUTH_COOKIE = 'reddit_oauth_transaction'
 
 // Validation schemas
 const AuthCodeSchema = z.string().min(1).max(200)
 
-// Reddit can return either a success response with access_token or an error response
-// Error responses may have error as a number (status code) or string, and no access_token
-const RedditTokenResponseSchema = z.union([
-  // Success response
-  z.object({
-    access_token: z.string(),
-    expires_in: z.number().optional(),
-    refresh_token: z.string().optional(),
-  }),
-  // Error response
-  z.object({
-    error: z.union([z.string(), z.number()]),
-    error_description: z.string().optional(),
-  }),
-])
+const OAuthTransactionSchema = z.object({
+  clientId: z.string().min(1),
+  redirectUri: z.string().url(),
+  state: z.string().min(1).max(200),
+})
+const RedditTokenResponseSchema = z.object({
+  access_token: z.string().min(1),
+  expires_in: z.number().positive().optional(),
+  refresh_token: z.string().optional(),
+})
 
 const RedditUserSchema = z.object({
   name: z.string().min(1).max(50),
@@ -47,48 +39,85 @@ const UsernameSchema = z
   .max(50)
   .transform(val => val.slice(0, 50))
 
-export async function loginWithReddit(code: string) {
+export async function getRedditAuthorizationUrl() {
+  try {
+    const requestHeaders = await headers()
+    const origin = requestHeaders.get('origin')
+    if (!origin) {
+      return { error: 'Please start sign-in from the website.', url: null }
+    }
+    const config = getRedditOAuthConfig(origin)
+    const state = crypto.randomUUID()
+    const cookieStore = await cookies()
+    cookieStore.set(
+      OAUTH_COOKIE,
+      JSON.stringify({
+        clientId: config.clientId,
+        redirectUri: config.redirectUri,
+        state,
+      }),
+      {
+        httpOnly: true,
+        maxAge: 600,
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      }
+    )
+    return { error: null, url: buildRedditAuthorizationUrl(config, state) }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Unable to start Reddit sign-in.',
+      url: null,
+    }
+  }
+}
+
+export async function loginWithReddit(code: string, state: string | null) {
   try {
     // Validate input
     const validatedCode = AuthCodeSchema.parse(code)
+    const cookieStore = await cookies()
+    const savedTransaction = cookieStore.get(OAUTH_COOKIE)?.value
+    const transaction = OAuthTransactionSchema.safeParse(
+      savedTransaction ? JSON.parse(savedTransaction) : null
+    )
+    if (!(state && transaction.success) || state !== transaction.data.state) {
+      return { error: 'Security check failed. Please sign in again.', success: false }
+    }
+    const config = getRedditOAuthConfig(new URL(transaction.data.redirectUri).origin)
+    if (
+      config.clientId !== transaction.data.clientId ||
+      config.redirectUri !== transaction.data.redirectUri
+    ) {
+      return { error: 'Sign-in settings changed. Please sign in again.', success: false }
+    }
+    cookieStore.delete(OAUTH_COOKIE)
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
       body: new URLSearchParams({
         code: validatedCode,
         grant_type: 'authorization_code',
-        redirect_uri: REDDIT_REDIRECT_URI,
+        redirect_uri: transaction.data.redirectUri,
       }),
+      cache: 'no-store',
       headers: {
-        Authorization: `Basic ${btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`)}`,
+        Authorization: `Basic ${btoa(`${config.clientId}:${config.clientSecret}`)}`,
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': USER_AGENT,
       },
       method: 'POST',
     })
 
-    const tokenDataRaw = await tokenResponse.json()
-    const tokenData = RedditTokenResponseSchema.parse(tokenDataRaw)
-
-    // Check if this is an error response (no access_token means error)
-    if (!('access_token' in tokenData)) {
-      let errorMsg = 'Unknown error'
-      if ('error' in tokenData && typeof tokenData.error === 'string') {
-        errorMsg = tokenData.error
-      } else if ('error' in tokenData && typeof tokenData.error === 'number') {
-        errorMsg = `HTTP ${tokenData.error}`
-      }
-      const errorDescription =
-        'error_description' in tokenData ? tokenData.error_description : undefined
-      console.error('Reddit token exchange error:', errorMsg, errorDescription)
-      return {
-        error: errorDescription || 'Failed to exchange authorization code',
-        success: false,
-      }
+    const tokenDataRaw = await tokenResponse.json().catch(() => null)
+    const tokenData = RedditTokenResponseSchema.safeParse(tokenDataRaw)
+    if (!(tokenResponse.ok && tokenData.success)) {
+      const errorCode = typeof tokenDataRaw?.error === 'string' ? tokenDataRaw.error : undefined
+      console.error('Reddit token exchange failed:', tokenResponse.status, errorCode)
+      return { error: getRedditTokenError(tokenResponse.status, errorCode), success: false }
     }
-
-    // TypeScript now knows this is the success response type
-    const successTokenData = tokenData
+    const successTokenData = tokenData.data
 
     // Get user info
     const userResponse = await fetch('https://oauth.reddit.com/api/v1/me', {
@@ -110,8 +139,6 @@ export async function loginWithReddit(code: string) {
     const sanitizedUsername = UsernameSchema.parse(userData.name)
 
     // Set cookies
-    const cookieStore = await cookies()
-
     // Access token - HTTP-only, secure in production
     cookieStore.set('reddit_access_token', successTokenData.access_token, {
       httpOnly: true,
@@ -159,6 +186,7 @@ export async function loginWithReddit(code: string) {
 
 export async function logout() {
   const cookieStore = await cookies()
+  cookieStore.delete(OAUTH_COOKIE)
   cookieStore.delete('reddit_access_token')
   cookieStore.delete('reddit_refresh_token')
   cookieStore.delete('reddit_username')

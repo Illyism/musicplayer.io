@@ -1,7 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { getAuthStatus, logout as logoutAction } from '@/lib/actions/auth'
+import { toast } from 'sonner'
+import {
+  getAuthStatus,
+  getRedditAuthorizationUrl,
+  logout as logoutAction,
+} from '@/lib/actions/auth'
 
 export function useAuth() {
   const [authState, setAuthState] = useState<{
@@ -21,20 +26,17 @@ export function useAuth() {
     })
   }, [])
 
-  const login = useCallback(() => {
-    const clientId = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || 'YOUR_CLIENT_ID'
-    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
-    const scope = 'identity,read,vote,submit'
-    const state = Math.random().toString(36).slice(2)
-
-    // Store state in localStorage for verification (client-side only)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('reddit_oauth_state', state)
+  const login = useCallback(async () => {
+    try {
+      const result = await getRedditAuthorizationUrl()
+      if (!result.url) {
+        toast.error(result.error || 'Unable to start Reddit sign-in.')
+        return
+      }
+      window.location.assign(result.url)
+    } catch {
+      toast.error('Unable to start Reddit sign-in. Please try again.')
     }
-
-    const authUrl = `https://www.reddit.com/api/v1/authorize?client_id=${clientId}&response_type=code&state=${state}&redirect_uri=${redirectUri}&duration=permanent&scope=${scope}`
-
-    window.location.href = authUrl
   }, [])
 
   const logout = useCallback(async () => {
