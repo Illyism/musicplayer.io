@@ -39,6 +39,14 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
       containerRef.current.appendChild(element)
       playerRef.current = new window.YT.Player(element, {
         events: {
+          onAutoplayBlocked: () => {
+            if (isCurrent()) {
+              usePlayerStore.setState({
+                isPlaying: false,
+                playbackError: 'Your browser blocked autoplay. Press Play to start.',
+              })
+            }
+          },
           onError: (event: any) => {
             if (isCurrent() && loadedSongRef.current) {
               usePlayerStore

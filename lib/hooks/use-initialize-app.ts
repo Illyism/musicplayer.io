@@ -52,9 +52,10 @@ export function useInitializeApp() {
 
       if (uniqueSubs.length > 0) {
         // Only update if different from current selection
-        const currentSubsStr = selectedSubreddits.sort().join('+')
+        const currentSubsStr = [...selectedSubreddits].sort().join('+')
         const newSubsStr = uniqueSubs.sort().join('+')
-        if (currentSubsStr !== newSubsStr) {
+        if (!hasInitialized.current || currentSubsStr !== newSubsStr) {
+          hasInitialized.current = true
           setSelectedSubreddits(uniqueSubs)
           fetchFromSubreddits(uniqueSubs)
         }
@@ -83,9 +84,10 @@ export function useInitializeApp() {
 
       if (uniqueSubs.length > 0) {
         // Only update if different from current selection
-        const currentSubsStr = selectedSubreddits.sort().join('+')
+        const currentSubsStr = [...selectedSubreddits].sort().join('+')
         const newSubsStr = uniqueSubs.sort().join('+')
-        if (currentSubsStr !== newSubsStr) {
+        if (!hasInitialized.current || currentSubsStr !== newSubsStr) {
+          hasInitialized.current = true
           setSelectedSubreddits(uniqueSubs)
           fetchFromSubreddits(uniqueSubs)
         }

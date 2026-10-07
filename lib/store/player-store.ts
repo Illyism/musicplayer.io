@@ -194,7 +194,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   // PLAYBACK ACTIONS
   // ========================================
   play: () => {
-    set({ isPlaying: true })
+    set({ isPlaying: true, playbackError: null })
   },
   playbackError: null,
 
@@ -313,12 +313,21 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       }
     }
 
+    // Start the first playable track when a new listing has no retained selection.
+    if (!newCurrentSong) {
+      newCurrentIndex = uniqueSongs.findIndex(song => song.playable)
+      newCurrentSong = uniqueSongs[newCurrentIndex] ?? null
+    }
+
     set({
       currentIndex: newCurrentIndex,
       currentSong: newCurrentSong,
       currentTime: newCurrentTime,
       duration: newDuration,
       failedSongIds: state.failedSongIds.filter(id => uniqueSongs.some(song => song.id === id)),
+      isPlaying:
+        !!newCurrentSong && (newCurrentSong.id === state.currentSong?.id ? state.isPlaying : true),
+      playbackError: null,
       songs: uniqueSongs,
     })
   },
@@ -365,7 +374,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   sortMethod: 'hot', // Static default
 
   togglePlay: () => {
-    set(state => ({ isPlaying: !state.isPlaying }))
+    set(state => ({ isPlaying: !state.isPlaying, playbackError: null }))
   },
 
   toggleTheatreMode: () => {

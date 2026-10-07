@@ -240,3 +240,14 @@ test('advance wraps to the first healthy track and skips previously failed track
   expect(usePlayerStore.getState().currentTime).toBe(0)
   expect(usePlayerStore.getState().isPlaying).toBe(true)
 })
+
+test('browser autoplay rejection pauses without marking the track failed', async () => {
+  await mountYouTube()
+  await act(() => events.onAutoplayBlocked({}))
+  expect(usePlayerStore.getState().isPlaying).toBe(false)
+  expect(usePlayerStore.getState().failedSongIds).toEqual([])
+  expect(usePlayerStore.getState().playbackError).toContain('Press Play')
+  await act(() => usePlayerStore.getState().play())
+  expect(usePlayerStore.getState().playbackError).toBeNull()
+  expect(player.playVideo).toHaveBeenCalled()
+})

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { getSubredditPosts, searchReddit } from '@/lib/actions/reddit'
 import { getErrorMessage } from '@/lib/errors/reddit-error'
@@ -14,9 +14,13 @@ export function useRedditAPI() {
   const isFetchingRef = useRef(false)
 
   // Keep store ref updated
-  usePlayerStore.subscribe(state => {
-    storeRef.current = state
-  })
+  useEffect(
+    () =>
+      usePlayerStore.subscribe(state => {
+        storeRef.current = state
+      }),
+    []
+  )
 
   /**
    * Fetch from subreddits
