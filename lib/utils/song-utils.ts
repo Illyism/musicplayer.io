@@ -33,7 +33,7 @@ export function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): 
 
 // Module-level regexes (compiled once)
 const YOUTUBE_ID_PATTERNS = [
-  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\n?#]+)/,
   /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
 ]
 const VIMEO_ID_REGEX = /vimeo\.com\/(\d+)/

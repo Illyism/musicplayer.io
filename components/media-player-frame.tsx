@@ -20,6 +20,7 @@ export function MediaPlayerFrame({
   className = '',
   showTheatreToggle = true,
 }: MediaPlayerFrameProps) {
+  const playbackError = usePlayerStore(state => state.playbackError)
   const isTheatreMode = usePlayerStore(state => state.isTheatreMode)
   const toggleTheatreMode = usePlayerStore(state => state.toggleTheatreMode)
 
@@ -49,6 +50,15 @@ export function MediaPlayerFrame({
             </div>
           )}
         </div>
+
+        {playbackError && (
+          <p
+            className="absolute bottom-2 left-2 z-20 bg-black/80 p-2 text-white text-xs"
+            role="status"
+          >
+            {playbackError}
+          </p>
+        )}
 
         {showTheatreToggle && (
           <button
