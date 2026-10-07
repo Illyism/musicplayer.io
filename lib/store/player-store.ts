@@ -33,6 +33,7 @@ export interface PlayerState {
   currentSong: Song | null
   currentTime: number
   duration: number
+  failedSongIds: string[]
 
   // Playback
   isPlaying: boolean
@@ -41,6 +42,7 @@ export interface PlayerState {
 
   // UI
   mobileView: 'browse' | 'playlist' | 'player'
+  playbackError: string | null
   searchQuery: string | null
   selectedSubreddits: string[]
   // Playlist
@@ -52,6 +54,7 @@ export interface PlayerState {
 
 export interface PlayerActions {
   addSongs: (songs: Song[]) => void
+  failCurrentSong: (songId: string, message: string) => void
   next: () => void
   pause: () => void
 
@@ -137,6 +140,19 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   currentTime: 0,
   duration: 0,
 
+  failCurrentSong: (songId, message) => {
+    const state = get()
+    if (state.currentSong?.id !== songId || state.failedSongIds.includes(songId)) {
+      return
+    }
+    set({ failedSongIds: [...state.failedSongIds, songId] })
+    if (state.isPlaying) {
+      get().next()
+    }
+    set({ playbackError: message })
+  },
+  failedSongIds: [],
+
   isPlaying: false,
   isTheatreMode: false,
   loading: false,
@@ -144,13 +160,13 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   mobileView: 'playlist',
 
   next: () => {
-    const { songs, currentIndex } = get()
+    const { songs, currentIndex, failedSongIds } = get()
 
     // Find next playable song
     let nextIndex = currentIndex + 1
     while (nextIndex < songs.length) {
       const song = songs[nextIndex]
-      if (song?.playable) {
+      if (song?.playable && !failedSongIds.includes(song.id)) {
         get().setCurrentSong(nextIndex)
         return
       }
@@ -161,12 +177,13 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     nextIndex = 0
     while (nextIndex < songs.length) {
       const song = songs[nextIndex]
-      if (song?.playable) {
+      if (song?.playable && !failedSongIds.includes(song.id)) {
         get().setCurrentSong(nextIndex)
         return
       }
       nextIndex += 1
     }
+    set({ isPlaying: false })
   },
 
   pause: () => {
@@ -177,8 +194,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   // PLAYBACK ACTIONS
   // ========================================
   play: () => {
-    set({ isPlaying: true })
+    set({ isPlaying: true, playbackError: null })
   },
+  playbackError: null,
 
   previous: () => {
     const { songs, currentIndex } = get()
@@ -218,7 +236,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       currentSong: song,
       currentTime: 0,
       duration: 0,
+      failedSongIds: get().failedSongIds.filter(id => id !== song.id),
       isPlaying: song.playable,
+      playbackError: null,
     })
   },
 
@@ -293,11 +313,21 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       }
     }
 
+    // Start the first playable track when a new listing has no retained selection.
+    if (!newCurrentSong) {
+      newCurrentIndex = uniqueSongs.findIndex(song => song.playable)
+      newCurrentSong = uniqueSongs[newCurrentIndex] ?? null
+    }
+
     set({
       currentIndex: newCurrentIndex,
       currentSong: newCurrentSong,
       currentTime: newCurrentTime,
       duration: newDuration,
+      failedSongIds: state.failedSongIds.filter(id => uniqueSongs.some(song => song.id === id)),
+      isPlaying:
+        !!newCurrentSong && (newCurrentSong.id === state.currentSong?.id ? state.isPlaying : true),
+      playbackError: null,
       songs: uniqueSongs,
     })
   },
@@ -344,7 +374,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   sortMethod: 'hot', // Static default
 
   togglePlay: () => {
-    set(state => ({ isPlaying: !state.isPlaying }))
+    set(state => ({ isPlaying: !state.isPlaying, playbackError: null }))
   },
 
   toggleTheatreMode: () => {

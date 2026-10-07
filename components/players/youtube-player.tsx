@@ -19,304 +19,164 @@ interface YouTubePlayerProps {
 export function YouTubePlayer({ song }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<any>(null)
-  const videoIdRef = useRef<string | null>(null)
-  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const loadedSongRef = useRef<{ id: string } | null>(null)
+  const transitioningRef = useRef(true)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, setCurrentTime, setDuration } = usePlayerStore()
-
+  const { isPlaying, volume } = usePlayerStore()
   const videoId = extractYouTubeId(song.url)
 
-  // Initialize YouTube player (only once, keep persistent)
   useEffect(() => {
-    if (!containerRef.current) {
-      return
-    }
-
-    const _container = containerRef.current
     let mounted = true
-    let player: any = null
-
-    // Set initial videoId
-    if (videoId) {
-      videoIdRef.current = videoId
-    }
+    let interval: ReturnType<typeof setInterval> | undefined
+    const isCurrent = () =>
+      mounted && loadedSongRef.current?.id === usePlayerStore.getState().currentSong?.id
 
     const initPlayer = () => {
-      if (!(window.YT?.Player && mounted && containerRef.current)) {
+      if (!(mounted && containerRef.current && window.YT?.Player) || playerRef.current) {
         return
       }
-
-      // Only create player if it doesn't exist
-      if (playerRef.current) {
-        return
-      }
-
-      const container = containerRef.current
-
-      // Clear any existing content first (remove any orphaned iframes)
-      container.innerHTML = ''
-
-      // If there's a global player from another component, destroy it first
-      if (window.__youtubePlayer && window.__youtubePlayer !== playerRef.current) {
-        try {
-          const oldPlayer = window.__youtubePlayer
-          oldPlayer.stopVideo()
-          oldPlayer.destroy()
-          window.__youtubePlayer = undefined
-        } catch {
-          // Ignore errors
-        }
-      }
-
-      // Create div for player if it doesn't exist
-      let playerDiv = container.querySelector('div')
-      if (!playerDiv) {
-        playerDiv = document.createElement('div')
-        container.appendChild(playerDiv)
-      }
-
-      try {
-        player = new window.YT.Player(playerDiv, {
-          events: {
-            onError: (event: any) => {
-              console.error('YouTube player error:', event.data)
-            },
-            onReady: (event: any) => {
-              if (!mounted) {
+      const element = document.createElement('div')
+      containerRef.current.appendChild(element)
+      playerRef.current = new window.YT.Player(element, {
+        events: {
+          onAutoplayBlocked: () => {
+            if (isCurrent()) {
+              usePlayerStore.setState({
+                isPlaying: false,
+                playbackError: 'Your browser blocked autoplay. Press Play to start.',
+              })
+            }
+          },
+          onError: (event: any) => {
+            if (isCurrent() && loadedSongRef.current) {
+              usePlayerStore
+                .getState()
+                .failCurrentSong(
+                  loadedSongRef.current.id,
+                  `YouTube could not play this track (error ${event.data}).`
+                )
+            }
+          },
+          onReady: () => {
+            if (!mounted) {
+              return
+            }
+            setIsReady(true)
+            interval = setInterval(() => {
+              if (!isCurrent() || transitioningRef.current) {
                 return
               }
-
-              playerRef.current = event.target
-              window.__youtubePlayer = event.target
-              setIsReady(true)
-              videoIdRef.current = videoId
-
               const state = usePlayerStore.getState()
-              try {
-                event.target.setVolume(volume)
-                // If there's a saved currentTime > 0, seek to it
-                if (
-                  state.currentTime > 0 &&
-                  (!state.duration || state.currentTime < state.duration)
-                ) {
-                  event.target.seekTo(state.currentTime, true)
-                }
-                // Explicitly play if needed
-                if (state.isPlaying && videoId) {
-                  event.target.playVideo().catch(() => {
-                    // Handle autoplay rejection
-                  })
-                }
-              } catch {
-                // Silently handle errors
+              const time = playerRef.current.getCurrentTime()
+              if (Number.isFinite(time) && time >= 0) {
+                state.setCurrentTime(time)
               }
-
-              // Start update interval
-              if (updateIntervalRef.current) {
-                clearInterval(updateIntervalRef.current)
-              }
-              updateIntervalRef.current = setInterval(() => {
-                if (!(mounted && playerRef.current) || videoIdRef.current === null) {
-                  return
-                }
-
-                try {
-                  const time = playerRef.current.getCurrentTime()
-                  const dur = playerRef.current.getDuration()
-
-                  if (typeof time === 'number' && time >= 0 && Number.isFinite(time)) {
-                    setCurrentTime(time)
-                  }
-                  if (typeof dur === 'number' && dur > 0 && Number.isFinite(dur)) {
-                    setDuration(dur)
-                  }
-                } catch {
-                  // Ignore errors during cleanup
-                }
-              }, 100)
-            },
-            onStateChange: (event: any) => {
-              if (!mounted || videoIdRef.current === null) {
-                return
-              }
-
-              const state = usePlayerStore.getState()
-
-              // 0 = ended, -1 = unstarted, 1 = playing, 2 = paused, 3 = buffering, 5 = video cued
-              if (event.data === 0) {
-                // Song ended - advance to next
-                state.next()
-              } else if (event.data === 1) {
-                // Playing - sync store state
-                if (!state.isPlaying) {
+              state.setDuration(playerRef.current.getDuration())
+            }, 100)
+          },
+          onStateChange: (event: any) => {
+            if (!isCurrent()) {
+              return
+            }
+            const state = usePlayerStore.getState()
+            if (event.data === 1) {
+              const wasTransitioning = transitioningRef.current
+              transitioningRef.current = false
+              // A pending load must honor a pause pressed while it was loading.
+              if (!state.isPlaying) {
+                if (wasTransitioning) {
+                  playerRef.current.pauseVideo()
+                } else {
                   state.play()
                 }
-              } else if (event.data === 2 && state.isPlaying) {
-                // Paused - sync store state
-                state.pause()
               }
-            },
+            } else if (event.data === 5) {
+              transitioningRef.current = false
+            } else if (event.data === 0 && !transitioningRef.current) {
+              transitioningRef.current = true
+              state.next()
+              if (state.currentSong?.id === usePlayerStore.getState().currentSong?.id) {
+                playerRef.current.seekTo(0, true)
+                playerRef.current.playVideo()
+              }
+            } else if (event.data === 2 && !transitioningRef.current) {
+              state.pause()
+            }
           },
-          height: '100%',
-          playerVars: {
-            autoplay: 0, // Don't autoplay, we'll handle it explicitly
-            controls: 0,
-            modestbranding: 1,
-            rel: 0,
-          },
-          videoId: videoId || '', // Use current videoId or empty
-          width: '100%',
-        })
-      } catch (error) {
-        console.error('YouTube player init error:', error)
-      }
+        },
+        height: '100%',
+        playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0 },
+        width: '100%',
+      })
+      window.__youtubePlayer = playerRef.current
     }
 
-    // Load YouTube API if needed
-    if (window.YT) {
+    if (window.YT?.Player) {
       initPlayer()
     } else {
-      const tag = document.createElement('script')
-      tag.src = 'https://www.youtube.com/iframe_api'
-      tag.async = true
-
-      const [firstScript] = document.getElementsByTagName('script')
-      firstScript?.parentNode?.insertBefore(tag, firstScript)
-
+      const script = document.createElement('script')
+      script.src = 'https://www.youtube.com/iframe_api'
+      script.async = true
+      document.body.appendChild(script)
       window.onYouTubeIframeAPIReady = initPlayer
     }
 
-    // Cleanup (only on unmount, not on videoId change)
     return () => {
       mounted = false
-
-      if (updateIntervalRef.current) {
-        clearInterval(updateIntervalRef.current)
-        updateIntervalRef.current = null
-      }
-
-      // Destroy player and remove iframe completely
-      if (playerRef.current) {
-        try {
-          const playerInstance = playerRef.current
-          playerInstance.stopVideo()
-          playerInstance.destroy()
-
-          // Clear the global reference if it's this player
-          if (window.__youtubePlayer === playerInstance) {
-            window.__youtubePlayer = undefined
-          }
-        } catch {
-          // Silently ignore cleanup errors
-        }
-      }
-
-      // Clear container completely to remove any lingering iframes
-      if (containerRef.current) {
-        containerRef.current.innerHTML = ''
-      }
-
-      if (player) {
-        player = null
-      }
-
+      clearInterval(interval)
+      const player = playerRef.current
       playerRef.current = null
-      setIsReady(false)
-      videoIdRef.current = null
+      if (window.__youtubePlayer === player) {
+        window.__youtubePlayer = undefined
+      }
+      player?.destroy()
     }
-  }, [setCurrentTime, setDuration, volume, videoId]) // Only run once on mount
+  }, [])
 
-  // Handle videoId changes - load new video without destroying player
   useEffect(() => {
     if (!videoId) {
+      usePlayerStore
+        .getState()
+        .failCurrentSong(song.id, 'Unrecognized YouTube URL. Skipping track.')
       return
     }
-
-    // If player is ready and videoId changed, load new video
-    if (isReady && playerRef.current && videoIdRef.current !== videoId) {
-      videoIdRef.current = videoId
-      const playerInstance = playerRef.current
-
-      try {
-        const state = usePlayerStore.getState()
-        playerInstance.setVolume(volume)
-
-        // Load the new video
-        playerInstance.loadVideoById({
-          startSeconds:
-            state.currentTime > 0 && (!state.duration || state.currentTime < state.duration)
-              ? state.currentTime
-              : 0,
-          videoId,
-        })
-
-        // Explicitly play if needed
-        if (state.isPlaying) {
-          // Wait a bit for video to load, then play
-          setTimeout(() => {
-            if (playerRef.current && videoIdRef.current === videoId) {
-              try {
-                playerInstance.playVideo().catch(() => {
-                  // Handle autoplay rejection
-                })
-              } catch {
-                // Handle autoplay rejection
-              }
-            }
-          }, 100)
-        }
-      } catch {
-        // Silently handle errors
-      }
-    } else if (!isReady && videoId) {
-      // Store videoId for when player becomes ready
-      videoIdRef.current = videoId
+    if (!(isReady && playerRef.current)) {
+      return
     }
-  }, [videoId, isReady, volume])
+    loadedSongRef.current = { id: song.id }
+    transitioningRef.current = true
+    const state = usePlayerStore.getState()
+    playerRef.current.setVolume(state.volume)
+    const options = { startSeconds: state.currentTime, videoId }
+    if (state.isPlaying) {
+      playerRef.current.loadVideoById(options)
+    } else {
+      playerRef.current.cueVideoById(options)
+    }
+  }, [song.id, videoId, isReady])
 
-  // Handle play/pause
   useEffect(() => {
-    if (!(isReady && playerRef.current) || videoIdRef.current !== videoId) {
+    if (!(isReady && playerRef.current) || loadedSongRef.current?.id !== song.id) {
       return
     }
-
-    try {
-      if (isPlaying) {
-        playerRef.current.playVideo().catch(() => {
-          // Handle autoplay rejection
-        })
-      } else {
-        playerRef.current.pauseVideo()
-      }
-    } catch {
-      // Silently handle errors
+    // YouTube commands return void, not promises.
+    if (isPlaying) {
+      playerRef.current.playVideo()
+    } else {
+      playerRef.current.pauseVideo()
     }
-  }, [isPlaying, isReady, videoId])
+  }, [isPlaying, isReady, song.id])
 
-  // Handle volume
   useEffect(() => {
-    if (!(isReady && playerRef.current) || videoIdRef.current !== videoId) {
-      return
+    if (isReady) {
+      playerRef.current?.setVolume(volume)
     }
-
-    try {
-      playerRef.current.setVolume(volume)
-    } catch {
-      // Ignore
-    }
-  }, [volume, isReady, videoId])
-
-  if (!videoId) {
-    return (
-      <div className="flex h-full w-full items-center justify-center text-gray-400">
-        Invalid YouTube URL
-      </div>
-    )
-  }
+  }, [volume, isReady])
 
   return (
     <div className="relative h-full w-full">
       <div className="h-full w-full" ref={containerRef} />
+      {!videoId && <p className="text-gray-400">Unrecognized YouTube URL</p>}
     </div>
   )
 }

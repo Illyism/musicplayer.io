@@ -17,166 +17,83 @@ interface SoundCloudPlayerProps {
 export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const widgetRef = useRef<any>(null)
-  const songUrlRef = useRef<string | null>(null)
+  const loadedSongRef = useRef<{ id: string } | null>(null)
+  const loadingRef = useRef(true)
+  const transitioningRef = useRef(true)
+  const generationRef = useRef(0)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, setCurrentTime, setDuration, togglePlay } = usePlayerStore()
+  const { isPlaying, volume, togglePlay } = usePlayerStore()
+  // Changing src would reload the iframe behind the persistent widget.
+  const iframeUrl = useRef(
+    `https://w.soundcloud.com/player/?url=${encodeURIComponent(song.url)}&auto_play=false&visual=true`
+  )
 
-  // Initialize widget (only once, keep persistent)
   useEffect(() => {
-    if (!iframeRef.current) {
-      return
-    }
-
     let mounted = true
-    let widget: any = null
-
-    // Set initial song URL
-    songUrlRef.current = song.url
-
+    const isCurrent = () =>
+      mounted && loadedSongRef.current?.id === usePlayerStore.getState().currentSong?.id
     const initWidget = () => {
-      if (!(window.SC?.Widget && mounted && iframeRef.current)) {
+      if (!(mounted && iframeRef.current && window.SC?.Widget) || widgetRef.current) {
         return
       }
-
-      // Only create widget if it doesn't exist
-      if (widgetRef.current) {
-        return
-      }
-
-      try {
-        widget = window.SC.Widget(iframeRef.current)
-        widgetRef.current = widget
-        window.__soundcloudWidget = widget
-
-        widget.bind(window.SC.Widget.Events.READY, () => {
-          if (!mounted) {
-            return
-          }
-
+      const widget = window.SC.Widget(iframeRef.current)
+      widgetRef.current = widget
+      window.__soundcloudWidget = widget
+      const events = window.SC.Widget.Events
+      widget.bind(events.READY, () => {
+        if (mounted) {
           setIsReady(true)
-
-          // Load initial song if we have one
-          if (songUrlRef.current) {
-            loadSong(widget, songUrlRef.current)
-          }
-        })
-
-        widget.bind(window.SC.Widget.Events.PLAY_PROGRESS, (e: any) => {
-          if (!mounted || songUrlRef.current === null) {
-            return
-          }
-
-          try {
-            if (e?.currentPosition && typeof e.currentPosition === 'number') {
-              setCurrentTime(e.currentPosition / 1000)
-            }
-          } catch {
-            // Ignore
-          }
-        })
-
-        widget.bind(window.SC.Widget.Events.FINISH, () => {
-          if (!mounted || songUrlRef.current === null) {
-            return
-          }
+        }
+      })
+      widget.bind(events.PLAY_PROGRESS, (event: any) => {
+        if (isCurrent() && !loadingRef.current && Number.isFinite(event?.currentPosition)) {
+          usePlayerStore.getState().setCurrentTime(event.currentPosition / 1000)
+        }
+      })
+      widget.bind(events.FINISH, () => {
+        if (isCurrent() && !transitioningRef.current) {
+          transitioningRef.current = true
           const state = usePlayerStore.getState()
           state.next()
-        })
-
-        widget.bind(window.SC.Widget.Events.PLAY, () => {
-          if (!mounted || songUrlRef.current === null) {
-            return
+          if (state.currentSong?.id === usePlayerStore.getState().currentSong?.id) {
+            widget.seekTo(0)
+            widget.play()
           }
+        }
+      })
+      widget.bind(events.PLAY, () => {
+        if (isCurrent() && !loadingRef.current) {
+          const wasTransitioning = transitioningRef.current
+          transitioningRef.current = false
           const state = usePlayerStore.getState()
           if (!state.isPlaying) {
-            state.play()
+            if (wasTransitioning) {
+              widget.pause()
+            } else {
+              state.play()
+            }
           }
-        })
-
-        widget.bind(window.SC.Widget.Events.PAUSE, () => {
-          if (!mounted || songUrlRef.current === null) {
-            return
-          }
-          const state = usePlayerStore.getState()
-          if (state.isPlaying) {
-            state.pause()
-          }
-        })
-
-        widget.bind(window.SC.Widget.Events.ERROR, (_e: any) => {
-          // SoundCloud error - silently handle
-        })
-      } catch {
-        // SoundCloud init error - silently handle
-      }
+        }
+      })
+      widget.bind(events.PAUSE, () => {
+        if (isCurrent() && !transitioningRef.current) {
+          usePlayerStore.getState().pause()
+        }
+      })
+      widget.bind(events.ERROR, () => {
+        if (isCurrent() && loadedSongRef.current) {
+          usePlayerStore
+            .getState()
+            .failCurrentSong(
+              loadedSongRef.current.id,
+              'SoundCloud could not play this track. Skipping track.'
+            )
+        }
+      })
     }
 
-    const loadSong = (widgetInstance: any, url: string) => {
-      if (!(mounted && widgetInstance)) {
-        return
-      }
-
-      try {
-        const state = usePlayerStore.getState()
-        widgetInstance.setVolume(volume)
-
-        // Load the new song
-        widgetInstance.load(url, {
-          auto_play: false,
-          visual: true,
-        })
-
-        // Get duration and seek if needed
-        widgetInstance.getDuration((dur: number) => {
-          if (!mounted || songUrlRef.current !== url) {
-            return
-          }
-
-          try {
-            if (dur > 0 && Number.isFinite(dur)) {
-              setDuration(dur / 1000)
-
-              // Seek to saved position if needed
-              if (
-                state.currentTime > 0 &&
-                (!state.duration || state.currentTime < state.duration)
-              ) {
-                const position = (state.currentTime / (dur / 1000)) * 1000
-                widgetInstance.seekTo(position)
-              }
-            }
-          } catch {
-            // Ignore
-          }
-        })
-
-        // Explicitly play if needed
-        if (state.isPlaying) {
-          setTimeout(() => {
-            if (mounted && widgetRef.current && songUrlRef.current === url) {
-              try {
-                widgetInstance.play()
-              } catch {
-                // Handle autoplay rejection
-              }
-            }
-          }, 100)
-        }
-      } catch {
-        // SoundCloud load error - silently handle
-      }
-    }
-
-    if (window.SC) {
-      // Wait for iframe to load
-      const checkIframe = setInterval(() => {
-        if (iframeRef.current?.contentWindow) {
-          clearInterval(checkIframe)
-          setTimeout(initWidget, 100)
-        }
-      }, 100)
-
-      setTimeout(() => clearInterval(checkIframe), 5000)
+    if (window.SC?.Widget) {
+      initWidget()
     } else {
       const script = document.createElement('script')
       script.src = 'https://w.soundcloud.com/player/api.js'
@@ -184,127 +101,82 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
       script.onload = initWidget
       document.body.appendChild(script)
     }
-
     return () => {
       mounted = false
-
-      if (widget) {
-        try {
-          widget.pause()
-          widget.unbind(window.SC.Widget.Events.READY)
-          widget.unbind(window.SC.Widget.Events.PLAY_PROGRESS)
-          widget.unbind(window.SC.Widget.Events.FINISH)
-          widget.unbind(window.SC.Widget.Events.PLAY)
-          widget.unbind(window.SC.Widget.Events.PAUSE)
-          widget.unbind(window.SC.Widget.Events.ERROR)
-        } catch {
-          // Silently ignore
-        }
-      }
-
+      generationRef.current += 1
+      const widget = widgetRef.current
       widgetRef.current = null
-      setIsReady(false)
-      songUrlRef.current = null
-    }
-  }, [setCurrentTime, setDuration, song.url, volume]) // Only run once on mount
-
-  // Handle song.url changes - load new song without destroying widget
-  useEffect(() => {
-    if (!(song.url && isReady && widgetRef.current)) {
-      return
-    }
-
-    // If widget is ready and song changed, load new song
-    if (songUrlRef.current !== song.url) {
-      songUrlRef.current = song.url
-      const widgetInstance = widgetRef.current
-
-      try {
-        const state = usePlayerStore.getState()
-        widgetInstance.setVolume(volume)
-
-        // Load the new song
-        widgetInstance.load(song.url, {
-          auto_play: false,
-          visual: true,
-        })
-
-        // Get duration and seek if needed
-        widgetInstance.getDuration((dur: number) => {
-          if (songUrlRef.current !== song.url) {
-            return
-          }
-
-          try {
-            if (dur > 0 && Number.isFinite(dur)) {
-              setDuration(dur / 1000)
-
-              // Seek to saved position if needed
-              if (
-                state.currentTime > 0 &&
-                (!state.duration || state.currentTime < state.duration)
-              ) {
-                const position = (state.currentTime / (dur / 1000)) * 1000
-                widgetInstance.seekTo(position)
-              }
-            }
-          } catch {
-            // Ignore
-          }
-        })
-
-        // Explicitly play if needed
-        if (state.isPlaying) {
-          setTimeout(() => {
-            if (widgetRef.current && songUrlRef.current === song.url) {
-              try {
-                widgetInstance.play()
-              } catch {
-                // Handle autoplay rejection
-              }
-            }
-          }, 100)
+      if (window.__soundcloudWidget === widget) {
+        window.__soundcloudWidget = undefined
+      }
+      if (widget) {
+        for (const event of Object.values(window.SC.Widget.Events)) {
+          widget.unbind(event)
         }
-      } catch {
-        // SoundCloud load error - silently handle
+        widget.pause()
       }
-    } else if (!isReady && song.url) {
-      // Store song URL for when widget becomes ready
-      songUrlRef.current = song.url
     }
-  }, [song.url, isReady, volume, setDuration])
+  }, [])
 
   useEffect(() => {
-    if (!(isReady && widgetRef.current) || songUrlRef.current !== song.url) {
+    loadedSongRef.current = { id: song.id }
+    if (!(isReady && widgetRef.current)) {
       return
     }
-
-    try {
-      if (isPlaying) {
-        widgetRef.current.play()
-      } else {
-        widgetRef.current.pause()
-      }
-    } catch {
-      // Ignore
-    }
-  }, [isPlaying, isReady, song.url])
+    const widget = widgetRef.current
+    loadingRef.current = true
+    transitioningRef.current = true
+    generationRef.current += 1
+    const generation = generationRef.current
+    widget.load(song.url, {
+      auto_play: false,
+      callback: () => {
+        if (
+          generationRef.current !== generation ||
+          usePlayerStore.getState().currentSong?.id !== song.id
+        ) {
+          return
+        }
+        loadingRef.current = false
+        const state = usePlayerStore.getState()
+        widget.setVolume(state.volume)
+        widget.getDuration((duration: number) => {
+          if (
+            generationRef.current === generation &&
+            usePlayerStore.getState().currentSong?.id === song.id
+          ) {
+            usePlayerStore.getState().setDuration(duration / 1000)
+          }
+        })
+        if (state.currentTime > 0) {
+          widget.seekTo(state.currentTime * 1000)
+        }
+        if (state.isPlaying) {
+          widget.play()
+        } else {
+          transitioningRef.current = false
+        }
+      },
+      visual: true,
+    })
+  }, [song.id, song.url, isReady])
 
   useEffect(() => {
-    if (!(isReady && widgetRef.current) || songUrlRef.current !== song.url) {
+    if (!(isReady && widgetRef.current) || loadingRef.current) {
       return
     }
-
-    try {
-      widgetRef.current.setVolume(volume)
-    } catch {
-      // Ignore
+    if (isPlaying) {
+      widgetRef.current.play()
+    } else {
+      widgetRef.current.pause()
     }
-  }, [volume, isReady, song.url])
+  }, [isPlaying, isReady])
 
-  const soundcloudUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(
-    song.url
-  )}&auto_play=false&visual=true`
+  useEffect(() => {
+    if (isReady && !loadingRef.current) {
+      widgetRef.current?.setVolume(volume)
+    }
+  }, [volume, isReady])
 
   return (
     <div className="relative h-full w-full">
@@ -314,7 +186,7 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
         height="100%"
         ref={iframeRef}
         scrolling="no"
-        src={soundcloudUrl}
+        src={iframeUrl.current}
         title={`SoundCloud player: ${song.title}`}
         width="100%"
       />
