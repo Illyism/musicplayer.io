@@ -1,14 +1,20 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 
 function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const hasProcessed = useRef(false)
   const [status, setStatus] = useState('Processing login...')
 
   useEffect(() => {
+    // Reddit authorization codes are single-use, including under React Strict Mode.
+    if (hasProcessed.current) {
+      return
+    }
+    hasProcessed.current = true
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const state = searchParams.get('state')
@@ -17,14 +23,6 @@ function AuthCallbackContent() {
       // Check for errors
       if (error) {
         setStatus(`Login failed: ${error}`)
-        setTimeout(() => router.push('/'), 3000)
-        return
-      }
-
-      // Verify state
-      const savedState = localStorage.getItem('reddit_oauth_state')
-      if (state !== savedState) {
-        setStatus('Security check failed. Please try again.')
         setTimeout(() => router.push('/'), 3000)
         return
       }
@@ -38,7 +36,7 @@ function AuthCallbackContent() {
       try {
         // Exchange code for access token using Server Action
         const { loginWithReddit } = await import('@/lib/actions/auth')
-        const result = await loginWithReddit(code)
+        const result = await loginWithReddit(code, state)
 
         if (!result.success) {
           throw new Error(result.error || 'Authentication failed')

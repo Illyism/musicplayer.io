@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -9,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { getRedditAuthorizationUrl } from '@/lib/actions/auth'
 
 interface LoginModalProps {
   action?: string
@@ -17,17 +19,23 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
-  const handleLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || 'YOUR_CLIENT_ID'
-    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
-    const scope = 'identity,read,vote,submit'
-    const state = Math.random().toString(36).slice(7)
-
-    localStorage.setItem('reddit_oauth_state', state)
-
-    const authUrl = `https://www.reddit.com/api/v1/authorize?client_id=${clientId}&response_type=code&state=${state}&redirect_uri=${redirectUri}&duration=permanent&scope=${scope}`
-
-    window.location.href = authUrl
+  const [error, setError] = useState<string | null>(null)
+  const [isSigningIn, setIsSigningIn] = useState(false)
+  const handleLogin = async () => {
+    setError(null)
+    setIsSigningIn(true)
+    try {
+      const result = await getRedditAuthorizationUrl()
+      if (!result.url) {
+        setError(result.error || 'Unable to start Reddit sign-in.')
+        return
+      }
+      window.location.assign(result.url)
+    } catch {
+      setError('Unable to start Reddit sign-in. Please try again.')
+    } finally {
+      setIsSigningIn(false)
+    }
   }
 
   const getMessage = () => {
@@ -51,6 +59,11 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
           <DialogDescription className="pt-2 text-base">{getMessage()}</DialogDescription>
         </DialogHeader>
 
+        {error && (
+          <p className="text-destructive text-sm" role="alert">
+            {error}
+          </p>
+        )}
         <DialogFooter className="gap-2 pt-4 sm:gap-0">
           <Button
             className="flex-1 sm:flex-initial"
@@ -62,6 +75,7 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
           </Button>
           <Button
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 sm:flex-initial"
+            disabled={isSigningIn}
             onClick={handleLogin}
             type="button"
           >
