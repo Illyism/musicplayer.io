@@ -5,158 +5,82 @@ import { useEffect, useRef } from 'react'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { useRedditAPI } from './use-reddit-api'
 
-const REDDIT_PATH_REGEX = /^\/r\/(.+)$/
+const REDDIT_PATH_REGEX = /^\/r\/([^/]+)\/?$/
+const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/
 
-/**
- * Initialize app on mount
- * - Load from URL params
- * - Setup keyboard shortcuts
- * - Load saved state
- */
+const SORT_METHODS = ['hot', 'new', 'top'] as const
+const TOP_PERIODS = ['day', 'week', 'month', 'year', 'all'] as const
+
+/** Initialize the feed from the route, after client storage has hydrated. */
 export function useInitializeApp() {
-  const hasInitialized = useRef(false)
+  const hasInitialized = useRef<boolean>(false)
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const { fetchFromSubreddits } = useRedditAPI()
-  const {
-    setSelectedSubreddits,
-    selectedSubreddits,
-    togglePlay,
-    next,
-    previous,
-    setVolume,
-    volume,
-  } = usePlayerStore()
 
-  // ==========================================
-  // INITIALIZE FROM URL
-  // ==========================================
   useEffect(() => {
-    // Check path: /r/music+listentothis
-    const pathMatch = pathname.match(REDDIT_PATH_REGEX)
-    if (pathMatch) {
-      const subs = pathMatch[1]
-        .split('+')
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean)
+    // Browse starts searches before navigation completes. Keep that request active.
+    const state = usePlayerStore.getState()
+    const routeCommunities = pathname.match(REDDIT_PATH_REGEX)?.[1] ?? searchParams.get('r')
+    if (state.searchQuery && !routeCommunities) {
+      hasInitialized.current = true
+      return
+    }
 
-      // Deduplicate subreddits from URL
-      const seen = new Set<string>()
-      const uniqueSubs = subs.filter(sub => {
-        if (seen.has(sub)) {
-          return false
-        }
-        seen.add(sub)
-        return true
-      })
+    const routeSort = SORT_METHODS.find(value => value === searchParams.get('sort'))
+    const routePeriod = TOP_PERIODS.find(value => value === searchParams.get('t'))
+    const sortChanged = routeSort !== undefined && routeSort !== state.sortMethod
+    const periodChanged = routePeriod !== undefined && routePeriod !== state.topPeriod
+    if (routeSort) {
+      state.setSortMethod(routeSort)
+    }
+    if (routePeriod) {
+      state.setTopPeriod(routePeriod)
+    }
 
-      if (uniqueSubs.length > 0) {
-        // Only update if different from current selection
-        const currentSubsStr = [...selectedSubreddits].sort().join('+')
-        const newSubsStr = uniqueSubs.sort().join('+')
-        if (!hasInitialized.current || currentSubsStr !== newSubsStr) {
+    if (routeCommunities) {
+      const communities = [
+        ...new Set(
+          routeCommunities
+            .split(COMMUNITY_SEPARATOR_REGEX)
+            .map(value => value.trim().toLowerCase())
+            .filter(Boolean)
+        ),
+      ]
+      const currentSelection = [...state.selectedSubreddits].sort().join('+')
+      const routeSelection = [...communities].sort().join('+')
+      if (communities.length > 0) {
+        if (
+          !hasInitialized.current ||
+          currentSelection !== routeSelection ||
+          sortChanged ||
+          periodChanged ||
+          state.searchQuery
+        ) {
           hasInitialized.current = true
-          setSelectedSubreddits(uniqueSubs)
-          fetchFromSubreddits(uniqueSubs)
+          state.setSearchQuery(null)
+          state.setSelectedSubreddits(communities)
+          // The API hook reports failures with a toast; handle this boundary's promise.
+          const browseRequestIsActive =
+            state.loading && currentSelection === routeSelection && !sortChanged && !periodChanged
+          if (!browseRequestIsActive) {
+            fetchFromSubreddits(communities).catch(() => undefined)
+          }
         }
-        hasInitialized.current = true
         return
       }
     }
 
-    // Check query: ?r=music+listentothis (fallback for old URLs)
-    const rParam = searchParams.get('r')
-    if (rParam) {
-      const subs = rParam
-        .split('+')
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean)
-
-      // Deduplicate subreddits from URL
-      const seen = new Set<string>()
-      const uniqueSubs = subs.filter(sub => {
-        if (seen.has(sub)) {
-          return false
-        }
-        seen.add(sub)
-        return true
-      })
-
-      if (uniqueSubs.length > 0) {
-        // Only update if different from current selection
-        const currentSubsStr = [...selectedSubreddits].sort().join('+')
-        const newSubsStr = uniqueSubs.sort().join('+')
-        if (!hasInitialized.current || currentSubsStr !== newSubsStr) {
-          hasInitialized.current = true
-          setSelectedSubreddits(uniqueSubs)
-          fetchFromSubreddits(uniqueSubs)
-        }
-        hasInitialized.current = true
-        return
-      }
+    if (hasInitialized.current && !sortChanged && !periodChanged) {
+      return
     }
-
-    // Only initialize defaults on first mount
-    if (!hasInitialized.current) {
-      // Use saved subreddits or default
-      if (selectedSubreddits.length > 0) {
-        hasInitialized.current = true
-        fetchFromSubreddits(selectedSubreddits)
-      } else {
-        hasInitialized.current = true
-        const defaultSubs = ['listentothis']
-        setSelectedSubreddits(defaultSubs)
-        fetchFromSubreddits(defaultSubs)
-      }
+    hasInitialized.current = true
+    if (state.selectedSubreddits.length > 0 && !state.loading) {
+      fetchFromSubreddits(state.selectedSubreddits).catch(() => undefined)
+    } else if (state.selectedSubreddits.length === 0) {
+      // An intentionally empty saved mix should stay empty.
+      state.setSongs([])
+      state.setAfter(null)
     }
-  }, [pathname, searchParams, fetchFromSubreddits, selectedSubreddits, setSelectedSubreddits]) // React to pathname and searchParams changes
-
-  // ==========================================
-  // KEYBOARD SHORTCUTS
-  // ==========================================
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      // Ignore if typing in input
-      const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return
-      }
-
-      // Space: Play/Pause
-      if (e.code === 'Space') {
-        e.preventDefault()
-        togglePlay()
-        return
-      }
-
-      // Modifier key shortcuts
-      const mod = e.ctrlKey || e.metaKey
-
-      if (mod) {
-        switch (e.code) {
-          case 'ArrowLeft':
-            e.preventDefault()
-            previous()
-            break
-          case 'ArrowRight':
-            e.preventDefault()
-            next()
-            break
-          case 'ArrowUp':
-            e.preventDefault()
-            setVolume(Math.min(100, volume + 10))
-            break
-          case 'ArrowDown':
-            e.preventDefault()
-            setVolume(Math.max(0, volume - 10))
-            break
-          default:
-            break
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [togglePlay, next, previous, setVolume, volume])
+  }, [pathname, searchParams, fetchFromSubreddits])
 }

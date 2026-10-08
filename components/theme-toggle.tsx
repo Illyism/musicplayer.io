@@ -4,36 +4,47 @@ import { Moon, Sun } from '@phosphor-icons/react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+const iconTransition =
+  'absolute size-5 transition-[opacity,transform,filter] duration-150 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none'
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
-  // Avoid hydration mismatch
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted) {
-    return (
-      <Button aria-label="Toggle theme" size="icon" variant="ghost">
-        <Sun className="h-5 w-5" weight="fill" />
-      </Button>
-    )
-  }
+  const isDark = mounted && resolvedTheme === 'dark'
+  const label = isDark ? 'Switch to light mode' : 'Switch to dark mode'
 
   return (
     <Button
-      aria-label="Toggle theme"
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      aria-label={label}
+      className="relative size-11 rounded-full text-muted-foreground hover:text-foreground"
+      disabled={!mounted}
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
       size="icon"
+      title={label}
+      type="button"
       variant="ghost"
     >
-      {theme === 'dark' ? (
-        <Sun className="h-5 w-5" weight="fill" />
-      ) : (
-        <Moon className="h-5 w-5" weight="fill" />
-      )}
+      <Sun
+        aria-hidden
+        className={cn(
+          iconTransition,
+          isDark ? 'scale-100 opacity-100 blur-none' : 'scale-25 opacity-0 blur-[4px]'
+        )}
+      />
+      <Moon
+        aria-hidden
+        className={cn(
+          iconTransition,
+          isDark ? 'scale-25 opacity-0 blur-[4px]' : 'scale-100 opacity-100 blur-none'
+        )}
+      />
     </Button>
   )
 }

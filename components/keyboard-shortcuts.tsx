@@ -7,6 +7,8 @@ interface KeyboardShortcutsProps {
   onShowShortcuts?: () => void
 }
 
+const arrowShortcutKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
+
 export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
   const { togglePlay, next, previous, setVolume, shufflePlaylist } = usePlayerStore()
 
@@ -15,11 +17,15 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
+      // Let focused controls and dialogs keep their native keyboard behavior.
       if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
+        e.defaultPrevented ||
+        ((e.ctrlKey || e.metaKey) && !arrowShortcutKeys.has(e.key)) ||
+        e.altKey ||
+        (e.target instanceof Element &&
+          e.target.closest(
+            'input, textarea, select, button, a, [contenteditable]:not([contenteditable="false"]), [role="dialog"], [role="alertdialog"], [role="menu"], [role="menuitem"], [role="slider"], [role="combobox"], [role="listbox"]'
+          ))
       ) {
         return
       }

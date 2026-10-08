@@ -20,7 +20,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<any>(null)
   const loadedSongRef = useRef<{ id: string } | null>(null)
-  const transitioningRef = useRef(true)
+  const transitioningRef = useRef<boolean>(true)
   const [isReady, setIsReady] = useState(false)
   const { isPlaying, volume } = usePlayerStore()
   const videoId = extractYouTubeId(song.url)
@@ -94,8 +94,9 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
               transitioningRef.current = false
             } else if (event.data === 0 && !transitioningRef.current) {
               transitioningRef.current = true
-              state.next()
-              if (state.currentSong?.id === usePlayerStore.getState().currentSong?.id) {
+              state.onEnded()
+              const nextState = usePlayerStore.getState()
+              if (nextState.isPlaying && state.currentSong?.id === nextState.currentSong?.id) {
                 playerRef.current.seekTo(0, true)
                 playerRef.current.playVideo()
               }

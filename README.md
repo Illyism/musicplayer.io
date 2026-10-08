@@ -57,6 +57,14 @@ The app will be available at `http://localhost:3000`
 - 🔗 **Share Playlists** - Share your custom playlists
 - 🎨 **Modern UI** - Built with Next.js 16, React, and Tailwind CSS
 
+## Community discovery and listening
+
+Music communities now come from bounded Reddit OAuth searches and current activity samples. Live, cached, and unverified starter results keep their source and original check time. Read the [discovery contract, request limits, and Reddit access requirements](docs/community-discovery.md).
+
+Capture a temporary local discovery receipt with `bun scripts/capture-community-discovery.ts` using the app's configured credentials. The script saves community metadata and aggregate counts, never post text, authors, or media URLs. These files are excluded from Git and Docker images and are not loaded by production; delete or refresh them within 48 hours.
+
+Recommendations adapt to play, skip, and save events on this device. They use fixed scoring rules and never train on Reddit content. [Local listening and bookmark refresh](docs/local-listening.md) describes controls, retention, and the saved-track API.
+
 ## 🛠️ Tech Stack
 
 - **Framework**: Next.js 16 (App Router)

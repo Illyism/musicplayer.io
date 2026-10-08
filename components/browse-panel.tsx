@@ -1,488 +1,421 @@
 'use client'
 
-import { MagnifyingGlass, Plus, ShareNetwork } from '@phosphor-icons/react'
-import _ from 'lodash'
+import {
+  ArrowClockwise,
+  ArrowRight,
+  Check,
+  MagnifyingGlass,
+  Plus,
+  RedditLogo,
+  ShareNetwork,
+  X,
+} from '@phosphor-icons/react'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { ShareModal } from '@/components/share-modal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { discoveryStatus } from '@/lib/community/presentation'
+import { COMMUNITY_CATEGORIES, type Community, type CommunityCategory } from '@/lib/community/types'
+import { useCommunityDiscovery } from '@/lib/hooks/use-community-discovery'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
 import { usePlayerStore } from '@/lib/store/player-store'
+import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/utils/song-utils'
 
-const CUSTOM_SUBREDDIT_PREFIX_REGEX = /^\/?r\//
+const COMMUNITY_PREFIX = /^\/?r\//
+const COMMUNITY_NAME = /^[a-z0-9_]{1,21}$/
+const GENRE_COLORS: Record<string, string> = {
+  Ambient: 'bg-[#356665]',
+  Classical: 'bg-[#475c4f]',
+  Electronic: 'bg-[#28516e]',
+  'Hip-hop': 'bg-[#765124]',
+  Indie: 'bg-[#655087]',
+  Jazz: 'bg-[#8f5b2e]',
+  Metal: 'bg-[#414552]',
+  Pop: 'bg-[#8e406f]',
+  Rock: 'bg-[#963c39]',
+}
 
-interface Subreddit {
-  category: string
-  description: string
-  key: string
-  name: string
-  subscribers: number
+function CommunityRow({
+  community,
+  selected,
+  disabled,
+  onToggle,
+}: {
+  community: Community
+  selected: boolean
+  disabled: boolean
+  onToggle: (key: string) => Promise<void>
+}) {
+  return (
+    <Button
+      aria-label={`${selected ? 'Remove' : 'Add'} r/${community.name} ${selected ? 'from' : 'to'} your mix`}
+      aria-pressed={selected}
+      className={cn(
+        'h-auto min-h-20 w-full justify-start gap-3 rounded-xl px-3 py-3 text-left lg:min-h-16',
+        selected && 'bg-sidebar-accent'
+      )}
+      disabled={disabled}
+      onClick={() => onToggle(community.key)}
+      variant="ghost"
+    >
+      <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-reddit lg:size-9">
+        {community.iconUrl ? (
+          <Image
+            alt=""
+            className="size-full object-cover"
+            height={48}
+            src={community.iconUrl}
+            unoptimized
+            width={48}
+          />
+        ) : (
+          <RedditLogo className="size-6 lg:size-4" weight="fill" />
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold text-sm lg:text-[13px]">
+          r/{community.name}
+        </span>
+        <span className="mt-1 block truncate text-muted-foreground text-xs lg:text-[11px]">
+          {community.recentPlayablePosts === null
+            ? 'Activity not verified'
+            : `${community.recentPlayablePosts} recent supported links${community.activity === 'quiet' ? ' · Quiet' : ''}`}
+          {community.subscribers === null
+            ? ''
+            : ` · ${formatNumber(community.subscribers)} members`}
+        </span>
+        <span className="mt-1 line-clamp-1 whitespace-normal text-muted-foreground text-xs lg:hidden">
+          {community.description}
+        </span>
+      </span>
+      {selected ? (
+        <Check className="size-4 text-reddit" weight="bold" />
+      ) : (
+        <Plus className="size-4 text-muted-foreground" />
+      )}
+    </Button>
+  )
 }
 
 export function BrowsePanel() {
-  const [subreddits, setSubreddits] = useState<Subreddit[]>([])
-  const [searchInput, setSearchInput] = useState('')
-  const [customSubreddit, setCustomSubreddit] = useState('')
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [copyStatus, setCopyStatus] = useState<'full' | 'short' | null>(null)
-  const [mounted, setMounted] = useState(false)
-
+  const [query, setQuery] = useState('')
+  const [mode, setMode] = useState<'communities' | 'tracks'>('communities')
+  const [category, setCategory] = useState<CommunityCategory | null>(null)
+  const [custom, setCustom] = useState('')
+  const [share, setShare] = useState(false)
+  const {
+    data,
+    loading: discovering,
+    error,
+    refresh,
+  } = useCommunityDiscovery(mode === 'communities' ? query : '', category)
   const router = useRouter()
   const pathname = usePathname()
-  const { selectedSubreddits, setSelectedSubreddits, setSearchQuery, sortMethod, topPeriod } =
-    usePlayerStore()
+  const {
+    selectedSubreddits,
+    setSelectedSubreddits,
+    setSearchQuery,
+    setMobileView,
+    setSongs,
+    setAfter,
+    loading,
+  } = usePlayerStore()
   const { fetchFromSubreddits, fetchSearch } = useRedditAPI()
+  let resultsTitle = category ? `${category} communities` : 'Worth exploring'
+  if (query) {
+    resultsTitle = `Communities for “${query}”`
+  }
+  const matchingResult =
+    data !== null && data.query === query.trim().toLowerCase() && data.category === category
+  const visibleCommunities =
+    matchingResult && !discovering && error === null ? data.communities : []
 
-  // Update URL path when subreddits change
-  const updateUrlPath = (subs: string[]) => {
-    if (subs.length === 0) {
-      router.push('/')
-    } else {
-      const slug = subs.join('+')
-      const newPath = `/r/${slug}`
-      if (pathname !== newPath) {
-        router.push(newPath)
-      }
+  const updatePath = (names: string[]) => {
+    const path = names.length > 0 ? `/r/${names.join('+')}` : '/'
+    if (path !== pathname) {
+      router.push(path)
     }
   }
 
-  // Fix hydration
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Load all subreddits from API
-  useEffect(() => {
-    fetch('/api/subreddits')
-      .then(res => res.json())
-      .then(data => setSubreddits(data))
-      .catch(err => console.error('Failed to load subreddits:', err))
-  }, [])
-
-  const toggleSubreddit = async (key: string) => {
-    const newSelected = selectedSubreddits.includes(key)
-      ? selectedSubreddits.filter(s => s !== key)
+  const toggle = async (key: string) => {
+    const names = selectedSubreddits.includes(key)
+      ? selectedSubreddits.filter(name => name !== key)
       : [...selectedSubreddits, key]
-
-    setSelectedSubreddits(newSelected)
-    updateUrlPath(newSelected)
-
-    // Fetch immediately with current sort settings
-    if (newSelected.length > 0) {
-      await fetchFromSubreddits(newSelected)
+    setSearchQuery(null)
+    setSelectedSubreddits(names)
+    updatePath(names)
+    if (names.length === 0) {
+      setSongs([])
+      setAfter(null)
+      return
+    }
+    try {
+      await fetchFromSubreddits(names)
+    } catch {
+      /* Request errors are displayed by the API hook. */
     }
   }
 
-  const handleSearch = async () => {
-    const query = searchInput.trim()
-    if (query.length < 3) {
+  const searchTracks = async () => {
+    if (query.trim().length < 3 || loading) {
       return
     }
-
-    setSearchQuery(query)
+    setSearchQuery(query.trim())
     setSelectedSubreddits([])
-    updateUrlPath([])
-    await fetchSearch(query)
+    updatePath([])
+    setMobileView('playlist')
+    try {
+      await fetchSearch(query.trim())
+    } catch {
+      /* Request errors are displayed by the API hook. */
+    }
   }
 
-  const addCustomSubreddit = async () => {
-    const name = customSubreddit.trim().toLowerCase().replace(CUSTOM_SUBREDDIT_PREFIX_REGEX, '')
-
-    // Validate name
-    if (!name) {
-      setCustomSubreddit('')
+  const addCommunity = async () => {
+    const name = custom.trim().toLowerCase().replace(COMMUNITY_PREFIX, '')
+    if (!COMMUNITY_NAME.test(name)) {
+      toast.error('Use a community name with letters, numbers, or underscores.')
       return
     }
-
-    // Check if already selected
     if (selectedSubreddits.includes(name)) {
-      toast.info(`r/${name} is already in your playlist!`)
-      setCustomSubreddit('')
+      toast.info(`r/${name} is already in your mix.`)
       return
     }
-
-    // Add to selected
-    const newSelected = [...selectedSubreddits, name]
-    setSelectedSubreddits(newSelected)
-    updateUrlPath(newSelected)
-    setCustomSubreddit('')
-
-    // Fetch songs from this subreddit
-    try {
-      await fetchFromSubreddits(newSelected)
-    } catch (error) {
-      console.error(`Failed to fetch from r/${name}:`, error)
-      // Remove if fetch fails
-      setSelectedSubreddits(selectedSubreddits)
-      updateUrlPath(selectedSubreddits)
-      toast.error(`Could not load r/${name}. Please check the subreddit name.`)
-    }
+    setCustom('')
+    await toggle(name)
   }
-
-  const handleShare = () => {
-    setShowShareModal(true)
-    setCopyStatus(null)
-  }
-
-  const getShareUrls = () => {
-    const subs = selectedSubreddits.join('+')
-    const params = new URLSearchParams()
-    if (sortMethod !== 'hot') {
-      params.append('sort', sortMethod)
-    }
-    if (sortMethod === 'top' && topPeriod !== 'week') {
-      params.append('t', topPeriod)
-    }
-
-    const queryString = params.toString()
-    const path = subs ? `/r/${subs}` : '/'
-    const fullUrl = `https://musicplayer.io${path}${queryString ? `?${queryString}` : ''}`
-    const shortUrl = `http://r.il.ly${path}${queryString ? `?${queryString}` : ''}`
-
-    return { fullUrl, shortUrl }
-  }
-
-  const copyToClipboard = async (text: string, type: 'full' | 'short') => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopyStatus(type)
-      setTimeout(() => setCopyStatus(null), 2000)
-    } catch (err) {
-      console.error('Failed to copy:', err)
-    }
-  }
-
-  const { fullUrl, shortUrl } = getShareUrls()
-
-  // Group subreddits by category
-  const groupedSubreddits = _.groupBy(subreddits, 'category')
 
   return (
-    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      {/* Header */}
-      <div className="border-sidebar-border border-b p-4">
-        <div className="mb-3">
-          <h2 className="font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-            Browse
-          </h2>
-        </div>
-
-        {/* Search */}
-        <div className="flex gap-2">
-          <input
-            className="h-9 flex-1 rounded-lg border border-border bg-background/70 px-3 text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary"
-            onChange={e => setSearchInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="Search Reddit..."
-            type="text"
-            value={searchInput}
-          />
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
-            onClick={handleSearch}
-            type="button"
-          >
-            <MagnifyingGlass className="h-4 w-4" weight="fill" />
-          </button>
-        </div>
-      </div>
-
-      {/* My Subreddit Playlist */}
-      <div className="border-sidebar-border border-b bg-secondary/25 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h3 className="mb-0.5 font-bold text-sm">Your Library</h3>
-            <p className="text-muted-foreground text-xs">
-              {mounted
-                ? `${selectedSubreddits.length} subreddit${selectedSubreddits.length === 1 ? '' : 's'} selected`
-                : 'Loading...'}
-            </p>
+    <aside
+      aria-label="Music discovery"
+      className="flex h-full min-h-0 flex-col bg-background lg:bg-sidebar"
+    >
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-5 py-5 lg:gap-5 lg:px-3">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between lg:px-2">
+            <h1 className="font-semibold text-3xl tracking-tight lg:text-xl">Find your sound</h1>
+            <Button
+              aria-label="Refresh communities"
+              className="size-11 rounded-full"
+              disabled={discovering}
+              onClick={refresh}
+              size="icon"
+              variant="ghost"
+            >
+              <ArrowClockwise className={cn('size-5', discovering && 'motion-safe:animate-spin')} />
+            </Button>
           </div>
-          <button
-            className="rounded-lg p-2 transition-colors hover:bg-secondary"
-            onClick={handleShare}
-            title="Share Playlist"
-            type="button"
+          <form
+            className="relative"
+            onSubmit={event => {
+              event.preventDefault()
+              if (mode === 'tracks') {
+                searchTracks()
+              }
+            }}
           >
-            <ShareNetwork className="h-4 w-4" weight="fill" />
-          </button>
-        </div>
-
-        {selectedSubreddits.length > 0 ? (
-          <div className="mb-4 space-y-2">
-            {selectedSubreddits.map(sub => (
-              <div
-                className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2"
-                key={sub}
+            <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label={
+                mode === 'tracks' ? 'Search music on Reddit' : 'Search Reddit music communities'
+              }
+              className="h-12 rounded-xl border-transparent bg-muted pr-11 pl-11 text-base shadow-none lg:h-11 lg:text-sm"
+              maxLength={mode === 'communities' ? 64 : 200}
+              onChange={event => setQuery(event.target.value)}
+              placeholder={
+                mode === 'tracks'
+                  ? 'What do you want to listen to?'
+                  : 'Artists, genres, communities'
+              }
+              type="search"
+              value={query}
+            />
+            {mode === 'tracks' && (
+              <Button
+                aria-label="Search music"
+                className="absolute top-0 right-0 size-12 lg:size-11"
+                disabled={loading || query.trim().length < 3}
+                size="icon"
+                type="submit"
+                variant="ghost"
               >
-                <span className="font-medium text-sm">{sub}</span>
-                <button
-                  className="text-muted-foreground text-xs hover:text-foreground"
-                  onClick={() => toggleSubreddit(sub)}
-                  type="button"
-                >
-                  Remove
-                </button>
-              </div>
+                <ArrowRight className="size-5" />
+              </Button>
+            )}
+          </form>
+          <fieldset aria-label="Search type" className="flex gap-2">
+            {(['communities', 'tracks'] as const).map(value => (
+              <Button
+                aria-pressed={mode === value}
+                className="h-10 rounded-full px-4"
+                key={value}
+                onClick={() => setMode(value)}
+                variant={mode === value ? 'default' : 'secondary'}
+              >
+                {value === 'communities' ? 'Communities' : 'Tracks'}
+              </Button>
             ))}
-          </div>
-        ) : (
-          <div className="py-6 text-center text-muted-foreground text-xs">
-            No subreddits selected
-          </div>
-        )}
-
-        {/* Add Custom Subreddit */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background/70 px-3 font-medium text-muted-foreground text-sm">
-            /r/
-          </div>
-          <input
-            className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-background/70 px-3 text-sm placeholder:text-muted-foreground focus:border-transparent focus:outline-hidden focus:ring-2 focus:ring-primary"
-            onChange={e => setCustomSubreddit(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addCustomSubreddit()}
-            placeholder="custom-subreddit"
-            type="text"
-            value={customSubreddit}
-          />
-          <button
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
-            onClick={addCustomSubreddit}
-            type="button"
-          >
-            <Plus className="h-4 w-4" weight="bold" />
-          </button>
+          </fieldset>
         </div>
-      </div>
-
-      {/* Subreddit List */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        {Object.entries(groupedSubreddits).map(([category, subs]) => (
-          <div className="border-border border-b last:border-0" key={category}>
-            {/* Category Header - More Prominent */}
-            <div className="sticky top-0 z-10 border-primary border-l-2 bg-sidebar/95 px-4 py-2.5 backdrop-blur-xs">
-              <h4 className="font-bold text-primary text-xs uppercase tracking-wide">{category}</h4>
-              <p className="text-muted-foreground text-xs">{subs.length} subreddits</p>
-            </div>
-
-            {/* Subreddits */}
-            <div>
-              {subs.map(sub => {
-                const isSelected = selectedSubreddits.includes(sub.key)
-                const newSelected = isSelected
-                  ? selectedSubreddits.filter(s => s !== sub.key)
-                  : [...selectedSubreddits, sub.key]
-                const href = newSelected.length > 0 ? `/r/${newSelected.join('+')}` : '/'
-
-                return (
-                  <a
-                    className={`flex w-full items-center justify-between px-4 py-2.5 transition-colors hover:bg-secondary/50 ${
-                      isSelected ? 'bg-primary/15 text-primary' : ''
-                    }`}
-                    href={href}
-                    key={sub.key}
-                    onClick={e => {
-                      e.preventDefault()
-                      toggleSubreddit(sub.key)
-                    }}
-                  >
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-sm leading-tight">{sub.name}</div>
-                      {sub.subscribers && (
-                        <div className="text-muted-foreground text-xs">
-                          {sub.subscribers.toLocaleString()} members
-                        </div>
+        {mode === 'communities' && (
+          <>
+            {!query && (
+              <section className="flex flex-col gap-3 lg:hidden">
+                <h2 className="font-semibold text-xl">Browse by sound</h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {COMMUNITY_CATEGORIES.filter(
+                    value => value !== 'All music' && value !== 'Other'
+                  ).map(value => (
+                    <button
+                      aria-pressed={category === value}
+                      className={cn(
+                        'relative flex min-h-24 items-end overflow-hidden rounded-xl p-4 text-left font-semibold text-lg text-white outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        GENRE_COLORS[value],
+                        category === value && 'ring-2 ring-foreground'
                       )}
-                    </div>
-                    {isSelected ? (
-                      <div className="font-medium text-primary text-xs">✓</div>
-                    ) : (
-                      <Plus className="h-4 w-4 text-muted-foreground" weight="bold" />
-                    )}
-                  </a>
+                      key={value}
+                      onClick={() => setCategory(category === value ? null : value)}
+                      type="button"
+                    >
+                      <span>{value}</span>
+                      <RedditLogo
+                        aria-hidden
+                        className="absolute -right-2 -bottom-2 size-20 -rotate-12 text-white/15"
+                        weight="fill"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+            <div className="flex shrink-0 gap-2 overflow-x-auto pb-1 lg:flex-wrap">
+              <Button
+                className="h-9 rounded-full px-3 text-xs"
+                onClick={() => setCategory(null)}
+                variant={category === null ? 'default' : 'secondary'}
+              >
+                All music
+              </Button>
+              {COMMUNITY_CATEGORIES.filter(value => value !== 'All music' && value !== 'Other').map(
+                value => (
+                  <Button
+                    className="h-9 rounded-full px-3 text-xs"
+                    key={value}
+                    onClick={() => setCategory(value)}
+                    variant={category === value ? 'default' : 'secondary'}
+                  >
+                    {value}
+                  </Button>
                 )
-              })}
+              )}
             </div>
+            <section className="flex flex-col gap-2">
+              <h2 className="font-semibold text-xl lg:px-2 lg:text-sm">{resultsTitle}</h2>
+              {discovering === true && (
+                <p className="py-4 text-muted-foreground text-sm" role="status">
+                  Checking recent music activity…
+                </p>
+              )}
+              {error !== null && (
+                <p className="text-destructive text-sm" role="alert">
+                  {error}
+                </p>
+              )}
+              {data && matchingResult && !discovering && (
+                <p className="text-muted-foreground text-xs leading-5 lg:px-2">
+                  {discoveryStatus(data)}
+                  {data.source !== 'fallback' &&
+                    ` Links from the last ${data.sampleWindowDays} days, among each community’s latest 25 posts.`}
+                </p>
+              )}
+              {visibleCommunities.map(community => (
+                <CommunityRow
+                  community={community}
+                  disabled={loading}
+                  key={community.key}
+                  onToggle={toggle}
+                  selected={selectedSubreddits.includes(community.key)}
+                />
+              ))}
+              {matchingResult &&
+                !discovering &&
+                error === null &&
+                visibleCommunities.length === 0 && (
+                  <p className="py-4 text-muted-foreground text-sm">
+                    {data?.source === 'fallback'
+                      ? 'Try again shortly or add a community below.'
+                      : 'No communities found. Try a broader genre or add a community below.'}
+                  </p>
+                )}
+            </section>
+          </>
+        )}
+        {mode === 'tracks' && (
+          <p className="text-muted-foreground text-sm leading-6">
+            Search tracks shared across Reddit, then add your favorites to the queue.
+          </p>
+        )}
+        <section className="flex flex-col gap-2 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-sm">Your mix</h2>
+            <Button
+              aria-label="Share your mix"
+              className="size-11 rounded-full"
+              onClick={() => setShare(true)}
+              size="icon"
+              variant="ghost"
+            >
+              <ShareNetwork className="size-5" />
+            </Button>
           </div>
-        ))}
-      </div>
-
-      {/* Share Modal */}
-      {showShareModal && (
-        // Backdrop is a dismissal affordance, not interactive content
-        // biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
-          onClick={() => setShowShareModal(false)}
-          onKeyDown={event => {
-            if (event.key === 'Escape') {
-              setShowShareModal(false)
-            }
-          }}
-          role="presentation"
-          tabIndex={-1}
-        >
-          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: stops bubbling to backdrop */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: escape handled on backdrop */}
-          <div
-            aria-label="Share your subreddit playlist"
-            aria-modal="true"
-            className="w-full max-w-2xl rounded-lg border border-border bg-card p-6"
-            onClick={e => e.stopPropagation()}
-            role="dialog"
+          {selectedSubreddits.map(name => (
+            <div className="flex items-center gap-2 rounded-xl bg-muted/60 pr-1 pl-3" key={name}>
+              <RedditLogo className="size-4 text-reddit" weight="fill" />
+              <span className="min-w-0 flex-1 truncate text-sm">r/{name}</span>
+              <Button
+                aria-label={`Remove r/${name} from your mix`}
+                className="size-11 shrink-0"
+                disabled={loading}
+                onClick={() => toggle(name)}
+                size="icon"
+                variant="ghost"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          ))}
+          <form
+            className="relative"
+            onSubmit={event => {
+              event.preventDefault()
+              addCommunity()
+            }}
           >
-            <div className="mb-6 flex items-center justify-between">
-              <h3 className="font-bold text-xl">Share Your Subreddit Playlist</h3>
-              <button
-                className="rounded-md p-2 transition-colors hover:bg-secondary"
-                onClick={() => setShowShareModal(false)}
-                type="button"
-              >
-                <svg
-                  aria-hidden="true"
-                  className="h-5 w-5"
-                  fill="none"
-                  focusable="false"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M6 18L18 6M6 6l12 12"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Full URL */}
-            <div className="mb-4">
-              <label className="mb-2 block font-bold text-sm" htmlFor="share-full-url">
-                Full URL
-              </label>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
-                  id="share-full-url"
-                  readOnly
-                  type="text"
-                  value={fullUrl}
-                />
-                <button
-                  className="rounded-lg bg-secondary px-4 py-3 font-medium text-sm transition-colors hover:bg-secondary/80"
-                  onClick={() => copyToClipboard(fullUrl, 'full')}
-                  type="button"
-                >
-                  {copyStatus === 'full' ? '✓ Copied' : 'Copy'}
-                </button>
-              </div>
-            </div>
-
-            {/* Short URL */}
-            <div className="mb-6">
-              <label className="mb-2 block font-bold text-sm" htmlFor="share-short-url">
-                Short URL
-              </label>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
-                  id="share-short-url"
-                  readOnly
-                  type="text"
-                  value={shortUrl}
-                />
-                <button
-                  className="rounded-lg bg-secondary px-4 py-3 font-medium text-sm transition-colors hover:bg-secondary/80"
-                  onClick={() => copyToClipboard(shortUrl, 'short')}
-                  type="button"
-                >
-                  {copyStatus === 'short' ? '✓ Copied' : 'Copy'}
-                </button>
-              </div>
-            </div>
-
-            {/* Social Share Buttons */}
-            <div className="flex items-center gap-3">
-              <a
-                aria-label="Share on Google+"
-                className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-600 transition-colors hover:bg-red-700"
-                href={`https://plus.google.com/share?url=${encodeURIComponent(fullUrl)}`}
-                rel="noopener noreferrer"
-                target="_blank"
-                title="Share on Google+"
-              >
-                <span className="sr-only">Share on Google+</span>
-                <svg
-                  aria-hidden="true"
-                  className="h-6 w-6 text-white"
-                  fill="currentColor"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M7 11v2.4h3.97c-.16 1.029-1.2 3.02-3.97 3.02-2.39 0-4.34-1.979-4.34-4.42 0-2.44 1.95-4.42 4.34-4.42 1.36 0 2.27.58 2.79 1.08l1.9-1.83C10.47 5.69 8.89 5 7 5c-3.87 0-7 3.13-7 7s3.13 7 7 7c4.04 0 6.721-2.84 6.721-6.84 0-.46-.051-.81-.111-1.16H7zm0 0l17 2h-3v3h-2v-3h-3v-2h3V8h2v3h3v2z" />
-                </svg>
-              </a>
-              <a
-                aria-label="Share on Facebook"
-                className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 transition-colors hover:bg-blue-700"
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullUrl)}`}
-                rel="noopener noreferrer"
-                target="_blank"
-                title="Share on Facebook"
-              >
-                <span className="sr-only">Share on Facebook</span>
-                <svg
-                  aria-hidden="true"
-                  className="h-6 w-6 text-white"
-                  fill="currentColor"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              </a>
-              <a
-                aria-label="Share on Twitter"
-                className="flex h-12 w-12 items-center justify-center rounded-lg bg-sky-500 transition-colors hover:bg-sky-600"
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(fullUrl)}&text=${encodeURIComponent('Check out this music playlist!')}`}
-                rel="noopener noreferrer"
-                target="_blank"
-                title="Share on Twitter"
-              >
-                <span className="sr-only">Share on Twitter</span>
-                <svg
-                  aria-hidden="true"
-                  className="h-6 w-6 text-white"
-                  fill="currentColor"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                </svg>
-              </a>
-              <a
-                aria-label="Share on Reddit"
-                className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-600 transition-colors hover:bg-orange-700"
-                href={`https://reddit.com/submit?url=${encodeURIComponent(fullUrl)}&title=${encodeURIComponent('Check out this music playlist!')}`}
-                rel="noopener noreferrer"
-                target="_blank"
-                title="Share on Reddit"
-              >
-                <span className="sr-only">Share on Reddit</span>
-                <svg
-                  aria-hidden="true"
-                  className="h-6 w-6 text-white"
-                  fill="currentColor"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+            <Input
+              aria-label="Add a Reddit community"
+              className="h-11 rounded-xl bg-transparent pr-11 text-base lg:text-sm"
+              onChange={event => setCustom(event.target.value)}
+              placeholder="Add any r/community"
+              value={custom}
+            />
+            <Button
+              aria-label="Add community to your mix"
+              className="absolute top-0 right-0 size-11"
+              disabled={loading || !custom.trim()}
+              size="icon"
+              type="submit"
+              variant="ghost"
+            >
+              <Plus className="size-4" />
+            </Button>
+          </form>
+        </section>
+      </div>
+      <ShareModal isOpen={share} onClose={() => setShare(false)} subreddits={selectedSubreddits} />
+    </aside>
   )
 }

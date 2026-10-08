@@ -1,41 +1,24 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { load as loadYaml } from 'js-yaml'
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
+import { discoverCommunities } from '@/lib/community/discovery'
+import { parseCommunityCategory } from '@/lib/community/types'
 
-/**
- * Get list of all subreddits from YAML file
- * Reads from subreddits.yaml in project root
- */
-export function GET() {
-  try {
-    // Path to your YAML file in project root
-    const yamlPath = join(process.cwd(), 'subreddits.yaml')
-
-    // Read and parse YAML file
-    const fileContents = readFileSync(yamlPath, 'utf8')
-    const subreddits = loadYaml(fileContents) as any[]
-
-    // Return the subreddits
-    return NextResponse.json(subreddits)
-  } catch (error: any) {
-    console.error('Error loading subreddits:', error)
-
-    // If file doesn't exist, return a helpful error
-    if (error.code === 'ENOENT') {
-      return NextResponse.json(
-        {
-          error: 'subreddits.yaml not found',
-          message: 'Please place your subreddits.yaml file in the project root directory',
-        },
-        { status: 404 }
-      )
-    }
-
-    // For other errors, return generic error
+/** Live OAuth discovery; old YAML membership/activity numbers are never served. */
+export async function GET(request: NextRequest) {
+  const query = request.nextUrl.searchParams.get('q') ?? ''
+  const categoryValue = request.nextUrl.searchParams.get('category')
+  const category = parseCommunityCategory(categoryValue)
+  if (query.length > 64 || (categoryValue !== null && category === null)) {
     return NextResponse.json(
-      { error: 'Failed to load subreddits', message: error.message },
-      { status: 500 }
+      { error: 'Use a search up to 64 characters and a supported music category.' },
+      { status: 400 }
     )
   }
+  const result = await discoverCommunities({ category, query })
+  const resultExpiry = result.expiresAt === null ? Number.NaN : Date.parse(result.expiresAt)
+  const cacheSeconds = Number.isFinite(resultExpiry)
+    ? Math.max(0, Math.min(60, Math.floor((resultExpiry - Date.now()) / 1000)))
+    : 60
+  return NextResponse.json(result, {
+    headers: { 'Cache-Control': `public, max-age=${cacheSeconds}, s-maxage=${cacheSeconds}` },
+  })
 }

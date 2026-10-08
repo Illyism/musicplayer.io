@@ -14,6 +14,10 @@ dist
 coverage
 .nyc_output
 
+# Temporary Reddit discovery capture receipts
+data/community-discovery.json
+data/community-discovery-status.json
+
 # Environment variables
 .env
 .env*.local

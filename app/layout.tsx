@@ -1,8 +1,9 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Music for Reddit' },
   authors: [{ name: 'Music Player for Reddit' }],
   description:
     'Discover and stream music from Reddit communities. Browse subreddits, play YouTube, SoundCloud, and Vimeo content in a focused music player.',
@@ -19,6 +20,16 @@ export const metadata: Metadata = {
     description: 'Stream music from Reddit subreddits',
     title: 'Music Player for Reddit',
   },
+}
+
+export const viewport: Viewport = {
+  initialScale: 1,
+  themeColor: [
+    { color: '#111111', media: '(prefers-color-scheme: dark)' },
+    { color: '#fafafa', media: '(prefers-color-scheme: light)' },
+  ],
+  viewportFit: 'cover',
+  width: 'device-width',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

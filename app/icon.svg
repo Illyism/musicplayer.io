@@ -1,0 +1,11 @@
+<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <title>Music Player for Reddit</title>
+  <rect fill="#f5f5f5" height="48" rx="24" width="48" />
+  <g fill="none" stroke="#171717" stroke-width="2">
+    <circle cx="24" cy="24" r="15" />
+    <circle cx="24" cy="24" r="6" />
+    <path d="M13 24a11 11 0 0 1 11-11M24 35a11 11 0 0 0 11-11" stroke-linecap="round" />
+  </g>
+  <circle cx="24" cy="24" fill="#171717" r="2" />
+  <circle cx="40" cy="40" fill="#ff7048" r="6" stroke="#111" stroke-width="2" />
+</svg>

@@ -19,7 +19,7 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
   const widgetRef = useRef<any>(null)
   const loadedSongRef = useRef<{ id: string } | null>(null)
   const loadingRef = useRef(true)
-  const transitioningRef = useRef(true)
+  const transitioningRef = useRef<boolean>(true)
   const generationRef = useRef(0)
   const [isReady, setIsReady] = useState(false)
   const { isPlaying, volume, togglePlay } = usePlayerStore()
@@ -54,8 +54,9 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
         if (isCurrent() && !transitioningRef.current) {
           transitioningRef.current = true
           const state = usePlayerStore.getState()
-          state.next()
-          if (state.currentSong?.id === usePlayerStore.getState().currentSong?.id) {
+          state.onEnded()
+          const nextState = usePlayerStore.getState()
+          if (nextState.isPlaying && state.currentSong?.id === nextState.currentSong?.id) {
             widget.seekTo(0)
             widget.play()
           }

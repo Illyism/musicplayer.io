@@ -1,8 +1,8 @@
 'use client'
 
-import { ArrowUp } from '@phosphor-icons/react'
+import { ArrowClockwise, ArrowUp, ChatCircle, ChatCircleText } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { getErrorMessage } from '@/lib/errors/reddit-error'
 
 interface Comment {
@@ -15,117 +15,169 @@ interface Comment {
 }
 
 interface CommentsProps {
+  onLogin?: (action: string) => void
   permalink: string
 }
 
-// Recursive Comment Component
-function CommentItem({ comment, depth = 0 }: { comment: Comment; depth?: number }) {
-  const [showReplies, setShowReplies] = useState(true)
-  const hasReplies = comment.replies && comment.replies.length > 0
+function CommentItem({
+  comment,
+  depth = 0,
+  onLogin,
+}: {
+  comment: Comment
+  depth?: number
+  onLogin?: (action: string) => void
+}) {
+  const [showReplies, setShowReplies] = useState(false)
+  const hasReplies = comment.replies.length > 0
 
   return (
-    <div className={depth > 0 ? 'ml-4 border-border border-l-2 pl-4' : ''}>
-      <div className="mb-3 rounded-lg border border-border bg-card p-4 transition-colors hover:border-border/80">
-        <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <div className="truncate font-medium text-sm">/u/{comment.author}</div>
-          <div className="whitespace-nowrap text-muted-foreground text-xs">
-            • {comment.created_ago}
-          </div>
-        </div>
-        <p className="wrap-break-word whitespace-pre-wrap text-sm leading-relaxed">
-          {comment.body}
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-1 text-muted-foreground text-xs">
-            <ArrowUp className="h-3 w-3" weight="fill" />
-            <span>{comment.score}</span>
-          </div>
-          {hasReplies && (
-            <button
-              className="text-primary text-xs transition-colors hover:text-primary/80"
-              onClick={() => setShowReplies(!showReplies)}
-              type="button"
-            >
-              {showReplies ? 'Hide' : 'Show'} {comment.replies.length}{' '}
-              {comment.replies.length === 1 ? 'reply' : 'replies'}
-            </button>
-          )}
-        </div>
+    <article className={depth > 0 ? 'ml-2 border-border border-l pl-3' : ''}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <span className="max-w-full truncate font-medium">u/{comment.author}</span>
+        <span className="text-muted-foreground">{comment.created_ago}</span>
       </div>
-
-      {/* Nested Replies */}
-      {hasReplies && showReplies && (
-        <div className="space-y-3">
+      <p className="wrap-break-word mt-2 whitespace-pre-wrap text-foreground/85 text-sm leading-relaxed">
+        {comment.body}
+      </p>
+      <div className="mt-1 flex flex-wrap items-center gap-1 text-muted-foreground">
+        {onLogin ? (
+          <Button
+            aria-label={`Upvote comment by ${comment.author}`}
+            className="h-11 gap-1 rounded-full px-2 text-muted-foreground text-xs"
+            onClick={() => onLogin('vote')}
+            type="button"
+            variant="ghost"
+          >
+            <ArrowUp className="size-3.5" />
+            <span className="tabular-nums">{comment.score}</span>
+          </Button>
+        ) : (
+          <span className="flex h-11 items-center gap-1 px-2 text-xs tabular-nums">
+            <ArrowUp className="size-3.5" />
+            {comment.score}
+          </span>
+        )}
+        {onLogin ? (
+          <Button
+            className="h-11 gap-1 rounded-full px-2 text-muted-foreground text-xs"
+            onClick={() => onLogin('reply')}
+            type="button"
+            variant="ghost"
+          >
+            <ChatCircleText className="size-3.5" />
+            Reply
+          </Button>
+        ) : null}
+        {hasReplies && (
+          <Button
+            aria-expanded={showReplies}
+            className="h-11 rounded-full px-2 text-muted-foreground text-xs"
+            onClick={() => setShowReplies(!showReplies)}
+            type="button"
+            variant="ghost"
+          >
+            {showReplies ? 'Hide' : 'Show'} {comment.replies.length}{' '}
+            {comment.replies.length === 1 ? 'reply' : 'replies'}
+          </Button>
+        )}
+      </div>
+      {hasReplies && showReplies ? (
+        <div className="mt-2 space-y-4">
           {comment.replies.map(reply => (
-            <CommentItem comment={reply} depth={depth + 1} key={reply.id} />
+            <CommentItem comment={reply} depth={depth + 1} key={reply.id} onLogin={onLogin} />
           ))}
         </div>
-      )}
-    </div>
+      ) : null}
+    </article>
   )
 }
 
-export function Comments({ permalink }: CommentsProps) {
+export function Comments({ permalink, onLogin }: CommentsProps) {
   const [comments, setComments] = useState<Comment[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [retry, setRetry] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retry intentionally restarts the request after the user chooses Try again.
   useEffect(() => {
     if (!permalink) {
       setComments([])
+      setLoading(false)
       return
     }
 
+    let cancelled = false
     const loadComments = async () => {
       setLoading(true)
       setError(null)
       try {
         const { getComments } = await import('@/lib/actions/reddit')
         const data = await getComments(permalink)
-        setComments(data.comments || [])
-      } catch (loadError: any) {
-        console.error('Failed to load comments:', loadError)
-        const errorMessage = getErrorMessage(loadError)
-        setError(errorMessage)
-        toast.error(errorMessage, { duration: 10_000 })
+        if (!cancelled) {
+          setComments(data.comments || [])
+        }
+      } catch (loadError: unknown) {
+        if (!cancelled) {
+          setError(getErrorMessage(loadError))
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     loadComments()
-  }, [permalink])
+    return () => {
+      cancelled = true
+    }
+  }, [permalink, retry])
 
   if (loading) {
     return (
-      <div className="py-8 text-center">
-        <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-muted-foreground text-sm">Loading comments...</p>
+      <div aria-busy="true" className="space-y-5 py-4" role="status">
+        <span className="sr-only">Loading comments</span>
+        {[1, 2, 3].map(item => (
+          <div className="space-y-3" key={item}>
+            <div className="h-3 w-24 animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
+            <div className="h-3 w-full animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
+            <div className="h-3 w-3/4 animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
+          </div>
+        ))}
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/50 bg-card px-4 py-8 text-center">
-        <p className="mb-2 font-medium text-destructive text-sm">Failed to load comments</p>
-        <p className="text-muted-foreground text-xs">{error}</p>
+      <div className="flex flex-col items-start gap-3 py-4" role="status">
+        <p className="text-muted-foreground text-sm">{error}</p>
+        <Button
+          className="h-11 rounded-full"
+          onClick={() => setRetry(retry + 1)}
+          variant="secondary"
+        >
+          <ArrowClockwise className="size-4" />
+          Try again
+        </Button>
       </div>
     )
   }
 
   if (comments.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card px-4 py-8 text-center">
-        <p className="text-muted-foreground text-sm">No comments yet. Be the first to comment!</p>
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
+        <ChatCircle className="size-7 text-muted-foreground" />
+        <p className="text-muted-foreground text-sm">The conversation is just getting started.</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       {comments.map(comment => (
-        <CommentItem comment={comment} key={comment.id} />
+        <CommentItem comment={comment} key={comment.id} onLogin={onLogin} />
       ))}
     </div>
   )

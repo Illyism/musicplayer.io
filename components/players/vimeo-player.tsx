@@ -94,12 +94,28 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
           }
         })
 
-        player.on('ended', () => {
+        player.on('ended', async () => {
           if (!mounted || videoIdRef.current === null) {
             return
           }
           const state = usePlayerStore.getState()
-          state.next()
+          state.onEnded()
+          const nextState = usePlayerStore.getState()
+          if (nextState.isPlaying && state.currentSong?.id === nextState.currentSong?.id) {
+            try {
+              await player.setCurrentTime(0)
+              const currentState = usePlayerStore.getState()
+              if (
+                mounted &&
+                currentState.isPlaying &&
+                currentState.currentSong?.id === state.currentSong?.id
+              ) {
+                await player.play()
+              }
+            } catch {
+              // The provider may be unavailable after playback ends.
+            }
+          }
         })
 
         player.on('play', () => {

@@ -1,5 +1,6 @@
 'use client'
 
+import { CircleNotch, RedditLogo } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,47 +40,66 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
   }
 
   const getMessage = () => {
-    if (action === 'vote') {
-      return 'You need to sign in to vote on comments.'
+    if (action === 'vote' || action === 'upvote' || action === 'downvote') {
+      return 'Connect your account to vote with the community.'
     }
     if (action === 'reply') {
-      return 'You need to sign in to reply to comments.'
+      return 'Connect your account to join the conversation.'
     }
     if (action === 'comment') {
-      return 'You need to sign in to comment.'
+      return 'Connect your account to share what you think.'
     }
-    return 'Connect your Reddit account to vote and comment on songs.'
+    return 'Keep the music playing. Connect your account to vote and join the conversation.'
   }
 
   return (
-    <Dialog onOpenChange={onClose} open={isOpen}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Sign in with Reddit</DialogTitle>
-          <DialogDescription className="pt-2 text-base">{getMessage()}</DialogDescription>
+    <Dialog
+      onOpenChange={open => {
+        if (!open) {
+          onClose()
+        }
+      }}
+      open={isOpen}
+    >
+      <DialogContent className="gap-6 sm:max-w-md">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-reddit/10 text-reddit">
+          <RedditLogo aria-hidden className="size-8" weight="fill" />
+        </div>
+        <DialogHeader className="gap-2 text-left">
+          <DialogTitle className="text-balance text-2xl leading-tight">
+            Sign in with Reddit
+          </DialogTitle>
+          <DialogDescription className="text-pretty text-sm leading-relaxed">
+            {getMessage()}
+          </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <p className="text-destructive text-sm" role="alert">
+        {error !== null && (
+          <p className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm" role="alert">
             {error}
           </p>
         )}
-        <DialogFooter className="gap-2 pt-4 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-2 sm:space-x-0">
           <Button
-            className="flex-1 sm:flex-initial"
+            className="h-11 rounded-full px-5 text-sm sm:flex-1"
             onClick={onClose}
             type="button"
-            variant="outline"
+            variant="ghost"
           >
-            Cancel
+            Keep listening
           </Button>
           <Button
-            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 sm:flex-initial"
+            className="h-11 gap-2 rounded-full px-5 text-sm sm:flex-1"
             disabled={isSigningIn}
             onClick={handleLogin}
             type="button"
           >
-            Sign in with Reddit
+            {isSigningIn ? (
+              <CircleNotch aria-hidden className="size-4 animate-spin" />
+            ) : (
+              <RedditLogo aria-hidden className="size-4 text-reddit" weight="fill" />
+            )}
+            {isSigningIn ? 'Connecting…' : 'Continue with Reddit'}
           </Button>
         </DialogFooter>
       </DialogContent>

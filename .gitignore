@@ -7,6 +7,10 @@ node_modules
 coverage
 *.log
 
+# Temporary Reddit discovery capture receipts; never commit sampled metadata.
+data/community-discovery.json
+data/community-discovery-status.json
+
 # Next.js
 .next/
 out/

@@ -1,8 +1,11 @@
 'use client'
 
 import {
+  MusicNote,
   Pause,
+  PictureInPicture,
   Play,
+  Queue,
   SkipBack,
   SkipForward,
   SpeakerHigh,
@@ -10,9 +13,105 @@ import {
   SpeakerX,
 } from '@phosphor-icons/react'
 import Image from 'next/image'
-import { useRef, useState } from 'react'
-import { usePlayerStore } from '@/lib/store/player-store'
+import { useRef } from 'react'
+import { SaveTrackButton } from '@/components/save-track-button'
+import { Button } from '@/components/ui/button'
+import { usePictureInPicture } from '@/lib/hooks/use-picture-in-picture'
+import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { formatTime, isRedditHostedImage } from '@/lib/utils/song-utils'
+import { trackDisplay } from '@/lib/utils/track-display'
+
+function seekMedia(song: Song, time: number) {
+  try {
+    if (song.type === 'youtube') {
+      window.__youtubePlayer?.seekTo(time, true)
+    } else if (song.type === 'vimeo') {
+      window.__vimeoPlayer?.setCurrentTime(time)
+    } else if (song.type === 'soundcloud') {
+      window.__soundcloudWidget?.seekTo(time * 1000)
+    } else if (song.type === 'mp3') {
+      const audio = window.__audioPlayer ?? document.querySelector('audio')
+      if (audio) {
+        audio.currentTime = time
+      }
+    }
+  } catch {
+    // A provider may still be loading when the user seeks.
+  }
+}
+
+export function SeekControl({ className = '' }: { className?: string }) {
+  const currentTime = usePlayerStore(state => state.currentTime)
+  const duration = usePlayerStore(state => state.duration)
+  const currentSong = usePlayerStore(state => state.currentSong)
+  const seekTo = usePlayerStore(state => state.seekTo)
+  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0
+
+  return (
+    <div className={`group relative flex h-6 items-center ${className}`}>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-foreground" style={{ width: `${progress}%` }} />
+      </div>
+      <input
+        aria-label="Seek"
+        aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
+        disabled={!currentSong || duration === 0}
+        max={duration || 1}
+        min={0}
+        onChange={event => {
+          if (!currentSong) {
+            return
+          }
+          const time = Number(event.target.value)
+          seekTo(time)
+          seekMedia(currentSong, time)
+        }}
+        step={1}
+        type="range"
+        value={Math.min(currentTime, duration)}
+      />
+      <div
+        className="pointer-events-none absolute size-2.5 rounded-full bg-foreground opacity-0 ring-4 ring-background transition-opacity duration-100 group-focus-within:opacity-100 group-focus-within:ring-ring/30 group-hover:opacity-100"
+        style={{ left: `calc(${progress}% - 5px)` }}
+      />
+    </div>
+  )
+}
+
+function TrackArtwork({ song }: { song: Song | null }) {
+  return song?.thumbnail ? (
+    <Image
+      alt=""
+      className="size-11 shrink-0 rounded-xl object-cover outline outline-black/10 dark:outline-white/10"
+      height={44}
+      src={song.thumbnail}
+      unoptimized={isRedditHostedImage(song.thumbnail)}
+      width={44}
+    />
+  ) : (
+    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+      <MusicNote className="size-5" />
+    </div>
+  )
+}
+
+function TrackSummary({ song }: { song: Song | null }) {
+  const display = song ? trackDisplay(song) : null
+  return (
+    <>
+      <TrackArtwork song={song} />
+      <span className="min-w-0">
+        <span className="block truncate font-medium text-sm">
+          {display?.title || 'Your next favorite is waiting'}
+        </span>
+        <span className="mt-0.5 block truncate text-muted-foreground text-xs">
+          {song ? (display?.artist ?? `r/${song.subreddit}`) : 'Choose a track to start listening'}
+        </span>
+      </span>
+    </>
+  )
+}
 
 export function PlayerControls() {
   const {
@@ -24,69 +123,12 @@ export function PlayerControls() {
     togglePlay,
     next,
     previous,
-    seekTo,
     setVolume,
+    setMobileView,
+    setQueueOpen,
   } = usePlayerStore()
-
-  const [showVolume, setShowVolume] = useState(false)
-  const progressRef = useRef<HTMLDivElement>(null)
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressRef.current || duration === 0) {
-      return
-    }
-
-    const rect = progressRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
-    const newTime = (percentage / 100) * duration
-
-    seekTo(newTime)
-
-    // Seek in actual players
-    if (currentSong) {
-      // YouTube
-      if (currentSong.type === 'youtube' && (window as any).YT && (window as any).__youtubePlayer) {
-        try {
-          ;(window as any).__youtubePlayer.seekTo(newTime, true)
-        } catch {
-          // ignore
-        }
-      }
-
-      // Vimeo
-      if (currentSong.type === 'vimeo' && (window as any).__vimeoPlayer) {
-        try {
-          ;(window as any).__vimeoPlayer.setCurrentTime(newTime)
-        } catch {
-          // ignore
-        }
-      }
-
-      // MP3
-      if (currentSong.type === 'mp3') {
-        const audio = document.querySelector('audio') as HTMLAudioElement
-        if (audio) {
-          audio.currentTime = newTime
-        }
-      }
-
-      // SoundCloud
-      if (currentSong.type === 'soundcloud' && (window as any).__soundcloudWidget) {
-        try {
-          const widget = (window as any).__soundcloudWidget
-          widget.getDuration((dur: number) => {
-            const position = (newTime / dur) * 1000
-            widget.seekTo(position)
-          })
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const pip = usePictureInPicture()
+  const previousVolumeRef = useRef(volume > 0 ? volume : 100)
 
   let VolumeIcon = SpeakerHigh
   if (volume === 0) {
@@ -95,191 +137,177 @@ export function PlayerControls() {
     VolumeIcon = SpeakerLow
   }
 
-  const handleSeekKeyboard = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!currentSong || duration === 0) {
-      return
-    }
-    const step = duration / 20
-    if (event.key === 'ArrowRight') {
-      event.preventDefault()
-      seekTo(Math.min(duration, currentTime + step))
-    } else if (event.key === 'ArrowLeft') {
-      event.preventDefault()
-      seekTo(Math.max(0, currentTime - step))
-    }
-  }
-
   return (
-    <div className="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-card">
-      {/* Progress Bar */}
-      <div
-        aria-label="Seek"
-        aria-valuemax={100}
-        aria-valuemin={0}
-        aria-valuenow={Math.round(progress)}
-        aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-        className="group relative h-3 cursor-pointer"
-        onClick={handleSeek}
-        onKeyDown={handleSeekKeyboard}
-        ref={progressRef}
-        role="slider"
-        tabIndex={0}
-      >
-        <div className="absolute top-1/2 right-0 left-0 h-1 -translate-y-1/2 bg-secondary" />
-        <div
-          className="absolute top-1/2 left-0 h-1 -translate-y-1/2 bg-primary transition-all"
-          style={{ width: `${progress}%` }}
-        />
-        <div
-          className="absolute top-1/2 h-3 w-3 rounded-full bg-primary opacity-0 transition-opacity group-hover:opacity-100"
-          style={{ left: `${progress}%`, transform: 'translate(-50%, -50%)' }}
-        />
-      </div>
+    <section
+      aria-label="Playback controls"
+      className="relative z-50 mx-2 flex h-16 shrink-0 items-center overflow-hidden rounded-xl bg-muted px-2 lg:mx-0 lg:grid lg:h-24 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1.2fr)_minmax(0,1fr)] lg:gap-6 lg:rounded-none lg:border-t lg:bg-sidebar lg:px-6 lg:py-3"
+    >
+      <SeekControl className="absolute inset-x-2 -bottom-2 lg:hidden" />
 
-      {/* Controls */}
-      <div className="flex items-center gap-4 px-3 py-2 md:px-4">
-        {/* Now Playing */}
-        <div className="hidden w-[320px] min-w-0 items-center gap-3 md:flex">
-          {currentSong?.thumbnail ? (
-            <Image
-              alt=""
-              className="h-10 w-10 shrink-0 rounded object-cover"
-              height={40}
-              src={currentSong.thumbnail}
-              unoptimized={isRedditHostedImage(currentSong.thumbnail)}
-              width={40}
-            />
-          ) : (
-            <div className="h-10 w-10 shrink-0 rounded bg-secondary" />
-          )}
-          <div className="min-w-0">
-            <p className="truncate font-semibold text-xs">
-              {currentSong?.title || 'No song selected'}
-            </p>
-            <p className="truncate text-muted-foreground text-xs">
-              {currentSong
-                ? `u/${currentSong.author} • r/${currentSong.subreddit}`
-                : 'Pick a track'}
-            </p>
-          </div>
+      <div className="flex w-full min-w-0 items-center gap-2 lg:gap-3">
+        <button
+          aria-label={currentSong ? `Show details for ${currentSong.title}` : 'Now playing'}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          disabled={!currentSong}
+          onClick={() => setMobileView('player')}
+          type="button"
+        >
+          <TrackSummary song={currentSong} />
+        </button>
+        <div className="hidden min-w-0 items-center gap-3 lg:flex">
+          <TrackSummary song={currentSong} />
+          {currentSong !== null && <SaveTrackButton song={currentSong} />}
         </div>
 
-        {/* Playback Controls */}
-        <div className="flex flex-1 items-center gap-2 md:mx-auto md:flex-none">
-          <button
-            className="rounded-full p-2 transition-colors hover:bg-secondary disabled:opacity-40"
-            disabled={!currentSong}
-            onClick={previous}
-            type="button"
+        <div className="flex shrink-0 items-center lg:hidden">
+          <Button
+            aria-label="Open queue"
+            className="size-11 rounded-full"
+            onClick={() => setQueueOpen(true)}
+            size="icon"
+            variant="ghost"
           >
-            <SkipBack className="h-5 w-5" weight="fill" />
-          </button>
-          <button
-            className="rounded-full bg-primary p-3 text-primary-foreground shadow-lg shadow-primary/20 transition-colors hover:bg-primary/90 disabled:opacity-50"
+            <Queue className="size-5" />
+          </Button>
+          <Button
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            className="size-11 rounded-full bg-transparent text-foreground hover:bg-accent"
             disabled={!currentSong}
             onClick={togglePlay}
+            size="icon"
             type="button"
           >
             {isPlaying ? (
-              <Pause className="h-5 w-5" weight="fill" />
+              <Pause className="size-5" weight="fill" />
             ) : (
-              <Play className="ml-0.5 h-5 w-5" weight="fill" />
+              <Play className="ml-0.5 size-5" weight="fill" />
             )}
-          </button>
-          <button
-            className="rounded-full p-2 transition-colors hover:bg-secondary disabled:opacity-40"
+          </Button>
+          <Button
+            aria-label="Next track"
+            className="size-11 rounded-full"
             disabled={!currentSong}
             onClick={next}
+            size="icon"
             type="button"
+            variant="ghost"
           >
-            <SkipForward className="h-5 w-5" weight="fill" />
-          </button>
-        </div>
-
-        {/* Volume */}
-        <div className="relative hidden w-[320px] items-center justify-end gap-3 md:flex">
-          <div className="flex items-center gap-1.5 font-mono text-muted-foreground text-xs tabular-nums">
-            <span>{formatTime(currentTime)}</span>
-            <span>/</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-          <button
-            aria-expanded={showVolume}
-            aria-label="Volume control"
-            className="rounded-full p-2 transition-colors hover:bg-secondary"
-            onClick={() => setShowVolume(!showVolume)}
-            type="button"
-          >
-            <VolumeIcon className="h-5 w-5" weight="fill" />
-          </button>
-
-          {showVolume && (
-            <>
-              {/* Dismissal backdrop, not interactive content */}
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay click-to-close */}
-              {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: overlay click-to-close */}
-              {/* biome-ignore lint/a11y/useKeyWithClickEvents: escape closes via popover focus */}
-              <div className="fixed inset-0 z-40" onClick={() => setShowVolume(false)} />
-
-              <div className="absolute bottom-full left-1/2 z-50 mb-3 -translate-x-1/2">
-                <div className="w-20 animate-volume-popover rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-sm">
-                  <div className="mb-3 text-center">
-                    <p className="font-mono font-semibold text-xs tabular-nums">{volume}%</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                      Volume
-                    </p>
-                  </div>
-
-                  <div className="flex justify-center py-1">
-                    <div className="relative flex h-32 w-10 items-center justify-center">
-                      <div className="relative h-full w-2 overflow-hidden rounded-full bg-secondary">
-                        <div
-                          className="absolute right-0 bottom-0 left-0 rounded-full bg-primary transition-[height] duration-150 ease-out motion-reduce:transition-none"
-                          style={{ height: `${volume}%` }}
-                        />
-                      </div>
-
-                      <div
-                        className="pointer-events-none absolute left-1/2 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-card bg-primary shadow-lg"
-                        style={{ bottom: `calc(${volume}% - ${volume / 100}rem)` }}
-                      />
-
-                      <input
-                        aria-label="Volume"
-                        className="absolute top-1/2 left-1/2 h-10 w-32 -translate-x-1/2 -translate-y-1/2 -rotate-90 cursor-pointer opacity-0"
-                        max="100"
-                        min="0"
-                        onChange={e => setVolume(Number(e.target.value))}
-                        type="range"
-                        value={volume}
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    aria-label={volume === 0 ? 'Unmute' : 'Mute'}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-secondary px-2 py-1.5 font-medium text-xs transition-colors hover:bg-secondary/80"
-                    onClick={() => setVolume(volume === 0 ? 80 : 0)}
-                    type="button"
-                  >
-                    {volume === 0 ? (
-                      <SpeakerX className="h-3.5 w-3.5" weight="fill" />
-                    ) : (
-                      <SpeakerHigh className="h-3.5 w-3.5" weight="fill" />
-                    )}
-                    {volume === 0 ? 'Unmute' : 'Mute'}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Mobile Time */}
-        <div className="font-mono text-muted-foreground text-xs tabular-nums md:hidden">
-          {formatTime(currentTime)}
+            <SkipForward className="size-5" weight="fill" />
+          </Button>
         </div>
       </div>
-    </div>
+
+      <div className="hidden min-w-0 flex-col items-center gap-1 lg:flex">
+        <div className="flex items-center gap-4">
+          <Button
+            aria-label="Previous track"
+            className="size-11 rounded-full text-muted-foreground hover:text-foreground"
+            disabled={!currentSong}
+            onClick={previous}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <SkipBack className="size-5" weight="fill" />
+          </Button>
+          <Button
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            className="size-11 rounded-full"
+            disabled={!currentSong}
+            onClick={togglePlay}
+            size="icon"
+            type="button"
+          >
+            {isPlaying ? (
+              <Pause className="size-5" weight="fill" />
+            ) : (
+              <Play className="ml-0.5 size-5" weight="fill" />
+            )}
+          </Button>
+          <Button
+            aria-label="Next track"
+            className="size-11 rounded-full text-muted-foreground hover:text-foreground"
+            disabled={!currentSong}
+            onClick={next}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <SkipForward className="size-5" weight="fill" />
+          </Button>
+        </div>
+        <div className="flex w-full items-center gap-3 text-[11px] text-muted-foreground tabular-nums">
+          <span className="w-9 text-right">{formatTime(currentTime)}</span>
+          <SeekControl className="flex-1" />
+          <span className="w-9">{formatTime(duration)}</span>
+        </div>
+      </div>
+
+      <div className="hidden items-center justify-end gap-2 lg:flex">
+        <Button
+          aria-label="Open queue"
+          className="size-11 rounded-full"
+          onClick={() => setQueueOpen(true)}
+          size="icon"
+          variant="ghost"
+        >
+          <Queue className="size-5" />
+        </Button>
+        <Button
+          aria-label={pip.isActive ? 'Close picture-in-picture' : 'Open picture-in-picture'}
+          aria-pressed={pip.isActive}
+          className="size-11 rounded-full"
+          disabled={!currentSong || pip.isOpening}
+          onClick={pip.toggle}
+          size="icon"
+          variant="ghost"
+        >
+          <PictureInPicture className="size-5" />
+        </Button>
+        <Button
+          aria-label={volume === 0 ? 'Unmute' : 'Mute'}
+          aria-pressed={volume === 0}
+          className="size-11 rounded-full text-muted-foreground"
+          onClick={() => {
+            if (volume === 0) {
+              setVolume(previousVolumeRef.current)
+            } else {
+              previousVolumeRef.current = volume
+              setVolume(0)
+            }
+          }}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <VolumeIcon className="size-5" />
+        </Button>
+        <div className="group relative flex h-11 w-24 items-center">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-muted-foreground"
+              style={{ width: `${volume}%` }}
+            />
+          </div>
+          <input
+            aria-label="Volume"
+            aria-valuetext={`${volume}%`}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            max={100}
+            min={0}
+            onChange={event => setVolume(Number(event.target.value))}
+            type="range"
+            value={volume}
+          />
+          <span
+            className="pointer-events-none absolute size-2.5 rounded-full bg-foreground opacity-0 ring-4 ring-ring/30 group-focus-within:opacity-100"
+            style={{ left: `calc(${volume}% - 5px)` }}
+          />
+        </div>
+        <span className="w-8 text-right text-[11px] text-muted-foreground tabular-nums">
+          {volume}%
+        </span>
+      </div>
+    </section>
   )
 }

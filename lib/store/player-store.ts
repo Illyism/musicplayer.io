@@ -38,12 +38,19 @@ export interface PlayerState {
   // Playback
   isPlaying: boolean
   isTheatreMode: boolean
+  listingCursorId: string | null
   loading: boolean
 
   // UI
-  mobileView: 'browse' | 'playlist' | 'player'
+  mobileView: 'browse' | 'playlist' | 'player' | 'library'
+  naturalEndRevision: number
   playbackError: string | null
+  playbackSource: 'listing' | 'queue' | null
+  queueOpen: boolean
+  queueSongs: Song[]
+  repeatMode: 'off' | 'all' | 'one'
   searchQuery: string | null
+  seekRevision: number
   selectedSubreddits: string[]
   // Playlist
   songs: Song[]
@@ -54,13 +61,20 @@ export interface PlayerState {
 
 export interface PlayerActions {
   addSongs: (songs: Song[]) => void
+  clearQueue: () => void
+  cycleRepeatMode: () => void
+  enqueueSong: (song: Song, placement: 'next' | 'last') => void
   failCurrentSong: (songId: string, message: string) => void
+  moveQueuedSong: (id: string, direction: 'up' | 'down') => void
   next: () => void
+  onEnded: () => void
   pause: () => void
 
   // Playback actions
   play: () => void
+  playQueuedSong: (id: string) => void
   previous: () => void
+  removeQueuedSong: (id: string) => void
   seekTo: (time: number) => void
   setAfter: (after: string | null) => void
   setCurrentSong: (index: number) => void
@@ -70,6 +84,7 @@ export interface PlayerActions {
 
   // UI actions
   setMobileView: (view: PlayerState['mobileView']) => void
+  setQueueOpen: (open: boolean) => void
   setSearchQuery: (query: string | null) => void
   setSelectedSubreddits: (subreddits: string[]) => void
   // Playlist actions
@@ -123,22 +138,58 @@ function saveToStorage<T>(key: string, value: T): void {
 // STORE
 // ============================================================================
 
+function uniqueSongsById(songs: Song[]): Song[] {
+  const seen = new Set<string>()
+  return songs.filter(song => {
+    if (seen.has(song.id)) {
+      return false
+    }
+    seen.add(song.id)
+    return true
+  })
+}
+
+function listingCursorIndex(state: PlayerState): number {
+  const cursorId =
+    state.listingCursorId ?? (state.playbackSource === 'queue' ? null : state.currentSong?.id)
+  return cursorId ? state.songs.findIndex(song => song.id === cursorId) : -1
+}
+
+function availableSong(song: Song, failedSongIds: string[]): boolean {
+  return song.playable && !failedSongIds.includes(song.id)
+}
+
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
   addSongs: newSongs => {
-    set(state => {
-      // Filter out duplicates - only add songs that don't already exist
-      const existingIds = new Set(state.songs.map(song => song.id))
-      const uniqueNewSongs = newSongs.filter(song => !existingIds.has(song.id))
-      return {
-        songs: [...state.songs, ...uniqueNewSongs],
-      }
-    })
+    set(state => ({ songs: uniqueSongsById([...state.songs, ...newSongs]) }))
   },
   after: null,
+
+  clearQueue: () => {
+    set({ queueSongs: [] })
+  },
   currentIndex: -1,
   currentSong: null,
   currentTime: 0,
+
+  cycleRepeatMode: () => {
+    set(state => ({
+      repeatMode: ({ all: 'one', off: 'all', one: 'off' } as const)[state.repeatMode],
+    }))
+  },
   duration: 0,
+
+  enqueueSong: (song, placement) => {
+    if (!song.playable) {
+      return
+    }
+    set(state => {
+      const remaining = state.queueSongs.filter(queued => queued.id !== song.id)
+      return {
+        queueSongs: placement === 'next' ? [song, ...remaining] : [...remaining, song],
+      }
+    })
+  },
 
   failCurrentSong: (songId, message) => {
     const state = get()
@@ -155,35 +206,68 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   isPlaying: false,
   isTheatreMode: false,
+  listingCursorId: null,
   loading: false,
 
   mobileView: 'playlist',
 
-  next: () => {
-    const { songs, currentIndex, failedSongIds } = get()
-
-    // Find next playable song
-    let nextIndex = currentIndex + 1
-    while (nextIndex < songs.length) {
-      const song = songs[nextIndex]
-      if (song?.playable && !failedSongIds.includes(song.id)) {
-        get().setCurrentSong(nextIndex)
-        return
+  moveQueuedSong: (id, direction) => {
+    set(state => {
+      const index = state.queueSongs.findIndex(song => song.id === id)
+      const destination = index + (direction === 'up' ? -1 : 1)
+      if (index < 0 || destination < 0 || destination >= state.queueSongs.length) {
+        return state
       }
-      nextIndex += 1
+      const reordered = [...state.queueSongs]
+      ;[reordered[index], reordered[destination]] = [reordered[destination], reordered[index]]
+      return { queueSongs: reordered }
+    })
+  },
+  naturalEndRevision: 0,
+
+  next: () => {
+    const state = get()
+    const queuedSong = state.queueSongs.find(song => availableSong(song, state.failedSongIds))
+    if (queuedSong) {
+      const queuedIndex = state.queueSongs.findIndex(song => song.id === queuedSong.id)
+      set({ queueSongs: state.queueSongs.slice(queuedIndex) })
+      get().playQueuedSong(queuedSong.id)
+      return
+    }
+    if (state.queueSongs.length) {
+      set({ queueSongs: [] })
     }
 
-    // If no next song found, loop back to first playable song
-    nextIndex = 0
-    while (nextIndex < songs.length) {
-      const song = songs[nextIndex]
-      if (song?.playable && !failedSongIds.includes(song.id)) {
-        get().setCurrentSong(nextIndex)
+    const cursorIndex = listingCursorIndex(state)
+    const nextIndex = state.songs.findIndex(
+      (song, index) => index > cursorIndex && availableSong(song, state.failedSongIds)
+    )
+    if (nextIndex >= 0) {
+      get().setCurrentSong(nextIndex)
+      return
+    }
+    if (state.repeatMode === 'all') {
+      const firstIndex = state.songs.findIndex(song => availableSong(song, state.failedSongIds))
+      if (firstIndex >= 0) {
+        get().setCurrentSong(firstIndex)
         return
       }
-      nextIndex += 1
     }
     set({ isPlaying: false })
+  },
+
+  onEnded: () => {
+    const state = get()
+    set({ naturalEndRevision: state.naturalEndRevision + 1 })
+    if (
+      state.repeatMode === 'one' &&
+      state.currentSong &&
+      availableSong(state.currentSong, state.failedSongIds)
+    ) {
+      set({ currentTime: 0, isPlaying: true, playbackError: null })
+      return
+    }
+    get().next()
   },
 
   pause: () => {
@@ -197,25 +281,62 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({ isPlaying: true, playbackError: null })
   },
   playbackError: null,
+  playbackSource: null,
+
+  playQueuedSong: id => {
+    const state = get()
+    const song = state.queueSongs.find(queued => queued.id === id)
+    if (!song?.playable) {
+      return
+    }
+    set({
+      currentIndex: -1,
+      currentSong: song,
+      currentTime: 0,
+      duration: 0,
+      failedSongIds: state.failedSongIds.filter(failedId => failedId !== id),
+      isPlaying: true,
+      listingCursorId: state.songs[listingCursorIndex(state)]?.id ?? null,
+      playbackError: null,
+      playbackSource: 'queue',
+      queueSongs: state.queueSongs.filter(queued => queued.id !== id),
+    })
+  },
 
   previous: () => {
-    const { songs, currentIndex } = get()
-
-    // Find previous playable song
-    let prevIndex = currentIndex - 1
+    const state = get()
+    const cursorIndex = listingCursorIndex(state)
+    let prevIndex = state.playbackSource === 'queue' ? cursorIndex : cursorIndex - 1
     while (prevIndex >= 0) {
-      const song = songs[prevIndex]
-      if (song?.playable) {
+      const song = state.songs[prevIndex]
+      if (song && availableSong(song, state.failedSongIds)) {
         get().setCurrentSong(prevIndex)
         return
       }
       prevIndex -= 1
     }
+    if (state.repeatMode === 'all') {
+      const lastIndex = state.songs.findLastIndex(song => availableSong(song, state.failedSongIds))
+      if (lastIndex >= 0) {
+        get().setCurrentSong(lastIndex)
+      }
+    }
   },
+  queueOpen: false,
+  queueSongs: [],
+
+  removeQueuedSong: id => {
+    set(state => ({ queueSongs: state.queueSongs.filter(song => song.id !== id) }))
+  },
+  repeatMode: 'off',
   searchQuery: null,
+  seekRevision: 0,
 
   seekTo: time => {
-    set({ currentTime: time })
+    if (!Number.isFinite(time)) {
+      return
+    }
+    set(state => ({ currentTime: Math.max(0, time), seekRevision: state.seekRevision + 1 }))
   },
   selectedSubreddits: ['listentothis'], // Static default
 
@@ -225,6 +346,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   setCurrentSong: index => {
     const { songs } = get()
+    if (index < 0 || index >= songs.length) {
+      return
+    }
     const song = songs.at(index)
 
     if (!song) {
@@ -238,7 +362,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       duration: 0,
       failedSongIds: get().failedSongIds.filter(id => id !== song.id),
       isPlaying: song.playable,
+      listingCursorId: song.id,
       playbackError: null,
+      playbackSource: 'listing',
     })
   },
 
@@ -261,6 +387,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   // ========================================
   setMobileView: view => {
     set({ mobileView: view })
+  },
+
+  setQueueOpen: queueOpen => {
+    set({ queueOpen })
   },
 
   setSearchQuery: query => {
@@ -286,48 +416,33 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   // ========================================
   setSongs: songs => {
     const state = get()
-    // Deduplicate songs by ID (keep first occurrence)
-    const seenIds = new Set<string>()
-    const uniqueSongs = songs.filter(song => {
-      if (seenIds.has(song.id)) {
-        return false
-      }
-      seenIds.add(song.id)
-      return true
-    })
-
-    // Preserve current song if it still exists in the new list
-    let newCurrentIndex = -1
-    let newCurrentSong: Song | null = null
-    let newCurrentTime = 0
-    let newDuration = 0
-
+    const uniqueSongs = uniqueSongsById(songs)
     if (state.currentSong) {
-      const foundIndex = uniqueSongs.findIndex(song => song.id === state.currentSong?.id)
-      if (foundIndex >= 0) {
-        newCurrentIndex = foundIndex
-        newCurrentSong = state.currentSong
-        // Preserve playback state (currentTime, duration, isPlaying)
-        newCurrentTime = state.currentTime
-        newDuration = state.duration
-      }
+      const currentIndex =
+        state.playbackSource === 'queue'
+          ? -1
+          : uniqueSongs.findIndex(song => song.id === state.currentSong?.id)
+      const cursorId =
+        state.listingCursorId ?? (state.playbackSource === 'queue' ? null : state.currentSong.id)
+      set({
+        currentIndex,
+        listingCursorId: uniqueSongs.some(song => song.id === cursorId) ? cursorId : null,
+        songs: uniqueSongs,
+      })
+      return
     }
 
-    // Start the first playable track when a new listing has no retained selection.
-    if (!newCurrentSong) {
-      newCurrentIndex = uniqueSongs.findIndex(song => song.playable)
-      newCurrentSong = uniqueSongs[newCurrentIndex] ?? null
-    }
-
+    const firstIndex = uniqueSongs.findIndex(song => availableSong(song, state.failedSongIds))
+    const firstSong = uniqueSongs[firstIndex] ?? null
     set({
-      currentIndex: newCurrentIndex,
-      currentSong: newCurrentSong,
-      currentTime: newCurrentTime,
-      duration: newDuration,
-      failedSongIds: state.failedSongIds.filter(id => uniqueSongs.some(song => song.id === id)),
-      isPlaying:
-        !!newCurrentSong && (newCurrentSong.id === state.currentSong?.id ? state.isPlaying : true),
+      currentIndex: firstIndex,
+      currentSong: firstSong,
+      currentTime: 0,
+      duration: 0,
+      isPlaying: !!firstSong,
+      listingCursorId: firstSong?.id ?? null,
       playbackError: null,
+      playbackSource: firstSong ? 'listing' : null,
       songs: uniqueSongs,
     })
   },
@@ -353,14 +468,15 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
 
   shufflePlaylist: () => {
-    const { songs, currentSong } = get()
+    const state = get()
+    const { songs, currentSong } = state
     const shuffled = [...songs].sort(() => Math.random() - 0.5)
 
     // If there's a current song, find its new index in shuffled array
     if (currentSong) {
       const newIndex = shuffled.findIndex(song => song.id === currentSong.id)
       set({
-        currentIndex: newIndex >= 0 ? newIndex : -1,
+        currentIndex: state.playbackSource === 'queue' ? -1 : newIndex,
         songs: shuffled,
       })
     } else {

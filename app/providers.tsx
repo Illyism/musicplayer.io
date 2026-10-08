@@ -9,8 +9,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const plausibleHost = process.env.NEXT_PUBLIC_PLAUSIBLE_HOST || 'https://plausible.io'
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      {plausibleDomain && (
+    <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange enableSystem>
+      {Boolean(plausibleDomain) && (
         <Script
           data-domain={plausibleDomain}
           defer
@@ -18,7 +18,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           strategy="afterInteractive"
         />
       )}
-      <Toaster />
+      <Toaster
+        mobileOffset={{ bottom: 'var(--app-toast-offset)' }}
+        offset={{ bottom: 'var(--app-toast-offset)' }}
+      />
       {children}
     </ThemeProvider>
   )

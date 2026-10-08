@@ -5,7 +5,7 @@ import type * as React from 'react'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-md border border-transparent bg-clip-padding font-medium text-xs/relaxed outline-none transition-all focus-visible:border-ring focus-visible:ring-[2px] focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-[2px] aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "group/button inline-flex shrink-0 cursor-pointer select-none items-center justify-center whitespace-nowrap rounded-full border border-transparent bg-clip-padding font-medium text-sm outline-none transition-[background-color,color,box-shadow,scale] duration-150 ease-[cubic-bezier(0.2,0,0,1)] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-40 aria-invalid:border-destructive [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     defaultVariants: {
       size: 'default',
@@ -13,15 +13,14 @@ const buttonVariants = cva(
     },
     variants: {
       size: {
-        default:
-          "h-7 gap-1 px-2 text-xs/relaxed has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        icon: "size-7 [&_svg:not([class*='size-'])]:size-3.5",
-        'icon-lg': "size-8 [&_svg:not([class*='size-'])]:size-4",
-        'icon-sm': "size-6 [&_svg:not([class*='size-'])]:size-3",
-        'icon-xs': "size-5 rounded-sm [&_svg:not([class*='size-'])]:size-2.5",
-        lg: "h-8 gap-1 px-2.5 text-xs/relaxed has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-4",
-        sm: "h-6 gap-1 px-2 text-xs/relaxed has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        xs: "h-5 gap-1 rounded-sm px-2 text-[0.625rem] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-2.5",
+        default: 'h-11 gap-2 px-5',
+        icon: 'size-11',
+        'icon-lg': 'size-12 [&_svg]:size-5',
+        'icon-sm': 'size-9 max-sm:size-11',
+        'icon-xs': 'size-8 max-sm:size-11',
+        lg: 'h-12 gap-2 px-6',
+        sm: 'h-9 gap-1.5 px-4 max-sm:h-11',
+        xs: 'h-8 gap-1.5 px-3 text-xs max-sm:h-11',
       },
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/80',
@@ -31,7 +30,7 @@ const buttonVariants = cva(
           'hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50',
         link: 'text-primary underline-offset-4 hover:underline',
         outline:
-          'border-border hover:bg-input/50 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-input/20 dark:bg-input/30',
+          'border-border hover:bg-input/50 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-transparent',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
       },
@@ -44,16 +43,21 @@ function Button({
   variant = 'default',
   size = 'default',
   asChild = false,
+  static: isStatic = false,
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    static?: boolean
   }) {
   const Comp = asChild ? Slot.Root : 'button'
 
   return (
     <Comp
-      className={cn(buttonVariants({ className, size, variant }))}
+      className={cn(
+        buttonVariants({ className, size, variant }),
+        !isStatic && 'active:not-disabled:not-focus-visible:scale-[0.96]'
+      )}
       data-size={size}
       data-slot="button"
       data-variant={variant}

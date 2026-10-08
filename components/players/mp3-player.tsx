@@ -6,6 +6,12 @@ import { useEffect, useRef } from 'react'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
 
+declare global {
+  interface Window {
+    __audioPlayer?: HTMLAudioElement
+  }
+}
+
 interface MP3PlayerProps {
   song: Song
 }
@@ -20,6 +26,7 @@ export function MP3Player({ song }: MP3PlayerProps) {
     if (!audio) {
       return
     }
+    window.__audioPlayer = audio
 
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime)
@@ -31,8 +38,18 @@ export function MP3Player({ song }: MP3PlayerProps) {
       }
     }
 
-    const handleEnded = () => {
-      usePlayerStore.getState().next()
+    const handleEnded = async () => {
+      const state = usePlayerStore.getState()
+      state.onEnded()
+      const nextState = usePlayerStore.getState()
+      if (nextState.isPlaying && state.currentSong?.id === nextState.currentSong?.id) {
+        audio.currentTime = 0
+        try {
+          await audio.play()
+        } catch {
+          usePlayerStore.getState().pause()
+        }
+      }
     }
 
     const handlePlay = () => {
@@ -56,6 +73,9 @@ export function MP3Player({ song }: MP3PlayerProps) {
     audio.addEventListener('pause', handlePause)
 
     return () => {
+      if (window.__audioPlayer === audio) {
+        window.__audioPlayer = undefined
+      }
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('durationchange', handleDurationChange)
       audio.removeEventListener('ended', handleEnded)
@@ -72,6 +92,9 @@ export function MP3Player({ song }: MP3PlayerProps) {
 
     // Restore saved currentTime when audio is loaded
     const state = usePlayerStore.getState()
+    if (state.currentSong?.id !== song.id) {
+      return
+    }
     if (
       state.currentTime > 0 &&
       (!state.duration || state.currentTime < state.duration) &&
@@ -83,16 +106,19 @@ export function MP3Player({ song }: MP3PlayerProps) {
     if (isPlaying) {
       const playPromise = audio.play()
       if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          // Autoplay was prevented - this is expected in some browsers
-          // User will need to interact to start playback
-          console.debug('Autoplay prevented:', error)
+        playPromise.catch(() => {
+          if (usePlayerStore.getState().currentSong?.id === song.id) {
+            usePlayerStore.setState({
+              isPlaying: false,
+              playbackError: 'Your browser blocked autoplay. Press Play to start.',
+            })
+          }
         })
       }
     } else {
       audio.pause()
     }
-  }, [isPlaying])
+  }, [isPlaying, song.id])
 
   // Restore saved position when audio metadata loads
   useEffect(() => {

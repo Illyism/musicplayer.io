@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { extractYouTubeId } from '@/lib/utils/song-utils'
+import { MP3Player } from '../mp3-player'
 import { SoundCloudPlayer } from '../soundcloud-player'
 import { YouTubePlayer } from '../youtube-player'
 
@@ -27,7 +28,11 @@ beforeEach(() => {
     duration: 0,
     failedSongIds: [],
     isPlaying: true,
+    listingCursorId: songs[0].id,
     playbackError: null,
+    playbackSource: 'listing',
+    queueSongs: [],
+    repeatMode: 'off',
     songs,
     volume: 100,
   })
@@ -137,6 +142,7 @@ test('failure recovery stops when every track fails and permits an explicit retr
 })
 
 test('SoundCloud advances using load readiness, keeps its iframe, and ignores stale pause/load callbacks', async () => {
+  usePlayerStore.setState({ repeatMode: 'all' })
   const scSongs = songs.map(item => ({
     ...item,
     type: 'soundcloud' as const,
@@ -229,6 +235,7 @@ test('a late YouTube callback after switching providers cannot stop the new trac
 })
 
 test('advance wraps to the first healthy track and skips previously failed tracks', () => {
+  usePlayerStore.setState({ repeatMode: 'all' })
   const state = usePlayerStore.getState()
   state.failCurrentSong('first', 'unavailable')
   state.next()
@@ -239,6 +246,98 @@ test('advance wraps to the first healthy track and skips previously failed track
   expect(usePlayerStore.getState().currentSong?.id).toBe('first')
   expect(usePlayerStore.getState().currentTime).toBe(0)
   expect(usePlayerStore.getState().isPlaying).toBe(true)
+})
+
+test('YouTube repeat-one replays the same mounted player at zero', async () => {
+  await mountYouTube()
+  await act(() => usePlayerStore.setState({ currentTime: 99, repeatMode: 'one' }))
+  await act(() => events.onStateChange({ data: 1 }))
+  await act(() => events.onStateChange({ data: 0 }))
+  expect(usePlayerStore.getState().currentSong?.id).toBe('first')
+  expect(usePlayerStore.getState().currentTime).toBe(0)
+  expect(player.seekTo).toHaveBeenCalledWith(0, true)
+  expect(player.playVideo).toHaveBeenCalled()
+  expect(player.destroy).not.toHaveBeenCalled()
+})
+
+test('YouTube repeat-off stops at the end without replaying the same song', async () => {
+  usePlayerStore.setState({ songs: [songs[0]] })
+  await mountYouTube()
+  await act(() => events.onStateChange({ data: 1 }))
+  await act(() => events.onStateChange({ data: 0 }))
+  expect(usePlayerStore.getState().isPlaying).toBe(false)
+  expect(player.seekTo).not.toHaveBeenCalled()
+})
+
+test('YouTube natural completion plays a queued track before the next listing song', async () => {
+  const queued = { ...songs[1], id: 'queued', url: 'https://www.youtube.com/watch?v=queued' }
+  await mountYouTube()
+  await act(() => usePlayerStore.getState().enqueueSong(queued, 'next'))
+  await act(() => events.onStateChange({ data: 1 }))
+  await act(() => events.onStateChange({ data: 0 }))
+  expect(usePlayerStore.getState().currentSong?.id).toBe('queued')
+  expect(usePlayerStore.getState().playbackSource).toBe('queue')
+  expect(usePlayerStore.getState().queueSongs).toEqual([])
+})
+
+test('MP3 repeat-one resets and restarts its persistent audio element', async () => {
+  const mp3 = { ...songs[0], type: 'mp3' as const, url: 'https://example.com/first.mp3' }
+  const handlers: Record<string, () => Promise<void>> = {}
+  const audio = {
+    addEventListener: (name: string, handler: () => Promise<void>) => {
+      handlers[name] = handler
+    },
+    currentTime: 99,
+    duration: 100,
+    pause: mock(() => undefined),
+    play: mock(async () => undefined),
+    readyState: 4,
+    removeEventListener: mock(() => undefined),
+    volume: 1,
+  }
+  usePlayerStore.setState({ currentSong: mp3, repeatMode: 'one', songs: [mp3] })
+  await act(() => {
+    renderer = create(<MP3Player song={mp3} />, {
+      createNodeMock: element => (element.type === 'audio' ? audio : {}),
+    })
+  })
+  await act(async () => {
+    await handlers.ended()
+  })
+  expect(usePlayerStore.getState().currentSong?.id).toBe('first')
+  expect(usePlayerStore.getState().isPlaying).toBe(true)
+  expect(audio.currentTime).toBe(0)
+  expect(audio.play).toHaveBeenCalledTimes(2)
+  expect(window.__audioPlayer).toBe(audio as unknown as HTMLAudioElement)
+})
+
+test('MP3 repeat-off ends without restarting the completed audio', async () => {
+  const mp3 = { ...songs[0], type: 'mp3' as const, url: 'https://example.com/first.mp3' }
+  const handlers: Record<string, () => Promise<void>> = {}
+  const audio = {
+    addEventListener: (name: string, handler: () => Promise<void>) => {
+      handlers[name] = handler
+    },
+    currentTime: 99,
+    duration: 100,
+    pause: mock(() => undefined),
+    play: mock(async () => undefined),
+    readyState: 4,
+    removeEventListener: mock(() => undefined),
+    volume: 1,
+  }
+  usePlayerStore.setState({ currentSong: mp3, songs: [mp3] })
+  await act(() => {
+    renderer = create(<MP3Player song={mp3} />, {
+      createNodeMock: element => (element.type === 'audio' ? audio : {}),
+    })
+  })
+  await act(async () => {
+    await handlers.ended()
+  })
+  expect(usePlayerStore.getState().isPlaying).toBe(false)
+  expect(audio.play).toHaveBeenCalledTimes(1)
+  expect(audio.pause).toHaveBeenCalled()
 })
 
 test('browser autoplay rejection pauses without marking the track failed', async () => {

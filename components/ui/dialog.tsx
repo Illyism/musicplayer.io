@@ -3,6 +3,7 @@
 import { X } from '@phosphor-icons/react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import type * as React from 'react'
+import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 const Dialog = DialogPrimitive.Root
@@ -19,9 +20,10 @@ const DialogOverlay = ({
 }) => (
   <DialogPrimitive.Overlay
     className={cn(
-      'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-100 bg-black/50 backdrop-blur-xs data-[state=closed]:animate-out data-[state=open]:animate-in',
+      'data-[state=open]:fade-in-0 fixed inset-0 z-100 bg-black/60 backdrop-blur-xs data-[state=closed]:animate-none data-[state=open]:animate-in data-[state=open]:duration-200 motion-reduce:animate-none',
       className
     )}
+    data-slot="dialog-overlay"
     ref={ref}
     {...props}
   />
@@ -31,29 +33,48 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = ({
   className,
   children,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ref,
   ...props
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
   ref?: React.RefObject<React.ElementRef<typeof DialogPrimitive.Content> | null>
-}) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      className={cn(
-        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed top-[50%] left-[50%] z-101 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-card p-6 shadow-2xl duration-150 data-[state=closed]:animate-out data-[state=open]:animate-in sm:rounded-lg',
-        className
-      )}
-      ref={ref}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-        <X className="h-4 w-4" weight="bold" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-)
+}) => {
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        className={cn(
+          'data-[state=open]:fade-in-0 fixed top-1/2 left-1/2 z-101 grid max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl data-[state=closed]:animate-none data-[state=open]:animate-in data-[state=open]:duration-200 motion-reduce:animate-none sm:p-7',
+          className
+        )}
+        data-slot="dialog-content"
+        onCloseAutoFocus={event => {
+          onCloseAutoFocus?.(event)
+          if (!event.defaultPrevented && returnFocusRef.current?.isConnected) {
+            event.preventDefault()
+            returnFocusRef.current.focus({ preventScroll: true })
+          }
+        }}
+        onOpenAutoFocus={event => {
+          returnFocusRef.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null
+          onOpenAutoFocus?.(event)
+        }}
+        ref={ref}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute top-3 right-3 flex size-11 items-center justify-center rounded-full text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:pointer-events-none motion-reduce:transform-none">
+          <X aria-hidden className="size-5" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+}
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
