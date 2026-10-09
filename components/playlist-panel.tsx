@@ -531,7 +531,7 @@ export function PlaylistPanel() {
             </div>
           )}
           {loading && songs.length === 0 && <TrackLoadingState />}
-          {!loading && songs.length === 0 && (
+          {!loading && songs.length === 0 && requestError === null && (
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
               <span className="flex size-14 items-center justify-center rounded-2xl bg-muted">
                 <MusicNote className="size-6 text-muted-foreground" />
