@@ -510,7 +510,9 @@ export function PlaylistPanel() {
           </div>
         </header>
 
-        <DiscoveryShelves />
+        <div className={searchQuery ? undefined : 'min-h-[228px]'}>
+          <DiscoveryShelves />
+        </div>
 
         <TrackToolbar filterQuery={filterQuery} loading={loading} onFilterChange={setFilterQuery} />
 

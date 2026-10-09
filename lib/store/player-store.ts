@@ -207,7 +207,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isPlaying: false,
   isTheatreMode: false,
   listingCursorId: null,
-  loading: false,
+  loading: true,
 
   mobileView: 'playlist',
 
