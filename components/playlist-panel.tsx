@@ -242,18 +242,22 @@ function TrackToolbar({
   )
 }
 
+const EAGER_COVER_COUNT = 6
+
 function TrackRow({
   song,
   index,
   isCurrent,
   isPlaying,
   onPlay,
+  priority,
 }: {
   song: Song
   index: number
   isCurrent: boolean
   isPlaying: boolean
   onPlay: (index: number) => void
+  priority?: boolean
 }) {
   const display = trackDisplay(song)
   return (
@@ -291,6 +295,8 @@ function TrackRow({
                 alt=""
                 className="size-full object-cover"
                 height={48}
+                loading={priority ? 'eager' : 'lazy'}
+                priority={priority}
                 src={song.thumbnail}
                 unoptimized={isRedditHostedImage(song.thumbnail)}
                 width={48}
@@ -564,14 +570,15 @@ export function PlaylistPanel() {
                   </Button>
                 </div>
               ) : (
-                <ol className="flex flex-col gap-1">
-                  {visibleSongs.map(({ song, index }) => (
-                    <li key={song.id}>
+                <ol className="flex min-h-[480px] flex-col gap-1">
+                  {visibleSongs.map(({ song, index }, visibleIndex) => (
+                    <li className="min-h-[76px]" key={song.id}>
                       <TrackRow
                         index={index}
                         isCurrent={currentIndex === index}
                         isPlaying={isPlaying}
                         onPlay={setCurrentSong}
+                        priority={visibleIndex < EAGER_COVER_COUNT}
                         song={song}
                       />
                     </li>

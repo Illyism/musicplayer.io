@@ -36,11 +36,11 @@ function resetPlayer() {
 beforeEach(resetPlayer)
 afterEach(resetPlayer)
 
-test('a new listing starts the first playable track without requiring a selection', () => {
+test('a new listing selects the first playable track without starting playback', () => {
   usePlayerStore.getState().setSongs(songs)
   expect(usePlayerStore.getState().currentSong?.id).toBe('first')
   expect(usePlayerStore.getState().currentIndex).toBe(1)
-  expect(usePlayerStore.getState().isPlaying).toBe(true)
+  expect(usePlayerStore.getState().isPlaying).toBe(false)
 })
 
 test('refreshing a listing preserves a retained paused track and its position', () => {
@@ -70,6 +70,7 @@ test('pagination preserves playback and deduplicates within the incoming page', 
 test('changing the source list preserves current audio and resumes the new source on next', () => {
   const state = usePlayerStore.getState()
   state.setSongs([songs[1]])
+  state.play()
   state.setCurrentTime(42)
   state.setSongs([songs[2]])
   expect(usePlayerStore.getState().currentSong?.id).toBe('first')
@@ -84,6 +85,7 @@ test('changing the source list preserves current audio and resumes the new sourc
 test('clearing the source list preserves current audio until it ends', () => {
   const state = usePlayerStore.getState()
   state.setSongs(songs)
+  state.play()
   state.setSongs([])
   expect(usePlayerStore.getState().currentSong?.id).toBe('first')
   expect(usePlayerStore.getState().isPlaying).toBe(true)
@@ -119,6 +121,7 @@ test('play next moves an existing queue entry to the front without duplicating i
 test('removing or clearing pending queue entries does not interrupt current audio', () => {
   const state = usePlayerStore.getState()
   state.setSongs(songs)
+  state.play()
   state.enqueueSong(queuedSongs[0], 'last')
   state.enqueueSong(queuedSongs[1], 'last')
   state.removeQueuedSong(queuedSongs[0].id)
@@ -272,6 +275,7 @@ test('failed queue tracks skip to healthy queued entries even in repeat-one mode
 test('failure recovery stops when queue and source have no healthy tracks', () => {
   const state = usePlayerStore.getState()
   state.setSongs([songs[1]])
+  state.play()
   state.enqueueSong(queuedSongs[0], 'last')
   state.failCurrentSong('first', 'Unavailable source')
   expect(usePlayerStore.getState().currentSong?.id).toBe('queued-one')

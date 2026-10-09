@@ -439,7 +439,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       currentSong: firstSong,
       currentTime: 0,
       duration: 0,
-      isPlaying: !!firstSong,
+      isPlaying: false,
       listingCursorId: firstSong?.id ?? null,
       playbackError: null,
       playbackSource: firstSong ? 'listing' : null,

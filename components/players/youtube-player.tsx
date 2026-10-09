@@ -24,8 +24,18 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
   const [isReady, setIsReady] = useState(false)
   const { isPlaying, volume } = usePlayerStore()
   const videoId = extractYouTubeId(song.url)
+  const [embedActive, setEmbedActive] = useState(isPlaying)
 
   useEffect(() => {
+    if (isPlaying) {
+      setEmbedActive(true)
+    }
+  }, [isPlaying])
+
+  useEffect(() => {
+    if (!embedActive) {
+      return
+    }
     let mounted = true
     let interval: ReturnType<typeof setInterval> | undefined
     const isCurrent = () =>
@@ -132,7 +142,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
       }
       player?.destroy()
     }
-  }, [])
+  }, [embedActive])
 
   useEffect(() => {
     if (!videoId) {

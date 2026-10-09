@@ -114,7 +114,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
           <TrackMenu song={currentSong} />
         </div>
         {!isDesktop && (
-          <div className="my-3 flex min-h-[min(34vh,320px)] items-center justify-center">
+          <div className="my-3 flex aspect-video min-h-[min(34vh,180px)] w-full items-center justify-center">
             <MediaPlayerFrame
               className="w-full overflow-hidden rounded-2xl shadow-2xl outline outline-black/10 dark:outline-white/10"
               playerKeyPrefix="mobile-player"
