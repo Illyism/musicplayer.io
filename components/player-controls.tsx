@@ -85,6 +85,7 @@ function TrackArtwork({ song }: { song: Song | null }) {
       alt=""
       className="size-11 shrink-0 rounded-xl object-cover outline outline-black/10 dark:outline-white/10"
       height={44}
+      priority
       src={song.thumbnail}
       unoptimized={isRedditHostedImage(song.thumbnail)}
       width={44}

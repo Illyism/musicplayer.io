@@ -12,7 +12,7 @@ import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
-function TrackCard({ song }: { song: Song }) {
+function TrackCard({ song, priority = false }: { song: Song; priority?: boolean }) {
   const display = trackDisplay(song)
   const enqueue = usePlayerStore(state => state.enqueueSong)
   const playQueued = usePlayerStore(state => state.playQueuedSong)
@@ -30,6 +30,8 @@ function TrackCard({ song }: { song: Song }) {
           alt=""
           className="aspect-square w-full rounded-xl object-cover"
           height={160}
+          loading={priority ? 'eager' : 'lazy'}
+          priority={priority}
           src={song.thumbnail}
           unoptimized={isRedditHostedImage(song.thumbnail)}
           width={160}
@@ -74,8 +76,8 @@ export function DiscoveryShelves() {
             <ListeningSettings />
           </div>
           <div className="flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pb-2 sm:scroll-px-8 sm:px-8">
-            {tracks.map(song => (
-              <TrackCard key={song.id} song={song} />
+            {tracks.map((song, index) => (
+              <TrackCard key={song.id} priority={index < 4} song={song} />
             ))}
           </div>
         </section>

@@ -43,6 +43,14 @@ const nextConfig: NextConfig = {
         hostname: 'external-preview.redd.it',
         protocol: 'https',
       },
+      {
+        hostname: 'i.ytimg.com',
+        protocol: 'https',
+      },
+      {
+        hostname: 'img.youtube.com',
+        protocol: 'https',
+      },
     ],
   },
   logging: {

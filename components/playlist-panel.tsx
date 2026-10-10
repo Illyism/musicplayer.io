@@ -242,18 +242,22 @@ function TrackToolbar({
   )
 }
 
+const EAGER_COVER_COUNT = 6
+
 function TrackRow({
   song,
   index,
   isCurrent,
   isPlaying,
   onPlay,
+  priority,
 }: {
   song: Song
   index: number
   isCurrent: boolean
   isPlaying: boolean
   onPlay: (index: number) => void
+  priority?: boolean
 }) {
   const display = trackDisplay(song)
   return (
@@ -291,6 +295,8 @@ function TrackRow({
                 alt=""
                 className="size-full object-cover"
                 height={48}
+                loading={priority ? 'eager' : 'lazy'}
+                priority={priority}
                 src={song.thumbnail}
                 unoptimized={isRedditHostedImage(song.thumbnail)}
                 width={48}
@@ -504,7 +510,9 @@ export function PlaylistPanel() {
           </div>
         </header>
 
-        <DiscoveryShelves />
+        <div className={searchQuery ? undefined : 'min-h-[228px]'}>
+          {songs.length > 0 ? <DiscoveryShelves /> : null}
+        </div>
 
         <TrackToolbar filterQuery={filterQuery} loading={loading} onFilterChange={setFilterQuery} />
 
@@ -522,28 +530,35 @@ export function PlaylistPanel() {
               </Button>
             </div>
           )}
-          {loading && songs.length === 0 && <TrackLoadingState />}
-          {!loading && songs.length === 0 && (
-            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-muted">
-                <MusicNote className="size-6 text-muted-foreground" />
-              </span>
-              <h3 className="mt-1 font-medium text-lg">A little quiet here.</h3>
-              <p className="max-w-64 text-muted-foreground text-sm leading-6">
-                {searchQuery
-                  ? 'Try another search, or explore a music community.'
-                  : 'Try another community or sort to find something good.'}
-              </p>
-              <Button
-                className="mt-2 h-11 gap-2 rounded-full px-5 lg:hidden"
-                onClick={() => setMobileView('browse')}
-                variant="outline"
-              >
-                <Compass className="size-4" />
-                Explore communities
-              </Button>
-            </div>
-          )}
+          {songs.length === 0 &&
+            (loading ||
+              (selectedSubreddits.length > 0 && !searchQuery && requestError === null)) && (
+              <TrackLoadingState />
+            )}
+          {!loading &&
+            songs.length === 0 &&
+            requestError === null &&
+            (searchQuery !== null || selectedSubreddits.length === 0) && (
+              <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+                <span className="flex size-14 items-center justify-center rounded-2xl bg-muted">
+                  <MusicNote className="size-6 text-muted-foreground" />
+                </span>
+                <h3 className="mt-1 font-medium text-lg">A little quiet here.</h3>
+                <p className="max-w-64 text-muted-foreground text-sm leading-6">
+                  {searchQuery
+                    ? 'Try another search, or explore a music community.'
+                    : 'Try another community or sort to find something good.'}
+                </p>
+                <Button
+                  className="mt-2 h-11 gap-2 rounded-full px-5 lg:hidden"
+                  onClick={() => setMobileView('browse')}
+                  variant="outline"
+                >
+                  <Compass className="size-4" />
+                  Explore communities
+                </Button>
+              </div>
+            )}
           {songs.length > 0 && (
             <>
               <div className="mb-2 flex items-center justify-between px-3 py-2 text-[11px] text-muted-foreground">
@@ -564,14 +579,15 @@ export function PlaylistPanel() {
                   </Button>
                 </div>
               ) : (
-                <ol className="flex flex-col gap-1">
-                  {visibleSongs.map(({ song, index }) => (
-                    <li key={song.id}>
+                <ol className="flex min-h-[480px] flex-col gap-1">
+                  {visibleSongs.map(({ song, index }, visibleIndex) => (
+                    <li className="min-h-[76px]" key={song.id}>
                       <TrackRow
                         index={index}
                         isCurrent={currentIndex === index}
                         isPlaying={isPlaying}
                         onPlay={setCurrentSong}
+                        priority={visibleIndex < EAGER_COVER_COUNT}
                         song={song}
                       />
                     </li>

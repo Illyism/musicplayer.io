@@ -75,12 +75,13 @@ export function useInitializeApp() {
       return
     }
     hasInitialized.current = true
-    if (state.selectedSubreddits.length > 0 && !state.loading) {
+    if (state.selectedSubreddits.length > 0) {
       fetchFromSubreddits(state.selectedSubreddits).catch(() => undefined)
-    } else if (state.selectedSubreddits.length === 0) {
+    } else {
       // An intentionally empty saved mix should stay empty.
       state.setSongs([])
       state.setAfter(null)
+      state.setLoading(false)
     }
   }, [pathname, searchParams, fetchFromSubreddits])
 }

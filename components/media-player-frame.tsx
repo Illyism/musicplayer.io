@@ -32,8 +32,10 @@ export function MediaPlayerFrame({
   const setTheatreMode = usePlayerStore(state => state.setTheatreMode)
   const isPlaying = usePlayerStore(state => state.isPlaying)
   const currentTime = usePlayerStore(state => state.currentTime)
+  const play = usePlayerStore(state => state.play)
   const { isActive } = usePictureInPicture()
   const showTheatre = isTheatreMode && !isActive
+  const loadEmbed = isPlaying || currentTime > 0
 
   useEffect(() => {
     if (!isTheatreMode) {
@@ -49,7 +51,10 @@ export function MediaPlayerFrame({
   }, [isTheatreMode, setTheatreMode])
 
   return (
-    <div className={`relative aspect-video bg-black ${className}`}>
+    <div
+      className={`relative aspect-video min-h-[180px] w-full bg-black ${className}`}
+      style={{ aspectRatio: '16 / 9' }}
+    >
       <PiPMediaHost>
         <div
           className={
@@ -63,14 +68,18 @@ export function MediaPlayerFrame({
               showTheatre ? 'relative aspect-video max-h-full w-full' : 'relative h-full w-full'
             }
           >
-            {song.type === 'youtube' && (
+            {loadEmbed && song.type === 'youtube' && (
               <YouTubePlayer key={`${playerKeyPrefix}-youtube`} song={song} />
             )}
-            {song.type === 'soundcloud' && (
+            {loadEmbed && song.type === 'soundcloud' && (
               <SoundCloudPlayer key={`${playerKeyPrefix}-soundcloud`} song={song} />
             )}
-            {song.type === 'vimeo' && <VimeoPlayer key={`${playerKeyPrefix}-vimeo`} song={song} />}
-            {song.type === 'mp3' && <MP3Player key={`${playerKeyPrefix}-mp3`} song={song} />}
+            {loadEmbed && song.type === 'vimeo' && (
+              <VimeoPlayer key={`${playerKeyPrefix}-vimeo`} song={song} />
+            )}
+            {loadEmbed && song.type === 'mp3' && (
+              <MP3Player key={`${playerKeyPrefix}-mp3`} song={song} />
+            )}
             {song.type === 'none' && (
               <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
                 <MusicNote className="size-6 text-white/50" />
@@ -84,14 +93,22 @@ export function MediaPlayerFrame({
               </div>
             )}
             {!isPlaying && currentTime === 0 && song.thumbnail && !playbackError && !showTheatre ? (
-              <Image
-                alt=""
-                className="pointer-events-none z-10 object-cover"
-                fill
-                sizes="(max-width: 1023px) 100vw, 360px"
-                src={song.thumbnail}
-                unoptimized={isRedditHostedImage(song.thumbnail)}
-              />
+              <button
+                aria-label={`Play ${song.title}`}
+                className="absolute inset-0 z-10"
+                onClick={play}
+                type="button"
+              >
+                <Image
+                  alt=""
+                  className="object-cover"
+                  fill
+                  priority
+                  sizes="(max-width: 1023px) 100vw, 360px"
+                  src={song.thumbnail}
+                  unoptimized={isRedditHostedImage(song.thumbnail)}
+                />
+              </button>
             ) : null}
           </div>
 

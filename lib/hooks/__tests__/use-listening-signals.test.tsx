@@ -151,7 +151,10 @@ test('fresh initial feed metadata restores saved bookmark details without adding
 test('a hook mounted before the first track arrives observes that track’s later progress', async () => {
   usePlayerStore.setState({ currentSong: null, currentTime: 0, isPlaying: false, songs: [] })
   await mount()
-  await act(() => usePlayerStore.getState().setSongs([song]))
+  await act(() => {
+    usePlayerStore.getState().setSongs([song])
+    usePlayerStore.getState().play()
+  })
   await progress(30, 30)
   expect(useListeningStore.getState().events[0].songId).toBe(song.id)
 })

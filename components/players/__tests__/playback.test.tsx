@@ -16,6 +16,7 @@ const songs = ['first', 'second'].map(id => ({
 let renderer: ReactTestRenderer | undefined
 let events: Record<string, (event: any) => void>
 let player: any
+let youtubePlayersCreated = 0
 const originalWindow = globalThis.window
 const originalDocument = globalThis.document
 
@@ -36,6 +37,7 @@ beforeEach(() => {
     songs,
     volume: 100,
   })
+  youtubePlayersCreated = 0
   player = {
     cueVideoById: mock(() => undefined),
     destroy: mock(() => undefined),
@@ -52,6 +54,7 @@ beforeEach(() => {
     YT: {
       Player: class {
         constructor(_element: unknown, options: any) {
+          youtubePlayersCreated += 1
           ;({ events } = options)
           Object.assign(this, player)
         }
@@ -82,6 +85,22 @@ async function mountYouTube() {
   })
   await act(() => events.onReady({ target: player }))
 }
+
+test('YouTube iframe API stays unloaded until playback starts', async () => {
+  usePlayerStore.setState({ isPlaying: false })
+  await act(() => {
+    renderer = create(<YouTubePlayer song={songs[0]} />, {
+      createNodeMock: () => ({
+        appendChild: () => undefined,
+        innerHTML: '',
+        querySelector: () => ({}),
+      }),
+    })
+  })
+  expect(youtubePlayersCreated).toBe(0)
+  await act(() => usePlayerStore.getState().play())
+  expect(youtubePlayersCreated).toBe(1)
+})
 
 test('YouTube completion keeps playback enabled despite a late pause from the previous track', async () => {
   await mountYouTube()

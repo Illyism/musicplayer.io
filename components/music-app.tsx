@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { Brand } from '@/components/brand'
+import { AppShellFallback } from '@/components/app-shell-fallback'
 import { BrowsePanel } from '@/components/browse-panel'
 import { Header } from '@/components/header'
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts'
@@ -139,16 +139,7 @@ function MusicAppContent() {
 
 export function MusicApp() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-dvh flex-col items-center justify-center gap-5 bg-background">
-          <Brand />
-          <p aria-live="polite" className="text-muted-foreground text-sm">
-            Finding your next favorite…
-          </p>
-        </div>
-      }
-    >
+    <Suspense fallback={<AppShellFallback />}>
       <PictureInPictureProvider>
         <MusicAppContent />
       </PictureInPictureProvider>
