@@ -48,14 +48,42 @@ export function isRedditHostedImage(url: string): boolean {
   }
 }
 
+function sanitizeHttpUrl(rawUrl: unknown): string {
+  if (typeof rawUrl !== 'string' || !rawUrl) {
+    return ''
+  }
+  try {
+    const parsed = new URL(rawUrl)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? rawUrl : ''
+  } catch {
+    return ''
+  }
+}
+
+function sanitizeRedditPermalink(rawPermalink: unknown): string {
+  if (typeof rawPermalink !== 'string') {
+    return ''
+  }
+  if (
+    (rawPermalink.startsWith('/r/') || rawPermalink.startsWith('/user/')) &&
+    !rawPermalink.startsWith('//') &&
+    !rawPermalink.includes('..') &&
+    !rawPermalink.includes('\\')
+  ) {
+    return rawPermalink
+  }
+  return ''
+}
+
 /**
  * Parse Reddit post data into Song object
  */
 export function parseSong(data: any): Song {
   const thumbnail = normalizeThumbnailUrl(data.thumbnail, data.preview?.images?.[0]?.source?.url)
+  const safeUrl = sanitizeHttpUrl(data.url)
 
   // Determine media type and playability
-  const { type, playable } = determineMediaType(data)
+  const { type, playable } = determineMediaType({ ...data, url: safeUrl })
 
   return {
     author: data.author,
@@ -68,7 +96,7 @@ export function parseSong(data: any): Song {
     media: data.media,
     name: data.name, // Reddit fullname
     num_comments: data.num_comments || 0,
-    permalink: data.permalink,
+    permalink: sanitizeRedditPermalink(data.permalink),
     playable,
     score: data.score || 0,
     selftext: data.selftext,
@@ -77,7 +105,7 @@ export function parseSong(data: any): Song {
     title: data.title,
     type,
     ups: data.ups || 0,
-    url: data.url,
+    url: safeUrl,
   }
 }
 
@@ -88,8 +116,12 @@ function determineMediaType(data: any): {
   type: Song['type']
   playable: boolean
 } {
+  const safeUrl = sanitizeHttpUrl(data.url)
+  if (!safeUrl) {
+    return { playable: false, type: 'none' }
+  }
   const domain = data.domain?.toLowerCase() || ''
-  const url = data.url?.toLowerCase() || ''
+  const url = safeUrl.toLowerCase()
 
   // YouTube
   if (
@@ -164,13 +196,14 @@ export function filterPlayableSongs(posts: any[]): any[] {
 
     const { data } = post
 
-    // Exclude self posts
-    if (data.is_self) {
+    // Exclude self posts or non-http(s) URLs
+    const safeUrl = sanitizeHttpUrl(data.url)
+    if (data.is_self || !safeUrl) {
       return false
     }
 
     const domain = data.domain?.toLowerCase() || ''
-    const url = data.url?.toLowerCase() || ''
+    const url = safeUrl.toLowerCase()
 
     // Check if it's a playable domain
     return (
@@ -257,14 +290,18 @@ export function isValidMediaUrl(url: string): boolean {
 
   try {
     const urlObj = new URL(url)
+    if (urlObj.protocol !== 'https:' && urlObj.protocol !== 'http:') {
+      return false
+    }
     const domain = urlObj.hostname.toLowerCase().replace('www.', '')
 
     return (
       domain === 'youtube.com' ||
       domain === 'youtu.be' ||
+      domain === 'm.youtube.com' ||
       domain === 'soundcloud.com' ||
       domain === 'vimeo.com' ||
-      url.toLowerCase().endsWith('.mp3')
+      urlObj.pathname.toLowerCase().endsWith('.mp3')
     )
   } catch {
     return false

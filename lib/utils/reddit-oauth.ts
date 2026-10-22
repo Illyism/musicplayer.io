@@ -11,7 +11,18 @@ export function getRedditOAuthConfig(requestOrigin?: string): RedditOAuthConfig 
     throw new Error('Reddit sign-in is not configured. Please contact the site owner.')
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || requestOrigin
+  let parsedRequestOrigin: URL | undefined
+  if (requestOrigin) {
+    if (!URL.canParse(requestOrigin)) {
+      throw new Error('Please start sign-in from the website.')
+    }
+    parsedRequestOrigin = new URL(requestOrigin)
+    if (parsedRequestOrigin.protocol !== 'https:' && parsedRequestOrigin.protocol !== 'http:') {
+      throw new Error('Please start sign-in from the website.')
+    }
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || parsedRequestOrigin?.origin
   const redirectUri =
     process.env.REDDIT_REDIRECT_URI || (siteUrl ? new URL('/auth/callback', siteUrl).href : '')
   if (!redirectUri) {
@@ -31,7 +42,7 @@ export function getRedditOAuthConfig(requestOrigin?: string): RedditOAuthConfig 
       'Reddit sign-in has an invalid callback address. Please contact the site owner.'
     )
   }
-  if (requestOrigin && callback.origin !== new URL(requestOrigin).origin) {
+  if (parsedRequestOrigin && callback.origin !== parsedRequestOrigin.origin) {
     throw new Error(`Please open ${callback.origin} to sign in with Reddit.`)
   }
   return { clientId, clientSecret, redirectUri }

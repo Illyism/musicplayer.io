@@ -1,9 +1,62 @@
+import { RedditError } from '@/lib/errors/reddit-error'
 import {
   getAppAccessToken,
   invalidateAppAccessToken,
   REDDIT_API_BASE,
   USER_AGENT,
 } from './reddit-token'
+
+const MINUTE_MS = 60_000
+const REQUEST_BUDGET = 60
+const QUOTA_RESERVE = 5
+const REQUEST_TIMEOUT_MS = 8000
+let windowStartsAt = Date.now()
+let usedInWindow = 0
+let blockedUntil = 0
+
+function reserveApiRequest() {
+  const now = Date.now()
+  if (now - windowStartsAt >= MINUTE_MS) {
+    windowStartsAt = now
+    usedInWindow = 0
+  }
+  if (now < blockedUntil || usedInWindow >= REQUEST_BUDGET) {
+    throw new RedditError(
+      'Rate limited (429). Please try again later.',
+      429,
+      'You are making too many requests. Please wait a few minutes before trying again.'
+    )
+  }
+  usedInWindow += 1
+}
+
+function observeApiQuota(response: Response) {
+  const remainingHeader = response.headers.get('x-ratelimit-remaining')
+  const remaining = remainingHeader === null ? Number.NaN : Number(remainingHeader)
+  const resetSeconds = Number(response.headers.get('x-ratelimit-reset')) || 60
+  if (response.status === 429 || (Number.isFinite(remaining) && remaining <= QUOTA_RESERVE)) {
+    blockedUntil = Date.now() + Math.max(1, resetSeconds) * 1000
+  }
+}
+
+export function resolveRedditApiUrl(path: string, params: URLSearchParams): string {
+  if (
+    !path.startsWith('/') ||
+    path.startsWith('//') ||
+    path.includes('..') ||
+    path.includes('\\') ||
+    path.includes('?') ||
+    path.includes('#')
+  ) {
+    throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.')
+  }
+  const targetUrl = new URL(path, REDDIT_API_BASE)
+  if (targetUrl.origin !== REDDIT_API_BASE || targetUrl.pathname !== path) {
+    throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.')
+  }
+  targetUrl.search = params.toString()
+  return targetUrl.href
+}
 
 /**
  * Slim Reddit listing responses before caching.
@@ -68,8 +121,15 @@ export async function redditFetch(
 
   // Retries are inherently sequential — each attempt depends on the previous failure
   for (let attempt = 0; attempt <= retries; attempt += 1) {
+    reserveApiRequest()
     // biome-ignore lint/performance/noAwaitInLoops: sequential retry with backoff
-    lastResponse = await fetch(url, { cache: 'no-store', headers })
+    lastResponse = await fetch(url, {
+      cache: 'no-store',
+      headers,
+      redirect: 'error',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+    observeApiQuota(lastResponse)
 
     if (lastResponse.ok || lastResponse.status < 500) {
       return lastResponse
@@ -88,12 +148,12 @@ export async function redditFetch(
 
 /**
  * Fetch an oauth.reddit.com endpoint with the app-only bearer token.
- * A rejected token (401/403) is retried once with a freshly minted app token.
+ * A rejected token (401) is retried once with a freshly minted app token.
  */
 export async function redditApiFetch(path: string, params: URLSearchParams): Promise<Response> {
   // raw_json=1 stops Reddit HTML-escaping &, < and > in titles and selftext
   params.set('raw_json', '1')
-  const url = `${REDDIT_API_BASE}${path}?${params}`
+  const url = resolveRedditApiUrl(path, params)
 
   const buildHeaders = (bearerToken: string): HeadersInit => ({
     Accept: 'application/json',
@@ -104,7 +164,7 @@ export async function redditApiFetch(path: string, params: URLSearchParams): Pro
   const token = await getAppAccessToken()
   const response = await redditFetch(url, buildHeaders(token))
 
-  if (response.status !== 401 && response.status !== 403) {
+  if (response.status !== 401) {
     return response
   }
 

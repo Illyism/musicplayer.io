@@ -61,7 +61,11 @@ function AuthCallbackContent() {
 
       // Check for errors
       if (error) {
-        setStatus(`Login failed: ${error}`)
+        const message =
+          error === 'access_denied'
+            ? 'Login failed: Reddit sign-in was canceled.'
+            : 'Login failed: Reddit could not complete sign-in.'
+        setStatus(message)
         setTimeout(() => router.push('/'), 3000)
         return
       }

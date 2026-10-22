@@ -15,7 +15,8 @@ if (!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET)) {
 }
 
 // Validation schemas
-const SUBREDDIT_NAME_REGEX = /^[a-zA-Z0-9_+-]+$/
+const SUBREDDIT_NAME_REGEX = /^[a-zA-Z0-9_-]+$/
+const MAX_MULTI_SUBREDDITS = 25
 
 const SubredditSchema = z
   .string()
@@ -25,6 +26,9 @@ const SubredditSchema = z
     val => {
       // Split by + to handle multi-subreddit queries
       const subreddits = val.split('+')
+      if (subreddits.length === 0 || subreddits.length > MAX_MULTI_SUBREDDITS) {
+        return false
+      }
       // Validate each individual subreddit
       return subreddits.every(
         sub => sub.length > 0 && sub.length <= 100 && SUBREDDIT_NAME_REGEX.test(sub)
@@ -51,21 +55,38 @@ const LimitSchema = z
   })
   .default('100')
 
-const AfterSchema = z.string().max(50).optional()
+const AfterSchema = z
+  .string()
+  .regex(/^[a-zA-Z0-9_]+$/)
+  .max(50)
+  .optional()
 
-const REDDIT_PATH_REGEX = /^\/(r|user)\/.+$/
+const REDDIT_PERMALINK_REGEX =
+  /^\/(?:r\/[a-zA-Z0-9_]{1,100}|user\/[a-zA-Z0-9_-]{1,50})\/comments\/[a-zA-Z0-9]{1,13}(?:\/[^?#\\/\s]{1,200}(?:\/[a-zA-Z0-9]{1,13})?)?\/?$/
 
 const PermalinkSchema = z.string().refine(
   val => {
-    // Must start with /r/ or /user/
-    if (!(val.startsWith('/r/') || val.startsWith('/user/'))) {
+    if (
+      val.length <= 3 ||
+      val.length > 500 ||
+      val.includes('..') ||
+      val.includes('//') ||
+      val.includes('\\') ||
+      !REDDIT_PERMALINK_REGEX.test(val)
+    ) {
       return false
     }
-    // Must be a valid path - allow most URL-safe characters
-    // Reddit permalinks can contain various characters in post titles and paths
-    // Examples: /r/subreddit/comments/post_id/title/ or /r/subreddit/comments/post_id/title/comment_id/
-    const isValidPath = REDDIT_PATH_REGEX.test(val)
-    return isValidPath && val.length <= 500 && val.length > 3
+    try {
+      const parsed = new URL(val, 'https://oauth.reddit.com')
+      return (
+        parsed.origin === 'https://oauth.reddit.com' &&
+        parsed.pathname === val &&
+        parsed.search === '' &&
+        parsed.hash === ''
+      )
+    } catch {
+      return false
+    }
   },
   { message: 'Invalid permalink format' }
 )

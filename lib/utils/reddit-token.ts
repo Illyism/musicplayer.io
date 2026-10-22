@@ -57,6 +57,8 @@ export async function getAppAccessToken(forceRefresh = false): Promise<string> {
         'User-Agent': USER_AGENT,
       },
       method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(10_000),
     })
 
     if (!response.ok) {
