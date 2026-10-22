@@ -1,5 +1,5 @@
-# Use the latest Bun image as base
-FROM oven/bun:latest AS base
+# Use a pinned Bun image as base
+FROM oven/bun:1.4.3 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -40,6 +40,9 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["bun", "-e", "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
 # Start the application with Bun
 CMD ["bun", "run", "server.js"]
