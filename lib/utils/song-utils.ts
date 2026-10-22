@@ -37,11 +37,15 @@ const YOUTUBE_ID_PATTERNS = [
   /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
 ]
 const VIMEO_ID_REGEX = /vimeo\.com\/(\d+)/
-const REDDIT_CDN_REGEX = /redd\.it/i
+const REDDIT_CDN_REGEX = /(?:^|\.)(?:redd\.it|redditmedia\.com|redditstatic\.com)$/i
 
 /** Reddit CDN blocks Next.js image optimization; load these directly */
 export function isRedditHostedImage(url: string): boolean {
-  return REDDIT_CDN_REGEX.test(url)
+  try {
+    return REDDIT_CDN_REGEX.test(new URL(url).hostname)
+  } catch {
+    return REDDIT_CDN_REGEX.test(url)
+  }
 }
 
 /**
