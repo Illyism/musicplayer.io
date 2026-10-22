@@ -11,6 +11,7 @@ import {
 import { USER_AGENT } from '@/lib/utils/reddit-token'
 
 const OAUTH_COOKIE = 'reddit_oauth_transaction'
+const OAUTH_REQUEST_TIMEOUT_MS = 10_000
 
 // Validation schemas
 const AuthCodeSchema = z.string().min(1).max(200)
@@ -39,10 +40,34 @@ const UsernameSchema = z
   .max(50)
   .transform(val => val.slice(0, 50))
 
+function getVerifiedOrigin(requestHeaders: Headers): string | null {
+  if (requestHeaders.get('sec-fetch-site') === 'cross-site') {
+    return null
+  }
+  const origin = requestHeaders.get('origin')
+  if (!origin) {
+    return null
+  }
+  try {
+    const parsedOrigin = new URL(origin)
+    if (parsedOrigin.protocol !== 'https:' && parsedOrigin.protocol !== 'http:') {
+      return null
+    }
+    const forwardedHost = requestHeaders.get('x-forwarded-host')?.split(',')[0]?.trim()
+    const host = forwardedHost || requestHeaders.get('host')
+    if (host && parsedOrigin.host !== host) {
+      return null
+    }
+    return parsedOrigin.origin
+  } catch {
+    return null
+  }
+}
+
 export async function getRedditAuthorizationUrl() {
   try {
     const requestHeaders = await headers()
-    const origin = requestHeaders.get('origin')
+    const origin = getVerifiedOrigin(requestHeaders)
     if (!origin) {
       return { error: 'Please start sign-in from the website.', url: null }
     }
@@ -79,27 +104,38 @@ export async function loginWithReddit(code: string, state: string | null) {
     const validatedCode = AuthCodeSchema.parse(code)
     const cookieStore = await cookies()
     const savedTransaction = cookieStore.get(OAUTH_COOKIE)?.value
-    const transaction = OAuthTransactionSchema.safeParse(
-      savedTransaction ? JSON.parse(savedTransaction) : null
-    )
+    let parsedTransaction: unknown = null
+    if (savedTransaction) {
+      try {
+        parsedTransaction = JSON.parse(savedTransaction)
+      } catch {
+        parsedTransaction = null
+      }
+    }
+    const transaction = OAuthTransactionSchema.safeParse(parsedTransaction)
+    cookieStore.delete(OAUTH_COOKIE)
     if (!(state && transaction.success) || state !== transaction.data.state) {
       return { error: 'Security check failed. Please sign in again.', success: false }
     }
-    const config = getRedditOAuthConfig(new URL(transaction.data.redirectUri).origin)
+    const requestHeaders = await headers()
+    const origin = getVerifiedOrigin(requestHeaders)
+    if (!origin) {
+      return { error: 'Security check failed. Please sign in again.', success: false }
+    }
+    const config = getRedditOAuthConfig(origin)
     if (
       config.clientId !== transaction.data.clientId ||
       config.redirectUri !== transaction.data.redirectUri
     ) {
       return { error: 'Sign-in settings changed. Please sign in again.', success: false }
     }
-    cookieStore.delete(OAUTH_COOKIE)
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
       body: new URLSearchParams({
         code: validatedCode,
         grant_type: 'authorization_code',
-        redirect_uri: transaction.data.redirectUri,
+        redirect_uri: config.redirectUri,
       }),
       cache: 'no-store',
       headers: {
@@ -108,6 +144,8 @@ export async function loginWithReddit(code: string, state: string | null) {
         'User-Agent': USER_AGENT,
       },
       method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(OAUTH_REQUEST_TIMEOUT_MS),
     })
 
     const tokenDataRaw = await tokenResponse.json().catch(() => null)
@@ -121,10 +159,13 @@ export async function loginWithReddit(code: string, state: string | null) {
 
     // Get user info
     const userResponse = await fetch('https://oauth.reddit.com/api/v1/me', {
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${successTokenData.access_token}`,
         'User-Agent': USER_AGENT,
       },
+      redirect: 'error',
+      signal: AbortSignal.timeout(OAUTH_REQUEST_TIMEOUT_MS),
     })
 
     if (!userResponse.ok) {
@@ -137,12 +178,13 @@ export async function loginWithReddit(code: string, state: string | null) {
 
     // Sanitize and validate username
     const sanitizedUsername = UsernameSchema.parse(userData.name)
+    const tokenMaxAge = successTokenData.expires_in || 3600
 
     // Set cookies
     // Access token - HTTP-only, secure in production
     cookieStore.set('reddit_access_token', successTokenData.access_token, {
       httpOnly: true,
-      maxAge: successTokenData.expires_in || 3600, // Default to 1 hour if not provided
+      maxAge: tokenMaxAge, // Default to 1 hour if not provided
       path: '/',
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
@@ -160,11 +202,10 @@ export async function loginWithReddit(code: string, state: string | null) {
       })
     }
 
-    // Username cookie (non-httpOnly so client can read it for display)
-    // Safe because it's just a display value, not sensitive
+    // Username cookie (HTTP-only, tied to access token lifetime)
     cookieStore.set('reddit_username', sanitizedUsername, {
-      httpOnly: false,
-      maxAge: 60 * 60 * 24 * 365, // 1 year
+      httpOnly: true,
+      maxAge: tokenMaxAge,
       path: '/',
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
@@ -195,11 +236,12 @@ export async function logout() {
 
 export async function getAuthStatus() {
   const cookieStore = await cookies()
-  const token = cookieStore.get('reddit_access_token')
-  const username = cookieStore.get('reddit_username')
+  const token = cookieStore.get('reddit_access_token')?.value
+  const rawUsername = cookieStore.get('reddit_username')?.value
+  const parsedUsername = token && rawUsername ? UsernameSchema.safeParse(rawUsername) : null
 
   return {
-    isAuthenticated: !!token,
-    username: username?.value || null,
+    isAuthenticated: Boolean(token && parsedUsername?.success),
+    username: parsedUsername?.success ? parsedUsername.data : null,
   }
 }

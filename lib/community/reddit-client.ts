@@ -45,15 +45,31 @@ async function fetchWithToken(
   params: URLSearchParams,
   token: string
 ): Promise<Response> {
+  if (
+    !path.startsWith('/') ||
+    path.startsWith('//') ||
+    path.includes('..') ||
+    path.includes('\\') ||
+    path.includes('?') ||
+    path.includes('#')
+  ) {
+    throw new DiscoveryUnavailableError('Invalid Reddit discovery path.')
+  }
+  const targetUrl = new URL(path, REDDIT_API_BASE)
+  if (targetUrl.origin !== REDDIT_API_BASE || targetUrl.pathname !== path) {
+    throw new DiscoveryUnavailableError('Invalid Reddit discovery path.')
+  }
   reserveRequest()
   params.set('raw_json', '1')
-  const response = await fetch(`${REDDIT_API_BASE}${path}?${params}`, {
+  targetUrl.search = params.toString()
+  const response = await fetch(targetUrl.href, {
     cache: 'no-store',
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${token}`,
       'User-Agent': USER_AGENT,
     },
+    redirect: 'error',
     signal: AbortSignal.timeout(8000),
   })
   observeQuota(response)
