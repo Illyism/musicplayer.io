@@ -67,8 +67,11 @@ function sanitizeRedditPermalink(rawPermalink: unknown): string {
   if (
     (rawPermalink.startsWith('/r/') || rawPermalink.startsWith('/user/')) &&
     !rawPermalink.startsWith('//') &&
-    !rawPermalink.includes('..') &&
-    !rawPermalink.includes('\\')
+    !rawPermalink.includes('//') &&
+    !rawPermalink.includes('\\') &&
+    !rawPermalink.includes('?') &&
+    !rawPermalink.includes('#') &&
+    !rawPermalink.split('/').some(segment => segment === '.' || segment === '..')
   ) {
     return rawPermalink
   }

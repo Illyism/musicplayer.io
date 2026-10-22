@@ -39,19 +39,109 @@ function observeApiQuota(response: Response) {
   }
 }
 
+const CONTROL_CHAR_REGEX = /\p{Cc}/u
+const ENCODED_SEPARATOR_REGEX = /%(?:2f|5c)/i
+const REDDIT_PERMALINK_REGEX =
+  /^\/(?:r\/[a-zA-Z0-9_-]{1,100}|user\/[a-zA-Z0-9_-]{1,50})\/comments\/[a-zA-Z0-9]{1,13}\/([^/?#\\]+?)(?:\/([a-zA-Z0-9]{1,13}))?\/?$/u
+
+function hasDotPathSegment(path: string): boolean {
+  return path.split('/').some(segment => segment === '.' || segment === '..')
+}
+
+export function isValidRedditPermalink(val: string): boolean {
+  if (
+    val.length <= 3 ||
+    val.length > 500 ||
+    !val.startsWith('/') ||
+    val.startsWith('//') ||
+    val.includes('//') ||
+    val.includes('\\') ||
+    val.includes('?') ||
+    val.includes('#') ||
+    CONTROL_CHAR_REGEX.test(val) ||
+    ENCODED_SEPARATOR_REGEX.test(val) ||
+    hasDotPathSegment(val)
+  ) {
+    return false
+  }
+
+  const match = REDDIT_PERMALINK_REGEX.exec(val)
+  if (!match) {
+    return false
+  }
+
+  const [, rawSlug] = match
+  let decodedSlug: string
+  try {
+    decodedSlug = decodeURIComponent(rawSlug)
+  } catch {
+    return false
+  }
+
+  if (
+    decodedSlug.length === 0 ||
+    decodedSlug.length > 200 ||
+    decodedSlug === '.' ||
+    decodedSlug === '..' ||
+    decodedSlug.includes('/') ||
+    decodedSlug.includes('\\') ||
+    decodedSlug.includes('?') ||
+    decodedSlug.includes('#') ||
+    CONTROL_CHAR_REGEX.test(decodedSlug)
+  ) {
+    return false
+  }
+
+  try {
+    const parsed = new URL(val, REDDIT_API_BASE)
+    const decodedPathname = decodeURI(parsed.pathname)
+    return (
+      parsed.origin === REDDIT_API_BASE &&
+      decodedPathname === decodeURI(val) &&
+      parsed.search === '' &&
+      parsed.hash === '' &&
+      !hasDotPathSegment(decodedPathname)
+    )
+  } catch {
+    return false
+  }
+}
+
 export function resolveRedditApiUrl(path: string, params: URLSearchParams): string {
   if (
     !path.startsWith('/') ||
     path.startsWith('//') ||
-    path.includes('..') ||
+    path.includes('//') ||
     path.includes('\\') ||
     path.includes('?') ||
-    path.includes('#')
+    path.includes('#') ||
+    CONTROL_CHAR_REGEX.test(path) ||
+    ENCODED_SEPARATOR_REGEX.test(path) ||
+    hasDotPathSegment(path)
   ) {
     throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.')
   }
-  const targetUrl = new URL(path, REDDIT_API_BASE)
-  if (targetUrl.origin !== REDDIT_API_BASE || targetUrl.pathname !== path) {
+  let targetUrl: URL
+  let decodedPathname: string
+  let decodedInputPath: string
+  try {
+    targetUrl = new URL(path, REDDIT_API_BASE)
+    decodedPathname = decodeURI(targetUrl.pathname)
+    decodedInputPath = decodeURI(path)
+  } catch (error) {
+    // biome-ignore lint/style/useErrorCause: cause forwarded via RedditError's ErrorOptions
+    throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.', {
+      cause: error,
+    })
+  }
+  if (
+    targetUrl.origin !== REDDIT_API_BASE ||
+    decodedPathname !== decodedInputPath ||
+    targetUrl.search !== '' ||
+    targetUrl.hash !== '' ||
+    hasDotPathSegment(decodedPathname) ||
+    CONTROL_CHAR_REGEX.test(decodedPathname)
+  ) {
     throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.')
   }
   targetUrl.search = params.toString()

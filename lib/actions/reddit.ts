@@ -3,7 +3,11 @@
 import { cacheLife } from 'next/cache'
 import { z } from 'zod'
 import { handleRedditApiError } from '@/lib/utils/error-handler'
-import { redditApiFetch, slimListingResponse } from '@/lib/utils/reddit-response'
+import {
+  isValidRedditPermalink,
+  redditApiFetch,
+  slimListingResponse,
+} from '@/lib/utils/reddit-response'
 
 // Every request goes through oauth.reddit.com with a bearer token.
 // Cached listing/search/comment reads use the app-only token so the
@@ -61,35 +65,9 @@ const AfterSchema = z
   .max(50)
   .optional()
 
-const REDDIT_PERMALINK_REGEX =
-  /^\/(?:r\/[a-zA-Z0-9_]{1,100}|user\/[a-zA-Z0-9_-]{1,50})\/comments\/[a-zA-Z0-9]{1,13}(?:\/[^?#\\/\s]{1,200}(?:\/[a-zA-Z0-9]{1,13})?)?\/?$/
-
-const PermalinkSchema = z.string().refine(
-  val => {
-    if (
-      val.length <= 3 ||
-      val.length > 500 ||
-      val.includes('..') ||
-      val.includes('//') ||
-      val.includes('\\') ||
-      !REDDIT_PERMALINK_REGEX.test(val)
-    ) {
-      return false
-    }
-    try {
-      const parsed = new URL(val, 'https://oauth.reddit.com')
-      return (
-        parsed.origin === 'https://oauth.reddit.com' &&
-        parsed.pathname === val &&
-        parsed.search === '' &&
-        parsed.hash === ''
-      )
-    } catch {
-      return false
-    }
-  },
-  { message: 'Invalid permalink format' }
-)
+const PermalinkSchema = z.string().refine(isValidRedditPermalink, {
+  message: 'Invalid permalink format',
+})
 
 const SearchQuerySchema = z
   .string()
