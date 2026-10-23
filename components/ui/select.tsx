@@ -88,6 +88,7 @@ function SelectContent({
 
 function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
   return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: select group heading, not a form label
     <SelectPrimitive.Label
       className={cn('px-2 py-1.5 text-muted-foreground text-xs', className)}
       data-slot="select-label"

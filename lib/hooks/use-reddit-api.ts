@@ -11,7 +11,7 @@ import { filterPlayableSongs, parseSong } from '@/lib/utils/song-utils'
 
 export function useRedditAPI() {
   const storeRef = useRef(usePlayerStore.getState())
-  const isFetchingRef = useRef(false)
+  const isFetchingRef = useRef<boolean>(false)
 
   // Keep store ref updated
   useEffect(
@@ -76,7 +76,7 @@ export function useRedditAPI() {
    * Search Reddit
    */
   const fetchSearch = useCallback(async (query: string, pagination?: string) => {
-    if (!query?.trim()) {
+    if (!query.trim()) {
       return []
     }
 

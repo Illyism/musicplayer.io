@@ -45,7 +45,7 @@ function AuthStatus({ message }: { message: string }) {
 function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const hasProcessed = useRef(false)
+  const hasProcessed = useRef<boolean>(false)
   const [status, setStatus] = useState('Processing login...')
 
   useEffect(() => {

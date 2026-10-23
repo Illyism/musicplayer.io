@@ -30,18 +30,18 @@ git clone https://github.com/musicplayer-io/musicplayer.io.git
 cd musicplayer.io
 
 # Install dependencies
-npm install
+bun install
 
 # Set up environment variables
 cp .env.local.example .env.local
 # Edit .env.local with your Reddit OAuth credentials
 
 # Run development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
-npm start
+bun run build
+bun run start
 ```
 
 The app will be available at `http://localhost:3000`
@@ -72,12 +72,12 @@ Recommendations adapt to play, skip, and save events on this device. They use fi
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui (Radix UI)
 - **State Management**: Zustand
-- **Icons**: Lucide React
+- **Icons**: Phosphor Icons
 
 ## 📋 Requirements
 
-- Node.js 22+
-- npm or yarn
+- Node.js 26.12.1 (see `.nvmrc`)
+- Bun 1.4.4 (package manager and production runtime)
 - Reddit OAuth app credentials (required to fetch Reddit listings)
 
 ## 🔧 Configuration
@@ -130,24 +130,25 @@ If Reddit rejects sign-in, verify that the app type is **web app**, its client I
 ```
 musicplayer.io/
 ├── app/                    # Next.js App Router
-│   ├── api/               # API routes (12 routes)
-│   ├── r/                 # Dynamic subreddit routes
-│   ├── remote/            # Remote control page
+│   ├── api/               # Route handlers (saved-tracks, subreddits)
+│   ├── auth/callback/     # Reddit OAuth callback
+│   ├── r/[slug]/          # Subreddit routes
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Home page
 │   └── globals.css        # Global styles
 │
 ├── components/            # React components
-│   ├── players/          # Music players (4)
+│   ├── players/          # Media players (YouTube, SoundCloud, Vimeo, MP3)
 │   ├── ui/               # shadcn/ui components
-│   └── *.tsx             # Feature components (11)
+│   └── *.tsx             # Feature components
 │
 ├── lib/                   # Utilities & business logic
-│   ├── auth/             # Authentication
-│   ├── hooks/            # Custom hooks (5)
-│   ├── utils/           # Utilities
-│   ├── store.ts         # Zustand store
-│   └── constants.ts     # Constants
+│   ├── actions/          # Server actions (Reddit, auth)
+│   ├── community/        # Community discovery and ranking
+│   ├── hooks/            # Custom hooks
+│   ├── listening/        # Saved tracks and listening sessions
+│   ├── store/            # Zustand stores
+│   └── utils/            # Utilities
 │
 ├── public/               # Static assets
 │   └── images/          # Images & icons
@@ -159,16 +160,16 @@ musicplayer.io/
 
 ```bash
 # Run development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 
 # Start production server
-npm start
+bun run start
 
 # Lint code
-npm run lint
+bun run lint
 ```
 
 ## 📝 Migration Status
