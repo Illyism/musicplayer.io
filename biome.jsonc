@@ -33,10 +33,6 @@
   },
   "linter": {
     "rules": {
-      "a11y": {
-        // shadcn/ui Label wrappers (FieldLabel, SelectLabel, DropdownMenuLabel) receive their control from callers
-        "noLabelWithoutControl": "off"
-      },
       "correctness": {
         // Zustand selectors and hydration effects produce stable-but-untracked deps
         "useExhaustiveDependencies": "warn"

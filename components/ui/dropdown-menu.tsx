@@ -140,6 +140,7 @@ function DropdownMenuLabel({
   inset?: boolean
 }) {
   return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: menu group heading, not a form label
     <DropdownMenuPrimitive.Label
       className={cn('px-2 py-1.5 text-muted-foreground text-xs data-[inset]:pl-8', className)}
       data-inset={inset}

@@ -94,6 +94,7 @@ function FieldContent({ className, ...props }: React.ComponentProps<'div'>) {
 
 function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
   return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: callers pass htmlFor or wrap the control
     <Label
       className={cn(
         'group/field-label peer/field-label flex w-fit gap-2 leading-snug has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border has-data-checked:bg-primary/5 group-data-[disabled=true]/field:opacity-50 dark:has-data-checked:bg-primary/10 [&>*]:data-[slot=field]:p-2',
