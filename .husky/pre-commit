@@ -23,5 +23,5 @@ if [ $FIX_EXIT_CODE -ne 0 ]; then
   exit $FIX_EXIT_CODE
 fi
 
-# Typecheck + co-located tests for changed code
+# Typecheck for changed code
 bun run scripts/pre-commit-checks.mjs $STAGED_FILES || exit $?

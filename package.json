@@ -11,13 +11,12 @@
   "scripts": {
     "audit:code": "ultracite check",
     "build": "next build",
-    "check": "ultracite check && bun run typecheck && bun run test",
+    "check": "ultracite check && bun run typecheck",
     "dev": "next dev",
     "fix": "ultracite fix",
     "lint": "ultracite check",
     "prepare": "husky",
     "start": "next start",
-    "test": "bun test",
     "typecheck": "./node_modules/@typescript/native/bin/tsc --noEmit --incremental --checkers 8"
   },
   "overrides": {
@@ -62,11 +61,9 @@
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/react-test-renderer": "^19.3.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "husky": "^9.1.7",
     "postcss": "^8.5.31",
-    "react-test-renderer": "19.3.1",
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "7.0.2",

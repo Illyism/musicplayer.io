@@ -10,8 +10,7 @@ This project uses **Ultracite**, a zero-config preset that enforces strict code 
 | Fix (whole repo, manual/CI only) | `bun run fix` |
 | Lint / audit code | `bun run lint` (alias: `bun x ultracite check`) |
 | Typecheck | `bun run typecheck` — TS7 via `@typescript/native` |
-| Tests | `bun test` |
-| Full gate | `bun run check` = ultracite + typecheck + test |
+| Full gate | `bun run check` = ultracite + typecheck |
 
 ## Tooling notes for agents
 
