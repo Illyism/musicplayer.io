@@ -37,7 +37,7 @@
     "@radix-ui/react-tooltip": "^1.4.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "class-variance-authority": "^0.7.1",
-    "cn": "^0.4.0",
+    "cn": "^0.5.0",
     "js-yaml": "^5.5.0",
     "lodash": "^4.18.1",
     "next": "16.4.2",
@@ -70,7 +70,7 @@
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "7.0.2",
-    "ultracite": "7.12.4"
+    "ultracite": "8.0.2"
   },
   "packageManager": "bun@1.4.4",
   "engines": {
