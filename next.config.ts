@@ -64,9 +64,11 @@ const nextConfig: NextConfig = {
     },
   },
   output: 'standalone',
+  // Explicit opt-out keeps today's prefetch behaviour; Next enables partial prefetching by default next major
+  partialPrefetching: false,
   reactCompiler: true,
   reactStrictMode: true,
-  // Skip Next's embedded tsc (TS6) inside Docker builds. The real gate is CI/pre-commit
+  // Skip Next's embedded typecheck inside Docker builds. The real gate is CI/pre-commit
   // `bun run typecheck` (TS7 via @typescript/native).
   typescript: {
     ignoreBuildErrors: process.env.DOCKER_BUILD === 'true',

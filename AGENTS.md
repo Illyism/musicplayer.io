@@ -14,7 +14,7 @@ This project uses **Ultracite**, a zero-config preset that enforces strict code 
 
 ## Tooling notes for agents
 
-- **Dual TypeScript**: `typescript@6` exists because Next.js `build` requires the compiler API. The authoritative CLI is TS7 at `./node_modules/@typescript/native/bin/tsc`. Never replace `typescript` with v7-only.
+- **TypeScript 7**: `typescript` and `@typescript/native` are both 7.0.2. `bun run typecheck` calls the native CLI at `./node_modules/@typescript/native/bin/tsc`; Next.js `build` uses the `typescript` package (also TS7).
 - **Hooks**: Cursor hooks in `.cursor/hooks.json` run scoped `ultracite fix` on the edited file only — never run whole-tree `ultracite fix` inside hooks.
 - **Docker builds**: set `DOCKER_BUILD=true`; the Dockerfile builder runs `bun run build` only. Lint/typecheck belong to pre-commit and CI.
 - **Relaxed rules** (`biome.jsonc`): `noExplicitAny` off (Reddit API boundaries), `noJsxPropsBind` off (inline handlers are idiomatic here), `noNamespaceImport` off (shadcn `import * as React`), `useExhaustiveDependencies`/`noUnnecessaryConditions`/`noLeakedRender` warn-only.

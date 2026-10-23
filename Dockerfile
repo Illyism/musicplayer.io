@@ -8,7 +8,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json bun.lock* ./
 # Install dependencies with Bun
-RUN bun install
+RUN bun install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -18,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Lint/typecheck run in CI and pre-commit (TS7), not here.
-# DOCKER_BUILD skips Next's embedded TS6 typecheck; build is the only gate in the image.
+# DOCKER_BUILD skips Next's embedded typecheck; build is the only gate in the image.
 ENV DOCKER_BUILD=true
 
 # Build Next.js application

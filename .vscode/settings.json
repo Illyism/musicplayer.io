@@ -49,7 +49,7 @@
     "**/dist/**": true
   },
 
-  // TypeScript 7 (native) via @typescript/native — not ./node_modules/typescript (that's TS6 for Next builds)
+  // TypeScript 7 (native) via @typescript/native
   "js/ts.tsdk.path": "./node_modules/@typescript/native",
   "js/ts.experimental.useTsgo": true,
   "typescript.enablePromptUseWorkspaceTsdk": true,
