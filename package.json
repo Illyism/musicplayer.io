@@ -56,7 +56,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/bun": "^1.4.2",
+    "@types/bun": "^1.4.4",
     "@types/js-yaml": "^4.0.9",
     "@types/lodash": "^4.17.25",
     "@types/node": "^26.6.4",
@@ -72,7 +72,7 @@
     "typescript": "7.0.2",
     "ultracite": "7.12.4"
   },
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "engines": {
     "node": "24.22.1"
   },
