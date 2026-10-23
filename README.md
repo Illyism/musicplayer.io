@@ -76,8 +76,8 @@ Recommendations adapt to play, skip, and save events on this device. They use fi
 
 ## 📋 Requirements
 
-- Node.js 22+
-- npm or yarn
+- Node.js 26.12.1 (see `.nvmrc`)
+- Bun 1.4.4 (package manager and production runtime)
 - Reddit OAuth app credentials (required to fetch Reddit listings)
 
 ## 🔧 Configuration

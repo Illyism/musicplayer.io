@@ -59,7 +59,7 @@
     "@types/bun": "^1.4.4",
     "@types/js-yaml": "^4.0.9",
     "@types/lodash": "^4.17.27",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/react-test-renderer": "^19.3.0",
@@ -74,7 +74,7 @@
   },
   "packageManager": "bun@1.4.4",
   "engines": {
-    "node": "24.22.1"
+    "node": "26.12.1"
   },
   "collective": {
     "type": "opencollective",
