@@ -58,7 +58,7 @@ function ComboboxInput({
     <InputGroup className={cn('w-auto', className)}>
       <ComboboxPrimitive.Input render={<InputGroupInput disabled={disabled} />} {...props} />
       <InputGroupAddon align="inline-end">
-        {showTrigger && (
+        {showTrigger ? (
           <InputGroupButton
             asChild
             className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
@@ -69,8 +69,8 @@ function ComboboxInput({
           >
             <ComboboxTrigger />
           </InputGroupButton>
-        )}
-        {showClear && <ComboboxClear disabled={disabled} />}
+        ) : null}
+        {showClear ? <ComboboxClear disabled={disabled} /> : null}
       </InputGroupAddon>
       {children}
     </InputGroup>
@@ -224,14 +224,14 @@ function ComboboxChip({
       {...props}
     >
       {children}
-      {showRemove && (
+      {showRemove ? (
         <ComboboxPrimitive.ChipRemove
           data-slot="combobox-chip-remove"
           render={<Button size="icon-xs" variant="ghost" />}
         >
           <X className="pointer-events-none" weight="bold" />
         </ComboboxPrimitive.ChipRemove>
-      )}
+      ) : null}
     </ComboboxPrimitive.Chip>
   )
 }
