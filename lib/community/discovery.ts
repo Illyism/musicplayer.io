@@ -258,7 +258,10 @@ export function createCommunityDiscovery({
     const communities = await mapConcurrent<Candidate, Community | null>(
       [...selected.values()].slice(0, MAX_CANDIDATES),
       async candidate => {
-        const aboutResponse = await read(`/r/${candidate.key}/about`, {})
+        const [aboutResponse, recentResponse] = await Promise.all([
+          read(`/r/${candidate.key}/about`, {}),
+          read(`/r/${candidate.key}/new`, { limit: String(SAMPLE_SIZE) }),
+        ])
         const about = record(record(aboutResponse).data) as AboutData
         if (
           typeof about.display_name !== 'string' ||
@@ -274,7 +277,6 @@ export function createCommunityDiscovery({
         if (!isMusicCommunity(about.display_name, `${title} ${description}`)) {
           return null
         }
-        const recentResponse = await read(`/r/${candidate.key}/new`, { limit: String(SAMPLE_SIZE) })
         if (recentResponse === null) {
           return null
         }

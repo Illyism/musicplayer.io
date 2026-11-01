@@ -11,7 +11,7 @@ import {
   X,
 } from '@phosphor-icons/react'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ShareModal } from '@/components/share-modal'
@@ -114,7 +114,6 @@ export function BrowsePanel() {
     refresh,
   } = useCommunityDiscovery(mode === 'communities' ? query : '', category)
   const router = useRouter()
-  const pathname = usePathname()
   const {
     selectedSubreddits,
     setSelectedSubreddits,
@@ -136,17 +135,18 @@ export function BrowsePanel() {
 
   const updatePath = (names: string[]) => {
     const path = names.length > 0 ? `/r/${names.join('+')}` : '/'
-    if (path !== pathname) {
+    if (typeof window === 'undefined' || path !== window.location.pathname) {
       router.push(path)
     }
   }
 
   const toggle = async (key: string) => {
-    const names = selectedSubreddits.includes(key)
+    const isRemoving = selectedSubreddits.includes(key)
+    const names = isRemoving
       ? selectedSubreddits.filter(name => name !== key)
       : [...selectedSubreddits, key]
     setSearchQuery(null)
-    setSelectedSubreddits(names)
+    setSelectedSubreddits(names, { persist: isRemoving })
     updatePath(names)
     if (names.length === 0) {
       setSongs([])
@@ -165,7 +165,7 @@ export function BrowsePanel() {
       return
     }
     setSearchQuery(query.trim())
-    setSelectedSubreddits([])
+    setSelectedSubreddits([], { persist: false })
     updatePath([])
     setMobileView('playlist')
     try {

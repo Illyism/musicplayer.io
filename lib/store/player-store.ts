@@ -39,6 +39,7 @@ export interface PlayerState {
   isPlaying: boolean
   isTheatreMode: boolean
   listingCursorId: string | null
+  listingError: string | null
   loading: boolean
 
   // UI
@@ -80,13 +81,14 @@ export interface PlayerActions {
   setCurrentSong: (index: number) => void
   setCurrentTime: (time: number) => void
   setDuration: (duration: number) => void
+  setListingError: (error: string | null) => void
   setLoading: (loading: boolean) => void
 
   // UI actions
   setMobileView: (view: PlayerState['mobileView']) => void
   setQueueOpen: (open: boolean) => void
   setSearchQuery: (query: string | null) => void
-  setSelectedSubreddits: (subreddits: string[]) => void
+  setSelectedSubreddits: (subreddits: string[], options?: { persist?: boolean }) => void
   // Playlist actions
   setSongs: (songs: Song[]) => void
   setSortMethod: (method: PlayerState['sortMethod']) => void
@@ -123,6 +125,8 @@ function _loadFromStorage<T>(key: string, defaultValue: T): T {
   }
 }
 
+const VALID_SUBREDDIT_NAME_REGEX = /^[a-z0-9_-]{1,100}$/i
+
 function saveToStorage<T>(key: string, value: T): void {
   if (typeof window === 'undefined') {
     return
@@ -131,6 +135,61 @@ function saveToStorage<T>(key: string, value: T): void {
     localStorage.setItem(key, JSON.stringify(value))
   } catch (error) {
     console.error(`Failed to save ${key} to localStorage:`, error)
+  }
+}
+
+export function getPersistedSubreddits(): string[] {
+  if (typeof window === 'undefined') {
+    return ['listentothis']
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.subreddits)
+    if (!raw) {
+      return ['listentothis']
+    }
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return ['listentothis']
+    }
+    const valid = parsed
+      .filter((item): item is string => typeof item === 'string')
+      .map(item => item.trim().toLowerCase())
+      .filter(item => VALID_SUBREDDIT_NAME_REGEX.test(item))
+    return [...new Set(valid)]
+  } catch {
+    return ['listentothis']
+  }
+}
+
+export function removeSubredditsFromStorage(invalidSubreddits: string[]): string[] {
+  if (typeof window === 'undefined') {
+    return ['listentothis']
+  }
+  const invalidSet = new Set(invalidSubreddits.map(sub => sub.toLowerCase()))
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.subreddits)
+    if (!raw) {
+      return ['listentothis']
+    }
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      localStorage.removeItem(STORAGE_KEYS.subreddits)
+      return ['listentothis']
+    }
+    const remaining = parsed
+      .filter((item): item is string => typeof item === 'string')
+      .map(item => item.trim().toLowerCase())
+      .filter(item => VALID_SUBREDDIT_NAME_REGEX.test(item) && !invalidSet.has(item))
+    const unique = [...new Set(remaining)]
+    if (unique.length === 0) {
+      localStorage.removeItem(STORAGE_KEYS.subreddits)
+      return ['listentothis']
+    }
+    localStorage.setItem(STORAGE_KEYS.subreddits, JSON.stringify(unique))
+    return unique
+  } catch {
+    localStorage.removeItem(STORAGE_KEYS.subreddits)
+    return ['listentothis']
   }
 }
 
@@ -207,6 +266,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isPlaying: false,
   isTheatreMode: false,
   listingCursorId: null,
+  listingError: null,
   loading: true,
 
   mobileView: 'playlist',
@@ -378,6 +438,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
   },
 
+  setListingError: listingError => {
+    set({ listingError })
+  },
+
   setLoading: loading => {
     set({ loading })
   },
@@ -397,7 +461,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({ searchQuery: query })
   },
 
-  setSelectedSubreddits: subreddits => {
+  setSelectedSubreddits: (subreddits, options) => {
     // Deduplicate subreddits (keep first occurrence)
     const seen = new Set<string>()
     const unique = subreddits.filter(sub => {
@@ -408,7 +472,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       return true
     })
     set({ selectedSubreddits: unique })
-    saveToStorage(STORAGE_KEYS.subreddits, unique)
+    if (options?.persist !== false) {
+      saveToStorage(STORAGE_KEYS.subreddits, unique)
+    }
   },
 
   // ========================================

@@ -20,9 +20,13 @@ import { useMediaSession } from '@/lib/hooks/use-media-session'
 import { usePlayerHydration } from '@/lib/hooks/use-player-hydration'
 import { usePlayerStore } from '@/lib/store/player-store'
 
+function RouteInitializer() {
+  useInitializeApp()
+  return null
+}
+
 function MusicAppContent() {
   usePlayerHydration()
-  useInitializeApp()
   useListeningSignals()
   useMediaSession()
 
@@ -72,6 +76,9 @@ function MusicAppContent() {
       >
         Skip to music
       </a>
+      <Suspense fallback={null}>
+        <RouteInitializer />
+      </Suspense>
       <KeyboardShortcuts onShowShortcuts={() => setShowKeyboardModal(true)} />
       <div className="app-header shrink-0">
         <Header setShowKeyboardModal={setShowKeyboardModal} showKeyboardModal={showKeyboardModal} />
