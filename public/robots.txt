@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# AI training and low-value crawlers (security/robots-policy.md, Nov 2026)
+User-agent: meta-externalagent
+User-agent: meta-externalads
+User-agent: Reflectionbot
+User-agent: ElevenlabsCrawler
+User-agent: AionBot
+User-agent: TokenFoundryBot
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: AwarioBot
+User-agent: QlyzeBot
+User-agent: Barkrowler
+User-agent: SERankingBacklinksBot
+User-agent: SenderBot
+User-agent: TernCrawler
+User-agent: SQLSpider
+User-agent: SpiderLing
+Disallow: /
