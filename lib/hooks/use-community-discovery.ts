@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { CommunityCategory, CommunityDiscoveryResult } from '@/lib/community/types'
+import { usePlayerStore } from '@/lib/store/player-store'
 
 const clientCache = new Map<string, { data: CommunityDiscoveryResult; expiresAt: number }>()
 const pendingRequests = new Map<string, Promise<CommunityDiscoveryResult>>()
@@ -85,9 +86,35 @@ export function useCommunityDiscovery(query = '', category: CommunityCategory | 
         }
       }
     }
-    const timeout = setTimeout(load, query.trim() ? 350 : 0)
+    let started = false
+    let unsubscribe: (() => void) | undefined
+    const runOnce = () => {
+      if (started) {
+        return
+      }
+      started = true
+      unsubscribe?.()
+      load()
+    }
+
+    if (!query.trim() && attempt === 0 && usePlayerStore.getState().loading) {
+      unsubscribe = usePlayerStore.subscribe(state => {
+        if (!state.loading) {
+          runOnce()
+        }
+      })
+    }
+
+    let delayMs = 0
+    if (query.trim()) {
+      delayMs = 350
+    } else if (usePlayerStore.getState().loading && attempt === 0) {
+      delayMs = 800
+    }
+    const timeout = setTimeout(runOnce, delayMs)
     return () => {
       clearTimeout(timeout)
+      unsubscribe?.()
       controller.abort()
     }
   }, [attempt, category, query])

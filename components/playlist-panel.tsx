@@ -359,7 +359,6 @@ function TrackLoadingState() {
 
 export function PlaylistPanel() {
   const [filterQuery, setFilterQuery] = useState('')
-  const [requestError, setRequestError] = useState<string | null>(null)
   const {
     songs,
     currentIndex,
@@ -368,9 +367,11 @@ export function PlaylistPanel() {
     topPeriod,
     selectedSubreddits,
     searchQuery,
+    listingError,
     loading,
     after,
     setCurrentSong,
+    setListingError,
     shufflePlaylist,
     togglePlay,
     setMobileView,
@@ -392,31 +393,30 @@ export function PlaylistPanel() {
     }
 
     const refresh = async () => {
-      setRequestError(null)
+      setListingError(null)
       try {
         await fetchSongs()
       } catch (error) {
-        setRequestError(getErrorMessage(error))
+        setListingError(getErrorMessage(error))
       }
     }
     refresh()
-  }, [fetchSongs, sortMethod, topPeriod])
+  }, [fetchSongs, setListingError, sortMethod, topPeriod])
 
   useEffect(() => {
     if (previousContext.current === contextKey) {
       return
     }
     previousContext.current = contextKey
-    setRequestError(null)
     setFilterQuery('')
   }, [contextKey])
 
   const handleFetch = async (pagination?: string) => {
-    setRequestError(null)
+    setListingError(null)
     try {
       await fetchSongs(pagination)
     } catch (error) {
-      setRequestError(getErrorMessage(error))
+      setListingError(getErrorMessage(error))
     }
   }
 
@@ -510,16 +510,18 @@ export function PlaylistPanel() {
           </div>
         </header>
 
-        <div className={searchQuery ? undefined : 'min-h-[228px]'}>
+        <div
+          className={searchQuery || (!loading && songs.length === 0) ? undefined : 'min-h-[228px]'}
+        >
           {songs.length > 0 ? <DiscoveryShelves /> : null}
         </div>
 
         <TrackToolbar filterQuery={filterQuery} loading={loading} onFilterChange={setFilterQuery} />
 
         <div aria-busy={loading} className="flex-1 px-2 pt-3 pb-6 sm:px-5 lg:px-7">
-          {requestError !== null && (
+          {listingError !== null && !loading && (
             <div className="mx-3 mb-4 rounded-xl bg-destructive/10 p-4 text-sm" role="alert">
-              <p>{requestError}</p>
+              <p>{listingError}</p>
               <Button
                 className="mt-3 h-11 rounded-full px-4"
                 disabled={loading}
@@ -530,35 +532,30 @@ export function PlaylistPanel() {
               </Button>
             </div>
           )}
-          {songs.length === 0 &&
-            (loading ||
-              (selectedSubreddits.length > 0 && !searchQuery && requestError === null)) && (
-              <TrackLoadingState />
-            )}
-          {!loading &&
-            songs.length === 0 &&
-            requestError === null &&
-            (searchQuery !== null || selectedSubreddits.length === 0) && (
-              <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-                <span className="flex size-14 items-center justify-center rounded-2xl bg-muted">
-                  <MusicNote className="size-6 text-muted-foreground" />
-                </span>
-                <h3 className="mt-1 font-medium text-lg">A little quiet here.</h3>
-                <p className="max-w-64 text-muted-foreground text-sm leading-6">
-                  {searchQuery
-                    ? 'Try another search, or explore a music community.'
-                    : 'Try another community or sort to find something good.'}
-                </p>
-                <Button
-                  className="mt-2 h-11 gap-2 rounded-full px-5 lg:hidden"
-                  onClick={() => setMobileView('browse')}
-                  variant="outline"
-                >
-                  <Compass className="size-4" />
-                  Explore communities
-                </Button>
-              </div>
-            )}
+          {loading && songs.length === 0 && <TrackLoadingState />}
+          {!loading && songs.length === 0 && (
+            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+              <span className="flex size-14 items-center justify-center rounded-2xl bg-muted">
+                <MusicNote className="size-6 text-muted-foreground" />
+              </span>
+              <h3 className="mt-1 font-medium text-lg">
+                {listingError === null ? 'A little quiet here.' : 'Community not found.'}
+              </h3>
+              <p className="max-w-64 text-muted-foreground text-sm leading-6">
+                {searchQuery
+                  ? 'Try another search, or explore a music community.'
+                  : 'Try another community or sort to find something good.'}
+              </p>
+              <Button
+                className="mt-2 h-11 gap-2 rounded-full px-5 lg:hidden"
+                onClick={() => setMobileView('browse')}
+                variant="outline"
+              >
+                <Compass className="size-4" />
+                Explore communities
+              </Button>
+            </div>
+          )}
           {songs.length > 0 && (
             <>
               <div className="mb-2 flex items-center justify-between px-3 py-2 text-[11px] text-muted-foreground">

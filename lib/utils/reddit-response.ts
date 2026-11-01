@@ -9,7 +9,7 @@ import {
 const MINUTE_MS = 60_000
 const REQUEST_BUDGET = 60
 const QUOTA_RESERVE = 5
-const REQUEST_TIMEOUT_MS = 8000
+const REQUEST_TIMEOUT_MS = 5000
 let windowStartsAt = Date.now()
 let usedInWindow = 0
 let blockedUntil = 0
@@ -205,33 +205,38 @@ function slimPostData(data: Record<string, unknown>) {
 export async function redditFetch(
   url: string,
   headers: HeadersInit,
-  retries = 2
+  retries = 1
 ): Promise<Response> {
   let lastResponse: Response | undefined
+  let lastError: unknown
 
   // Retries are inherently sequential — each attempt depends on the previous failure
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     reserveApiRequest()
-    // biome-ignore lint/performance/noAwaitInLoops: sequential retry with backoff
-    lastResponse = await fetch(url, {
-      cache: 'no-store',
-      headers,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    })
-    observeApiQuota(lastResponse)
+    try {
+      // biome-ignore lint/performance/noAwaitInLoops: sequential retry with backoff
+      lastResponse = await fetch(url, {
+        cache: 'no-store',
+        headers,
+        redirect: 'manual',
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      })
+      observeApiQuota(lastResponse)
 
-    if (lastResponse.ok || lastResponse.status < 500) {
-      return lastResponse
+      if (lastResponse.ok || lastResponse.status < 500) {
+        return lastResponse
+      }
+    } catch (error) {
+      lastError = error
     }
 
     if (attempt < retries) {
-      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
+      await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)))
     }
   }
 
   if (!lastResponse) {
-    throw new Error('Reddit API did not return a response')
+    throw lastError instanceof Error ? lastError : new Error('Reddit API did not return a response')
   }
   return lastResponse
 }

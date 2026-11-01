@@ -1,7 +1,6 @@
-import { cacheLife } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { isRedditError } from '@/lib/errors/reddit-error'
+import { isRedditError, RedditError } from '@/lib/errors/reddit-error'
 import { handleRedditApiError } from '@/lib/utils/error-handler'
 import {
   isValidRedditPermalink,
@@ -11,10 +10,92 @@ import {
 
 const SUBREDDIT_NAME_REGEX = /^[a-zA-Z0-9_-]+$/
 const MAX_MULTI_SUBREDDITS = 50
+const LISTING_CACHE_MS = 15 * 60_000
+const NOT_FOUND_CACHE_MS = 60_000
+const MAX_CACHE_KEYS = 200
 const CACHE_HEADERS = {
   'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=3600',
 }
 const ERROR_HEADERS = { 'Cache-Control': 'private, no-store' }
+
+interface CacheEntry<T> {
+  expiresAt: number
+  value: T
+}
+
+const listingCache = new Map<string, CacheEntry<any>>()
+const listingInFlight = new Map<string, Promise<any>>()
+const notFoundCache = new Map<string, CacheEntry<{ message: string; statusCode: number }>>()
+
+function setBoundedCache<T>(map: Map<string, CacheEntry<T>>, key: string, entry: CacheEntry<T>) {
+  if (map.size >= MAX_CACHE_KEYS && !map.has(key)) {
+    const oldestKey = map.keys().next().value
+    if (oldestKey !== undefined) {
+      map.delete(oldestKey)
+    }
+  }
+  map.set(key, entry)
+}
+
+function getCached<T>(map: Map<string, CacheEntry<T>>, key: string): T | undefined {
+  const cached = map.get(key)
+  if (!cached) {
+    return undefined
+  }
+  if (cached.expiresAt <= Date.now()) {
+    map.delete(key)
+    return undefined
+  }
+  return cached.value
+}
+
+async function withSharedCache<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  ttlMs = LISTING_CACHE_MS
+): Promise<T> {
+  const cachedNotFound = getCached(notFoundCache, key)
+  if (cachedNotFound) {
+    throw new RedditError(cachedNotFound.message, cachedNotFound.statusCode, cachedNotFound.message)
+  }
+
+  const cached = getCached(listingCache, key)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const pending = listingInFlight.get(key)
+  if (pending) {
+    return pending
+  }
+
+  const request = (async () => {
+    try {
+      const value = await fetcher()
+      setBoundedCache(listingCache, key, {
+        expiresAt: Date.now() + ttlMs,
+        value,
+      })
+      return value
+    } catch (error) {
+      if (isRedditError(error) && error.statusCode === 404) {
+        setBoundedCache(notFoundCache, key, {
+          expiresAt: Date.now() + NOT_FOUND_CACHE_MS,
+          value: {
+            message: error.getUserMessage(),
+            statusCode: 404,
+          },
+        })
+      }
+      throw error
+    } finally {
+      listingInFlight.delete(key)
+    }
+  })()
+
+  listingInFlight.set(key, request)
+  return await request
+}
 
 function isCrossSiteRequest(request: NextRequest): boolean {
   if (request.headers.get('sec-fetch-site') === 'cross-site') {
@@ -105,80 +186,97 @@ const GetCommentsSchema = z.object({
   permalink: PermalinkSchema,
 })
 
-async function fetchSubredditPostsCached(
+function normalizeSubredditPath(subreddit: string): string {
+  const unique = [
+    ...new Set(
+      subreddit
+        .split('+')
+        .map(sub => sub.trim().toLowerCase())
+        .filter(Boolean)
+    ),
+  ].sort()
+  return unique.join('+')
+}
+
+function fetchSubredditPostsCached(
   subreddit: string,
   sort: string,
   timePeriod: string | undefined,
   after: string | undefined,
   limit: string
 ) {
-  'use cache'
-  cacheLife('hours')
+  const canonicalSubreddit = normalizeSubredditPath(subreddit)
+  const cacheKey = `sub:${canonicalSubreddit}:${sort}:${timePeriod ?? ''}:${after ?? ''}:${limit}`
 
-  const params = new URLSearchParams({ limit })
-  if (timePeriod) {
-    params.append('t', timePeriod)
-  }
-  if (after) {
-    params.append('after', after)
-  }
+  return withSharedCache(cacheKey, async () => {
+    const params = new URLSearchParams({ limit })
+    if (timePeriod) {
+      params.append('t', timePeriod)
+    }
+    if (after) {
+      params.append('after', after)
+    }
 
-  const response = await redditApiFetch(`/r/${subreddit}/${sort}`, params)
+    const response = await redditApiFetch(`/r/${canonicalSubreddit}/${sort}`, params)
 
-  if (!response.ok) {
-    await handleRedditApiError(response)
-  }
+    if (!response.ok) {
+      await handleRedditApiError(response)
+    }
 
-  return slimListingResponse(await response.json())
+    return slimListingResponse(await response.json())
+  })
 }
 
-async function searchRedditCached(
+function searchRedditCached(
   query: string,
   sort: string,
   timePeriod: string | undefined,
   after: string | undefined,
   limit: string
 ) {
-  'use cache'
-  cacheLife('hours')
+  const normalizedQuery = query.trim().toLowerCase()
+  const cacheKey = `search:${normalizedQuery}:${sort}:${timePeriod ?? ''}:${after ?? ''}:${limit}`
 
-  const params = new URLSearchParams({
-    limit,
-    q: query,
-    sort,
-    ...(timePeriod && { t: timePeriod }),
-    ...(after && { after }),
+  return withSharedCache(cacheKey, async () => {
+    const params = new URLSearchParams({
+      limit,
+      q: query,
+      sort,
+      ...(timePeriod && { t: timePeriod }),
+      ...(after && { after }),
+    })
+
+    const response = await redditApiFetch('/search', params)
+
+    if (!response.ok) {
+      await handleRedditApiError(response)
+    }
+
+    return slimListingResponse(await response.json())
   })
-
-  const response = await redditApiFetch('/search', params)
-
-  if (!response.ok) {
-    await handleRedditApiError(response)
-  }
-
-  return slimListingResponse(await response.json())
 }
 
-async function getCommentsCached(permalink: string) {
-  'use cache'
-  cacheLife('hours')
+function getCommentsCached(permalink: string) {
+  const cacheKey = `comments:${permalink}`
 
-  const params = new URLSearchParams({ depth: '10', limit: '100', sort: 'top' })
+  return withSharedCache(cacheKey, async () => {
+    const params = new URLSearchParams({ depth: '10', limit: '100', sort: 'top' })
 
-  const response = await redditApiFetch(permalink, params)
+    const response = await redditApiFetch(permalink, params)
 
-  if (!response.ok) {
-    await handleRedditApiError(response)
-  }
+    if (!response.ok) {
+      await handleRedditApiError(response)
+    }
 
-  const data = await response.json()
-  const commentsData = data[1]?.data?.children || []
-  const formattedComments = parseComments(commentsData)
+    const data = await response.json()
+    const commentsData = data[1]?.data?.children || []
+    const formattedComments = parseComments(commentsData)
 
-  return {
-    comments: formattedComments,
-    count: formattedComments.length,
-  }
+    return {
+      comments: formattedComments,
+      count: formattedComments.length,
+    }
+  })
 }
 
 function parseComments(children: any[]): any[] {
@@ -267,6 +365,8 @@ export async function GET(request: NextRequest) {
   const after = searchParams.get('after') ?? undefined
   const limit = searchParams.get('limit') ?? '100'
   const timePeriod = searchParams.get('t') ?? undefined
+  const subredditParam =
+    searchParams.get('subreddit') ?? searchParams.get('subreddits') ?? searchParams.get('r')
 
   try {
     if (searchParams.has('permalink')) {
@@ -295,12 +395,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data, { headers: CACHE_HEADERS })
     }
 
-    if (searchParams.has('subreddit')) {
+    if (subredditParam !== null) {
       const validated = GetSubredditPostsSchema.parse({
         after,
         limit,
         sort: searchParams.get('sort') ?? 'hot',
-        subreddit: searchParams.get('subreddit') ?? '',
+        subreddit: subredditParam,
         timePeriod,
       })
       const data = await fetchSubredditPostsCached(

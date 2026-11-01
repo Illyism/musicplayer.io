@@ -1,9 +1,10 @@
 'use client'
 
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import { usePlayerStore } from '@/lib/store/player-store'
-import { useRedditAPI } from './use-reddit-api'
+import { getPersistedSubreddits, usePlayerStore } from '@/lib/store/player-store'
+import { hydratePlayerStore } from './use-player-hydration'
+import { isSubredditFetchInFlight, useRedditAPI } from './use-reddit-api'
 
 const REDDIT_PATH_REGEX = /^\/r\/([^/]+)\/?$/
 const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/
@@ -27,16 +28,22 @@ function decodeRouteValue(value: string | null): string | null {
 /** Initialize the feed from the route, after client storage has hydrated. */
 export function useInitializeApp() {
   const hasInitialized = useRef<boolean>(false)
-  const searchParams = useSearchParams()
+  const previousRouteRef = useRef<string | null>(null)
   const pathname = usePathname()
   const { fetchFromSubreddits } = useRedditAPI()
 
   useEffect(() => {
+    hydratePlayerStore()
+
     // Browse starts searches before navigation completes. Keep that request active.
     const state = usePlayerStore.getState()
+    const searchParams = new URLSearchParams(window.location.search)
     const routeCommunities = decodeRouteValue(
       pathname.match(REDDIT_PATH_REGEX)?.[1] ?? searchParams.get('r')
     )
+    const wasOnRoute = previousRouteRef.current !== null
+    previousRouteRef.current = routeCommunities
+
     if (state.searchQuery && !routeCommunities) {
       hasInitialized.current = true
       return
@@ -64,39 +71,67 @@ export function useInitializeApp() {
       ].slice(0, MAX_ROUTE_COMMUNITIES)
       const currentSelection = [...state.selectedSubreddits].sort().join('+')
       const routeSelection = [...communities].sort().join('+')
+      const wasInitialized = hasInitialized.current
+      hasInitialized.current = true
+
       if (communities.length > 0) {
         if (
-          !hasInitialized.current ||
+          !wasInitialized ||
           currentSelection !== routeSelection ||
           sortChanged ||
           periodChanged ||
           state.searchQuery
         ) {
-          hasInitialized.current = true
           state.setSearchQuery(null)
-          state.setSelectedSubreddits(communities)
+          state.setSelectedSubreddits(communities, { persist: false })
           // The API hook reports failures with a toast; handle this boundary's promise.
           const browseRequestIsActive =
-            state.loading && currentSelection === routeSelection && !sortChanged && !periodChanged
+            wasInitialized &&
+            isSubredditFetchInFlight(routeSelection) &&
+            !sortChanged &&
+            !periodChanged
           if (!browseRequestIsActive) {
             fetchFromSubreddits(communities).catch(() => undefined)
           }
         }
         return
       }
+
+      state.setSearchQuery(null)
+      state.setSelectedSubreddits([], { persist: false })
+      state.setSongs([])
+      state.setAfter(null)
+      state.setListingError('The requested subreddit or post could not be found.')
+      state.setLoading(false)
+      return
     }
 
-    if (hasInitialized.current && !sortChanged && !periodChanged) {
+    const wasInitialized = hasInitialized.current
+    if (wasInitialized && !wasOnRoute && !sortChanged && !periodChanged) {
       return
     }
     hasInitialized.current = true
-    if (state.selectedSubreddits.length > 0) {
-      fetchFromSubreddits(state.selectedSubreddits).catch(() => undefined)
+
+    if (wasOnRoute || state.selectedSubreddits.length === 0) {
+      const persisted = getPersistedSubreddits()
+      state.setSelectedSubreddits(persisted, { persist: false })
+    }
+
+    const activeSubreddits = usePlayerStore.getState().selectedSubreddits
+    if (activeSubreddits.length > 0) {
+      const selectionKey = [...activeSubreddits].sort().join('+')
+      const browseRequestIsActive =
+        wasInitialized && isSubredditFetchInFlight(selectionKey) && !sortChanged && !periodChanged
+      if (!browseRequestIsActive) {
+        fetchFromSubreddits(activeSubreddits, undefined, {
+          fallbackToDefaultOnError: true,
+        }).catch(() => undefined)
+      }
     } else {
       // An intentionally empty saved mix should stay empty.
       state.setSongs([])
       state.setAfter(null)
       state.setLoading(false)
     }
-  }, [pathname, searchParams, fetchFromSubreddits])
+  }, [pathname, fetchFromSubreddits])
 }
