@@ -7,9 +7,22 @@ import { useRedditAPI } from './use-reddit-api'
 
 const REDDIT_PATH_REGEX = /^\/r\/([^/]+)\/?$/
 const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/
+const VALID_SUBREDDIT_REGEX = /^[a-z0-9_-]{1,100}$/i
+const MAX_ROUTE_COMMUNITIES = 50
 
 const SORT_METHODS = ['hot', 'new', 'top'] as const
 const TOP_PERIODS = ['day', 'week', 'month', 'year', 'all'] as const
+
+function decodeRouteValue(value: string | null): string | null {
+  if (!value) {
+    return null
+  }
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
 
 /** Initialize the feed from the route, after client storage has hydrated. */
 export function useInitializeApp() {
@@ -21,7 +34,9 @@ export function useInitializeApp() {
   useEffect(() => {
     // Browse starts searches before navigation completes. Keep that request active.
     const state = usePlayerStore.getState()
-    const routeCommunities = pathname.match(REDDIT_PATH_REGEX)?.[1] ?? searchParams.get('r')
+    const routeCommunities = decodeRouteValue(
+      pathname.match(REDDIT_PATH_REGEX)?.[1] ?? searchParams.get('r')
+    )
     if (state.searchQuery && !routeCommunities) {
       hasInitialized.current = true
       return
@@ -44,9 +59,9 @@ export function useInitializeApp() {
           routeCommunities
             .split(COMMUNITY_SEPARATOR_REGEX)
             .map(value => value.trim().toLowerCase())
-            .filter(Boolean)
+            .filter(value => VALID_SUBREDDIT_REGEX.test(value))
         ),
-      ]
+      ].slice(0, MAX_ROUTE_COMMUNITIES)
       const currentSelection = [...state.selectedSubreddits].sort().join('+')
       const routeSelection = [...communities].sort().join('+')
       if (communities.length > 0) {

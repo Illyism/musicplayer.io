@@ -17,13 +17,17 @@ export function useAuth() {
 
   useEffect(() => {
     // Fetch auth status from server
-    getAuthStatus().then(status => {
-      setAuthState({
-        isAuthenticated: status.isAuthenticated,
-        username: status.username,
+    getAuthStatus()
+      .then(status => {
+        setAuthState({
+          isAuthenticated: status.isAuthenticated,
+          username: status.username,
+        })
+        setIsLoading(false)
       })
-      setIsLoading(false)
-    })
+      .catch(() => {
+        setIsLoading(false)
+      })
   }, [])
 
   const login = useCallback(async () => {

@@ -69,7 +69,7 @@ async function fetchWithToken(
       Authorization: `Bearer ${token}`,
       'User-Agent': USER_AGENT,
     },
-    redirect: 'error',
+    redirect: 'manual',
     signal: AbortSignal.timeout(8000),
   })
   observeQuota(response)
