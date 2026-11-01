@@ -47,7 +47,7 @@ export async function handleRedditApiError(response: Response): Promise<never> {
     )
   }
 
-  if (response.status === 404) {
+  if (response.status === 404 || (response.status >= 300 && response.status < 400)) {
     throw new RedditError(
       'Not found (404).',
       404,

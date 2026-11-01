@@ -216,7 +216,7 @@ export async function redditFetch(
     lastResponse = await fetch(url, {
       cache: 'no-store',
       headers,
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
     observeApiQuota(lastResponse)
