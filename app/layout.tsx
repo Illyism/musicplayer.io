@@ -40,6 +40,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>{children}</Providers>
         <Script
           data-domain="musicplayer.io"
+          defer
+          src="https://p.il.ly/js/script.outbound-links.js"
+        />
+        <Script
+          data-domain="musicplayer.io"
           data-website-id="5x6q1l2h2x453i2t"
           defer
           src="https://fast.il.ly/js/script.js"
