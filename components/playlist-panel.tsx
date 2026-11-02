@@ -180,7 +180,7 @@ function TrackToolbar({
 
   return (
     <div
-      className="sticky top-0 z-10 flex flex-col gap-2 border-border/70 border-b bg-background/95 px-4 py-2 backdrop-blur-sm sm:px-8 lg:gap-3 lg:pb-4"
+      className="sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-border/70 border-b bg-background/95 px-4 py-2 backdrop-blur-sm sm:px-8 lg:gap-3 lg:pb-4"
       data-track-toolbar
     >
       <div className="flex items-center justify-between gap-2">
@@ -451,7 +451,7 @@ export function PlaylistPanel() {
   return (
     <section aria-label="Your music mix" className="flex h-full min-h-0 flex-col bg-background">
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <header className="flex flex-col gap-3 px-4 pt-4 pb-3 sm:px-8 lg:gap-4 lg:pt-8 lg:pb-5">
+        <header className="flex shrink-0 flex-col gap-3 px-4 pt-4 pb-3 sm:px-8 lg:gap-4 lg:pt-8 lg:pb-5">
           <div className="hidden items-center gap-2 text-muted-foreground text-xs lg:flex">
             <RedditLogo className="size-4 text-reddit" weight="fill" />
             <span>Good music. Real communities.</span>
@@ -511,7 +511,9 @@ export function PlaylistPanel() {
         </header>
 
         <div
-          className={searchQuery || (!loading && songs.length === 0) ? undefined : 'min-h-[228px]'}
+          className={
+            searchQuery || (!loading && songs.length === 0) ? undefined : 'min-h-[228px] shrink-0'
+          }
         >
           {songs.length > 0 ? <DiscoveryShelves /> : null}
         </div>

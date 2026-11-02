@@ -23,7 +23,7 @@ export function AppShellFallback() {
               <div className="size-11 rounded-full bg-muted" />
             </div>
           </header>
-          <div className="min-h-[228px]" />
+          <div className="min-h-[228px] shrink-0" />
           <div aria-busy="true" className="flex-1 px-2 pt-3 pb-6 sm:px-5 lg:px-7">
             <div aria-label="Loading tracks" className="flex flex-col gap-2 py-2" role="status">
               <span className="sr-only">Finding music from your communities…</span>
