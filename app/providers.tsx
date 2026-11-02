@@ -18,13 +18,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           strategy="afterInteractive"
         />
       )}
-      <Script
-        data-domain="musicplayer.io"
-        data-website-id="5x6q1l2h2x453i2t"
-        defer
-        src="https://fast.il.ly/js/script.js"
-        strategy="afterInteractive"
-      />
       <Toaster
         mobileOffset={{ bottom: 'var(--app-toast-offset)' }}
         offset={{ bottom: 'var(--app-toast-offset)' }}
