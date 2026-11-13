@@ -1,7 +1,6 @@
 User-agent: *
 Allow: /
 
-# AI training and low-value crawlers (security/robots-policy.md, Nov 2026)
 User-agent: meta-externalagent
 User-agent: meta-externalads
 User-agent: Reflectionbot
