@@ -2,11 +2,13 @@
 
 import {
   DotsThree,
+  FileText,
   GithubLogo,
   House,
   Keyboard,
   Moon,
   RedditLogo,
+  ShieldCheck,
   SignIn,
   SignOut,
   Stack,
@@ -205,6 +207,19 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
                   <User />
                   Made by Ilias
                 </a>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/privacy">
+                  <ShieldCheck />
+                  Privacy Policy
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/terms">
+                  <FileText />
+                  Terms of Service
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {isAuthenticated ? (

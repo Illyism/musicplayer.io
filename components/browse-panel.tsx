@@ -11,6 +11,7 @@ import {
   X,
 } from '@phosphor-icons/react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -414,6 +415,24 @@ export function BrowsePanel() {
             </Button>
           </form>
         </section>
+        <footer className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-4 text-muted-foreground text-xs lg:px-2">
+          <Link className="hover:text-foreground" href="/privacy">
+            Privacy
+          </Link>
+          <span aria-hidden="true">·</span>
+          <Link className="hover:text-foreground" href="/terms">
+            Terms
+          </Link>
+          <span aria-hidden="true">·</span>
+          <a
+            className="hover:text-foreground"
+            href="https://github.com/musicplayer-io/musicplayer.io"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            GitHub
+          </a>
+        </footer>
       </div>
       <ShareModal isOpen={share} onClose={() => setShare(false)} subreddits={selectedSubreddits} />
     </aside>

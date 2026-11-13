@@ -1,4 +1,4 @@
-import { VinylRecord } from '@phosphor-icons/react'
+import { VinylRecord } from '@phosphor-icons/react/ssr'
 import { cn } from '@/lib/utils'
 
 export function Brand({ compact = false }: { compact?: boolean }) {
