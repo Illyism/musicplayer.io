@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Legal pages stay reachable for people but out of search results.
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, follow' }],
+        source: '/:path(privacy|terms)',
+      },
+      {
         headers: [
           {
             key: 'X-Content-Type-Options',

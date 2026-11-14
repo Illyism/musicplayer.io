@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
   description:
     'Terms of service for Music Player for Reddit (musicplayer.io), an open-source Reddit streaming music player.',
+  robots: { follow: true, index: false },
   title: 'Terms of Service | Music Player for Reddit',
 }
 

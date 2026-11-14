@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/privacy' },
   description:
     'Privacy policy for Music Player for Reddit (musicplayer.io), an open-source streaming music player powered by public Reddit communities.',
+  robots: { follow: true, index: false },
   title: 'Privacy Policy | Music Player for Reddit',
 }
 
