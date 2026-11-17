@@ -26,8 +26,8 @@ import { usePlayerStore } from '@/lib/store/player-store'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/utils/song-utils'
 
-const COMMUNITY_PREFIX = /^\/?r\//
-const COMMUNITY_NAME = /^[a-z0-9_]{1,21}$/
+const COMMUNITY_PREFIX = /^\/?r\//u
+const COMMUNITY_NAME = /^[a-z0-9_]{1,21}$/u
 const GENRE_COLORS: Record<string, string> = {
   Ambient: 'bg-[#356665]',
   Classical: 'bg-[#475c4f]',
@@ -63,7 +63,7 @@ function CommunityRow({
       onClick={() => onToggle(community.key)}
       variant="ghost"
     >
-      <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-reddit lg:size-9">
+      <span className="bg-muted text-reddit flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl lg:size-9">
         {community.iconUrl ? (
           <Image
             alt=""
@@ -78,10 +78,10 @@ function CommunityRow({
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-semibold text-sm lg:text-[13px]">
+        <span className="block truncate text-sm font-semibold lg:text-[13px]">
           r/{community.name}
         </span>
-        <span className="mt-1 block truncate text-muted-foreground text-xs lg:text-[11px]">
+        <span className="text-muted-foreground mt-1 block truncate text-xs lg:text-[11px]">
           {community.recentPlayablePosts === null
             ? 'Activity not verified'
             : `${community.recentPlayablePosts} recent supported links${community.activity === 'quiet' ? ' · Quiet' : ''}`}
@@ -89,14 +89,14 @@ function CommunityRow({
             ? ''
             : ` · ${formatNumber(community.subscribers)} members`}
         </span>
-        <span className="mt-1 line-clamp-1 whitespace-normal text-muted-foreground text-xs lg:hidden">
+        <span className="text-muted-foreground mt-1 line-clamp-1 text-xs whitespace-normal lg:hidden">
           {community.description}
         </span>
       </span>
       {selected ? (
-        <Check className="size-4 text-reddit" weight="bold" />
+        <Check className="text-reddit size-4" weight="bold" />
       ) : (
-        <Plus className="size-4 text-muted-foreground" />
+        <Plus className="text-muted-foreground size-4" />
       )}
     </Button>
   )
@@ -193,12 +193,12 @@ export function BrowsePanel() {
   return (
     <aside
       aria-label="Music discovery"
-      className="flex h-full min-h-0 flex-col bg-background lg:bg-sidebar"
+      className="bg-background lg:bg-sidebar flex h-full min-h-0 flex-col"
     >
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-5 py-5 lg:gap-5 lg:px-3">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between lg:px-2">
-            <h1 className="font-semibold text-3xl tracking-tight lg:text-xl">Find your sound</h1>
+            <h1 className="text-3xl font-semibold tracking-tight lg:text-xl">Find your sound</h1>
             <Button
               aria-label="Refresh communities"
               className="size-11 rounded-full"
@@ -219,12 +219,12 @@ export function BrowsePanel() {
               }
             }}
           >
-            <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" />
+            <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2" />
             <Input
               aria-label={
                 mode === 'tracks' ? 'Search music on Reddit' : 'Search Reddit music communities'
               }
-              className="h-12 rounded-xl border-transparent bg-muted pr-11 pl-11 text-base shadow-none lg:h-11 lg:text-sm"
+              className="bg-muted h-12 rounded-xl border-transparent pr-11 pl-11 text-base shadow-none lg:h-11 lg:text-sm"
               maxLength={mode === 'communities' ? 64 : 200}
               onChange={event => setQuery(event.target.value)}
               placeholder={
@@ -266,7 +266,7 @@ export function BrowsePanel() {
           <>
             {!query && (
               <section className="flex flex-col gap-3 lg:hidden">
-                <h2 className="font-semibold text-xl">Browse by sound</h2>
+                <h2 className="text-xl font-semibold">Browse by sound</h2>
                 <div className="grid grid-cols-2 gap-3">
                   {COMMUNITY_CATEGORIES.filter(
                     value => value !== 'All music' && value !== 'Other'
@@ -274,9 +274,9 @@ export function BrowsePanel() {
                     <button
                       aria-pressed={category === value}
                       className={cn(
-                        'relative flex min-h-24 items-end overflow-hidden rounded-xl p-4 text-left font-semibold text-lg text-white outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'focus-visible:ring-ring relative flex min-h-24 items-end overflow-hidden rounded-xl p-4 text-left text-lg font-semibold text-white outline-none focus-visible:ring-2',
                         GENRE_COLORS[value],
-                        category === value && 'ring-2 ring-foreground'
+                        category === value && 'ring-foreground ring-2'
                       )}
                       key={value}
                       onClick={() => setCategory(category === value ? null : value)}
@@ -315,9 +315,9 @@ export function BrowsePanel() {
               )}
             </div>
             <section className="flex flex-col gap-2">
-              <h2 className="font-semibold text-xl lg:px-2 lg:text-sm">{resultsTitle}</h2>
+              <h2 className="text-xl font-semibold lg:px-2 lg:text-sm">{resultsTitle}</h2>
               {discovering === true && (
-                <p className="py-4 text-muted-foreground text-sm" role="status">
+                <p className="text-muted-foreground py-4 text-sm" role="status">
                   Checking recent music activity…
                 </p>
               )}
@@ -346,7 +346,7 @@ export function BrowsePanel() {
                 !discovering &&
                 error === null &&
                 visibleCommunities.length === 0 && (
-                  <p className="py-4 text-muted-foreground text-sm">
+                  <p className="text-muted-foreground py-4 text-sm">
                     {data?.source === 'fallback'
                       ? 'Try again shortly or add a community below.'
                       : 'No communities found. Try a broader genre or add a community below.'}
@@ -362,7 +362,7 @@ export function BrowsePanel() {
         )}
         <section className="flex flex-col gap-2 border-t pt-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-sm">Your mix</h2>
+            <h2 className="text-sm font-semibold">Your mix</h2>
             <Button
               aria-label="Share your mix"
               className="size-11 rounded-full"
@@ -374,8 +374,8 @@ export function BrowsePanel() {
             </Button>
           </div>
           {selectedSubreddits.map(name => (
-            <div className="flex items-center gap-2 rounded-xl bg-muted/60 pr-1 pl-3" key={name}>
-              <RedditLogo className="size-4 text-reddit" weight="fill" />
+            <div className="bg-muted/60 flex items-center gap-2 rounded-xl pr-1 pl-3" key={name}>
+              <RedditLogo className="text-reddit size-4" weight="fill" />
               <span className="min-w-0 flex-1 truncate text-sm">r/{name}</span>
               <Button
                 aria-label={`Remove r/${name} from your mix`}
@@ -415,7 +415,7 @@ export function BrowsePanel() {
             </Button>
           </form>
         </section>
-        <footer className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-4 text-muted-foreground text-xs lg:px-2">
+        <footer className="text-muted-foreground mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-4 text-xs lg:px-2">
           <Link className="hover:text-foreground" href="/privacy">
             Privacy
           </Link>

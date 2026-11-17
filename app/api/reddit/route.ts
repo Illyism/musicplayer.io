@@ -8,7 +8,7 @@ import {
   slimListingResponse,
 } from '@/lib/utils/reddit-response'
 
-const SUBREDDIT_NAME_REGEX = /^[a-zA-Z0-9_-]+$/
+const SUBREDDIT_NAME_REGEX = /^[a-zA-Z0-9_-]+$/u
 const MAX_MULTI_SUBREDDITS = 50
 const LISTING_CACHE_MS = 15 * 60_000
 const NOT_FOUND_CACHE_MS = 60_000
@@ -152,7 +152,7 @@ const LimitSchema = z
 
 const AfterSchema = z
   .string()
-  .regex(/^[a-zA-Z0-9_]+$/)
+  .regex(/^[a-zA-Z0-9_]+$/u)
   .max(50)
   .optional()
 

@@ -181,6 +181,7 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
 
   return (
     <div className="relative h-full w-full">
+      {/* biome-ignore lint/security/useIframeSandbox: official SoundCloud Widget SDK embed requires unsandboxed origin for postMessage/storage */}
       <iframe
         allow="autoplay"
         frameBorder="no"

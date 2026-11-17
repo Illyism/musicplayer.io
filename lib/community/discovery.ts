@@ -19,7 +19,7 @@ const SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60_000
 const MAX_CACHE_KEYS = 20
 const MAX_CANDIDATES = 16
 const SAMPLE_SIZE = 25
-const COMMUNITY_NAME_PATTERN = /^[a-z0-9_]{1,21}$/i
+const COMMUNITY_NAME_PATTERN = /^[a-z0-9_]{1,21}$/iu
 const MUSIC_LINK_QUERY =
   '(site:youtube.com OR site:youtu.be OR site:soundcloud.com OR site:vimeo.com)'
 

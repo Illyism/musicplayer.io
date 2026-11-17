@@ -8,9 +8,9 @@ const PLAYABLE_HOSTS = new Set([
   'soundcloud.com',
   'vimeo.com',
 ])
-const WWW_PREFIX = /^www\./
-const MP3_SUFFIX = /\.mp3$/i
-const COMMUNITY_QUERY_PREFIX = /^\/?r\//i
+const WWW_PREFIX = /^www\./u
+const MP3_SUFFIX = /\.mp3$/iu
+const COMMUNITY_QUERY_PREFIX = /^\/?r\//iu
 
 export interface DiscoveryPost {
   created_utc?: number

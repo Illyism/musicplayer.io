@@ -20,7 +20,7 @@ const DialogOverlay = ({
 }) => (
   <DialogPrimitive.Overlay
     className={cn(
-      'data-[state=open]:fade-in-0 fixed inset-0 z-100 bg-black/60 backdrop-blur-xs data-[state=closed]:animate-none data-[state=open]:animate-in data-[state=open]:duration-200 motion-reduce:animate-none',
+      'data-[state=open]:fade-in-0 data-[state=open]:animate-in fixed inset-0 z-100 bg-black/60 backdrop-blur-xs data-[state=closed]:animate-none data-[state=open]:duration-200 motion-reduce:animate-none',
       className
     )}
     data-slot="dialog-overlay"
@@ -47,7 +47,7 @@ const DialogContent = ({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          'data-[state=open]:fade-in-0 fixed top-1/2 left-1/2 z-101 grid max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl data-[state=closed]:animate-none data-[state=open]:animate-in data-[state=open]:duration-200 motion-reduce:animate-none sm:p-7',
+          'data-[state=open]:fade-in-0 border-border bg-card data-[state=open]:animate-in fixed top-1/2 left-1/2 z-101 grid max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto rounded-3xl border p-6 shadow-2xl data-[state=closed]:animate-none data-[state=open]:duration-200 motion-reduce:animate-none sm:p-7',
           className
         )}
         data-slot="dialog-content"
@@ -67,7 +67,7 @@ const DialogContent = ({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-3 right-3 flex size-11 items-center justify-center rounded-full text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:pointer-events-none motion-reduce:transform-none">
+        <DialogPrimitive.Close className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring absolute top-3 right-3 flex size-11 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 outline-none focus-visible:ring-2 active:scale-[0.96] disabled:pointer-events-none motion-reduce:transform-none">
           <X aria-hidden className="size-5" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -98,7 +98,7 @@ const DialogTitle = ({
   ref?: React.RefObject<React.ElementRef<typeof DialogPrimitive.Title> | null>
 }) => (
   <DialogPrimitive.Title
-    className={cn('font-semibold text-lg leading-none tracking-tight', className)}
+    className={cn('text-lg leading-none font-semibold tracking-tight', className)}
     ref={ref}
     {...props}
   />

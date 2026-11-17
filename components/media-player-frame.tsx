@@ -114,7 +114,7 @@ export function MediaPlayerFrame({
 
           {playbackError && (
             <p
-              className="absolute inset-x-3 bottom-3 z-20 rounded-xl bg-black/80 px-3 py-2 text-white text-xs leading-relaxed backdrop-blur-sm"
+              className="absolute inset-x-3 bottom-3 z-20 rounded-xl bg-black/80 px-3 py-2 text-xs leading-relaxed text-white backdrop-blur-sm"
               role="status"
             >
               {playbackError}

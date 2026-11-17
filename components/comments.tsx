@@ -32,19 +32,19 @@ function CommentItem({
   const hasReplies = comment.replies.length > 0
 
   return (
-    <article className={depth > 0 ? 'ml-2 border-border border-l pl-3' : ''}>
+    <article className={depth > 0 ? 'border-border ml-2 border-l pl-3' : ''}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         <span className="max-w-full truncate font-medium">u/{comment.author}</span>
         <span className="text-muted-foreground">{comment.created_ago}</span>
       </div>
-      <p className="wrap-break-word mt-2 whitespace-pre-wrap text-foreground/85 text-sm leading-relaxed">
+      <p className="text-foreground/85 mt-2 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap">
         {comment.body}
       </p>
-      <div className="mt-1 flex flex-wrap items-center gap-1 text-muted-foreground">
+      <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-1">
         {onLogin ? (
           <Button
             aria-label={`Upvote comment by ${comment.author}`}
-            className="h-11 gap-1 rounded-full px-2 text-muted-foreground text-xs"
+            className="text-muted-foreground h-11 gap-1 rounded-full px-2 text-xs"
             onClick={() => onLogin('vote')}
             type="button"
             variant="ghost"
@@ -60,7 +60,7 @@ function CommentItem({
         )}
         {onLogin ? (
           <Button
-            className="h-11 gap-1 rounded-full px-2 text-muted-foreground text-xs"
+            className="text-muted-foreground h-11 gap-1 rounded-full px-2 text-xs"
             onClick={() => onLogin('reply')}
             type="button"
             variant="ghost"
@@ -72,7 +72,7 @@ function CommentItem({
         {hasReplies && (
           <Button
             aria-expanded={showReplies}
-            className="h-11 rounded-full px-2 text-muted-foreground text-xs"
+            className="text-muted-foreground h-11 rounded-full px-2 text-xs"
             onClick={() => setShowReplies(!showReplies)}
             type="button"
             variant="ghost"
@@ -140,9 +140,9 @@ export function Comments({ permalink, onLogin }: CommentsProps) {
         <span className="sr-only">Loading comments</span>
         {[1, 2, 3].map(item => (
           <div className="space-y-3" key={item}>
-            <div className="h-3 w-24 animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
-            <div className="h-3 w-full animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
-            <div className="h-3 w-3/4 animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
+            <div className="bg-muted h-3 w-24 animate-pulse rounded-full motion-reduce:animate-none" />
+            <div className="bg-muted h-3 w-full animate-pulse rounded-full motion-reduce:animate-none" />
+            <div className="bg-muted h-3 w-3/4 animate-pulse rounded-full motion-reduce:animate-none" />
           </div>
         ))}
       </div>
@@ -168,7 +168,7 @@ export function Comments({ permalink, onLogin }: CommentsProps) {
   if (comments.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <ChatCircle className="size-7 text-muted-foreground" />
+        <ChatCircle className="text-muted-foreground size-7" />
         <p className="text-muted-foreground text-sm">The conversation is just getting started.</p>
       </div>
     )

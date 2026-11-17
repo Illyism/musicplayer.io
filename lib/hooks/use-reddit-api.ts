@@ -5,9 +5,9 @@ import { getErrorMessage, isRedditError } from '@/lib/errors/reddit-error'
 import { removeSubredditsFromStorage, usePlayerStore } from '@/lib/store/player-store'
 import { filterPlayableSongs, parseSong } from '@/lib/utils/song-utils'
 
-const REDDIT_PATH_REGEX = /^\/r\/([^/]+)\/?$/
-const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/
-const VALID_SUBREDDIT_REGEX = /^[a-z0-9_-]{1,100}$/i
+const REDDIT_PATH_REGEX = /^\/r\/(?<communities>[^/]+)\/?$/u
+const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/u
+const VALID_SUBREDDIT_REGEX = /^[a-z0-9_-]{1,100}$/iu
 
 let activeRequestId = 0
 let inFlightSelectionKey: string | null = null

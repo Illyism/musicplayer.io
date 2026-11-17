@@ -7,10 +7,10 @@ import type { Song } from '@/lib/store/player-store'
 /** Decode HTML entities in Reddit CDN URLs (e.g. &amp; → &) */
 export function decodeHtmlEntities(url: string): string {
   return url
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
+    .replace(/&amp;/gu, '&')
+    .replace(/&lt;/gu, '<')
+    .replace(/&gt;/gu, '>')
+    .replace(/&quot;/gu, '"')
 }
 
 /** Normalize a Reddit thumbnail/preview URL for use in img/Image src */
@@ -33,11 +33,11 @@ export function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): 
 
 // Module-level regexes (compiled once)
 const YOUTUBE_ID_PATTERNS = [
-  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\n?#]+)/,
-  /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
+  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)(?<id>[^&\n?#]+)/u,
+  /youtube\.com\/watch\?.*v=(?<id>[^&\n?#]+)/u,
 ]
-const VIMEO_ID_REGEX = /vimeo\.com\/(\d+)/
-const REDDIT_CDN_REGEX = /(?:^|\.)(?:redd\.it|redditmedia\.com|redditstatic\.com)$/i
+const VIMEO_ID_REGEX = /vimeo\.com\/(?<id>\d+)/u
+const REDDIT_CDN_REGEX = /(?:^|\.)(?:redd\.it|redditmedia\.com|redditstatic\.com)$/iu
 
 /** Reddit CDN blocks Next.js image optimization; load these directly */
 export function isRedditHostedImage(url: string): boolean {

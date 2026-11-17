@@ -365,6 +365,7 @@ export function VimeoPlayer({ song }: VimeoPlayerProps) {
 
   return (
     <div className="relative h-full w-full">
+      {/* biome-ignore lint/security/useIframeSandbox: official Vimeo Player SDK embed requires unsandboxed origin for postMessage/DRM */}
       <iframe
         allow="autoplay; fullscreen"
         allowFullScreen

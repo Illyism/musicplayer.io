@@ -33,7 +33,7 @@ const RedditUserSchema = z.object({
 const UsernameSchema = z
   .string()
   .regex(
-    /^[a-zA-Z0-9_-]+$/,
+    /^[a-zA-Z0-9_-]+$/u,
     'Username can only contain alphanumeric characters, underscores, and hyphens'
   )
   .max(50)

@@ -166,8 +166,8 @@ export function MP3Player({ song }: MP3PlayerProps) {
           unoptimized={isRedditHostedImage(song.thumbnail)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-secondary to-background">
-          <MusicNote className="h-24 w-24 text-muted-foreground" weight="fill" />
+        <div className="from-secondary to-background flex h-full w-full items-center justify-center bg-linear-to-br">
+          <MusicNote className="text-muted-foreground h-24 w-24" weight="fill" />
         </div>
       )}
       <audio preload="metadata" ref={audioRef} src={song.url}>

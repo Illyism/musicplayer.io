@@ -65,7 +65,7 @@ function SortControls({ loading }: { loading: boolean }) {
     <div className="flex flex-wrap items-center gap-2">
       <fieldset
         aria-label="Sort tracks"
-        className="flex gap-1 lg:gap-0 lg:rounded-full lg:bg-muted lg:p-1"
+        className="lg:bg-muted flex gap-1 lg:gap-0 lg:rounded-full lg:p-1"
       >
         {SORT_OPTIONS.map(({ icon: Icon, label, value }) => (
           <Button
@@ -137,7 +137,7 @@ function SortControls({ loading }: { loading: boolean }) {
           >
             <SelectTrigger
               aria-label="Top tracks time period"
-              className="h-11 rounded-full border-border bg-transparent px-4 text-xs data-[size=default]:h-11 sm:data-[size=default]:h-10"
+              className="border-border h-11 rounded-full bg-transparent px-4 text-xs data-[size=default]:h-11 sm:data-[size=default]:h-10"
             >
               <SelectValue />
             </SelectTrigger>
@@ -180,7 +180,7 @@ function TrackToolbar({
 
   return (
     <div
-      className="sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-border/70 border-b bg-background/95 px-4 py-2 backdrop-blur-sm sm:px-8 lg:gap-3 lg:pb-4"
+      className="border-border/70 bg-background/95 sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-b px-4 py-2 backdrop-blur-sm sm:px-8 lg:gap-3 lg:pb-4"
       data-track-toolbar
     >
       <div className="flex items-center justify-between gap-2">
@@ -189,7 +189,7 @@ function TrackToolbar({
           aria-expanded={filterOpen}
           aria-label="Find in this mix"
           className={cn(
-            'relative size-11 text-muted-foreground lg:hidden',
+            'text-muted-foreground relative size-11 lg:hidden',
             (filterOpen || filterQuery.length > 0) && 'bg-muted text-foreground'
           )}
           onClick={() => setFilterOpen(open => !open)}
@@ -199,17 +199,17 @@ function TrackToolbar({
         >
           <MagnifyingGlass className="size-5" />
           {filterQuery.length > 0 && (
-            <span className="absolute top-2 right-2 size-1.5 rounded-full bg-reddit">
+            <span className="bg-reddit absolute top-2 right-2 size-1.5 rounded-full">
               <span className="sr-only">Filter active</span>
             </span>
           )}
         </Button>
       </div>
       <div className={cn('relative hidden lg:block', filterOpen && 'block')}>
-        <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
         <Input
           aria-label="Filter tracks in this mix"
-          className="h-11 rounded-xl border-transparent bg-muted/50 pr-11 pl-10 text-base shadow-none lg:text-sm"
+          className="bg-muted/50 h-11 rounded-xl border-transparent pr-11 pl-10 text-base shadow-none lg:text-sm"
           onChange={event => onFilterChange(event.target.value)}
           onKeyDown={event => {
             if (event.key === 'Escape') {
@@ -226,7 +226,7 @@ function TrackToolbar({
         {filterQuery.length > 0 && (
           <Button
             aria-label="Clear track filter"
-            className="absolute top-0 right-0 size-11 rounded-xl text-muted-foreground"
+            className="text-muted-foreground absolute top-0 right-0 size-11 rounded-xl"
             onClick={() => {
               onFilterChange('')
               inputRef.current?.focus()
@@ -273,9 +273,9 @@ function TrackRow({
         onClick={() => onPlay(index)}
         variant="ghost"
       >
-        <span className="hidden items-center justify-center text-muted-foreground md:flex">
+        <span className="text-muted-foreground hidden items-center justify-center md:flex">
           {isCurrent && isPlaying ? (
-            <SpeakerHigh className="size-4 text-reddit" weight="fill" />
+            <SpeakerHigh className="text-reddit size-4" weight="fill" />
           ) : (
             <>
               <span className="text-xs tabular-nums group-hover/track:hidden group-focus-visible/track:hidden">
@@ -289,7 +289,7 @@ function TrackRow({
           )}
         </span>
         <span className="flex min-w-0 items-center gap-3">
-          <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted outline outline-black/10 dark:outline-white/10">
+          <span className="bg-muted relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg outline outline-black/10 dark:outline-white/10">
             {song.thumbnail ? (
               <Image
                 alt=""
@@ -302,7 +302,7 @@ function TrackRow({
                 width={48}
               />
             ) : (
-              <MusicNote className="size-5 text-muted-foreground" />
+              <MusicNote className="text-muted-foreground size-5" />
             )}
             {isCurrent === true && (
               <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white md:hidden">
@@ -315,10 +315,10 @@ function TrackRow({
             )}
           </span>
           <span className="min-w-0">
-            <span className="line-clamp-2 whitespace-normal font-medium text-[13px] leading-5 md:block md:truncate">
+            <span className="line-clamp-2 text-[13px] leading-5 font-medium whitespace-normal md:block md:truncate">
               {display.title}
             </span>
-            <span className="mt-1 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="text-muted-foreground mt-1 flex min-w-0 items-center gap-1.5 text-[11px]">
               <span className="truncate">{display.artist ?? `r/${song.subreddit}`}</span>
               <span aria-hidden="true">·</span>
               <span className="shrink-0">{getPlatformName(song.domain)}</span>
@@ -326,7 +326,7 @@ function TrackRow({
             </span>
           </span>
         </span>
-        <span className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground tabular-nums">
+        <span className="text-muted-foreground flex items-center justify-end gap-1 text-[11px] tabular-nums">
           <ArrowUp className="size-3" />
           {formatNumber(song.score)}
         </span>
@@ -346,10 +346,10 @@ function TrackLoadingState() {
           className="flex items-center gap-3 rounded-xl px-3 py-3 motion-safe:animate-pulse"
           key={key}
         >
-          <div className="size-12 shrink-0 rounded-lg bg-muted" />
+          <div className="bg-muted size-12 shrink-0 rounded-lg" />
           <div className="flex flex-1 flex-col gap-2">
-            <div className="h-3.5 w-3/4 rounded-full bg-muted" />
-            <div className="h-2.5 w-2/5 rounded-full bg-muted" />
+            <div className="bg-muted h-3.5 w-3/4 rounded-full" />
+            <div className="bg-muted h-2.5 w-2/5 rounded-full" />
           </div>
         </div>
       ))}
@@ -449,15 +449,15 @@ export function PlaylistPanel() {
   }
 
   return (
-    <section aria-label="Your music mix" className="flex h-full min-h-0 flex-col bg-background">
+    <section aria-label="Your music mix" className="bg-background flex h-full min-h-0 flex-col">
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <header className="flex shrink-0 flex-col gap-3 px-4 pt-4 pb-3 sm:px-8 lg:gap-4 lg:pt-8 lg:pb-5">
-          <div className="hidden items-center gap-2 text-muted-foreground text-xs lg:flex">
-            <RedditLogo className="size-4 text-reddit" weight="fill" />
+          <div className="text-muted-foreground hidden items-center gap-2 text-xs lg:flex">
+            <RedditLogo className="text-reddit size-4" weight="fill" />
             <span>Good music. Real communities.</span>
           </div>
           <div>
-            <h1 className="max-w-[26ch] text-balance font-semibold text-2xl leading-[1.15] tracking-[-0.04em] lg:text-[32px]">
+            <h1 className="max-w-[26ch] text-2xl leading-[1.15] font-semibold tracking-[-0.04em] text-balance lg:text-[32px]">
               {searchQuery ? (
                 `Sounds like “${searchQuery}”.`
               ) : (
@@ -467,7 +467,7 @@ export function PlaylistPanel() {
                 </>
               )}
             </h1>
-            <p className="mt-2 max-w-[46ch] text-muted-foreground text-sm leading-5 lg:mt-3 lg:leading-6">
+            <p className="text-muted-foreground mt-2 max-w-[46ch] text-sm leading-5 lg:mt-3 lg:leading-6">
               {context}
             </p>
           </div>
@@ -486,7 +486,7 @@ export function PlaylistPanel() {
             </Button>
             <Button
               aria-label="Shuffle your mix"
-              className="size-11 rounded-full border-border"
+              className="border-border size-11 rounded-full"
               disabled={songs.length < 2}
               onClick={shufflePlaylist}
               size="icon"
@@ -494,12 +494,12 @@ export function PlaylistPanel() {
             >
               <Shuffle className="size-4" />
             </Button>
-            <span className="pl-2 text-muted-foreground text-xs tabular-nums">
+            <span className="text-muted-foreground pl-2 text-xs tabular-nums">
               {songs.length} {songs.length === 1 ? 'track' : 'tracks'}
             </span>
             <Button
               aria-label="Refresh your mix"
-              className="ml-auto size-11 rounded-full text-muted-foreground"
+              className="text-muted-foreground ml-auto size-11 rounded-full"
               disabled={loading}
               onClick={() => handleFetch()}
               size="icon"
@@ -522,7 +522,7 @@ export function PlaylistPanel() {
 
         <div aria-busy={loading} className="flex-1 px-2 pt-3 pb-6 sm:px-5 lg:px-7">
           {listingError !== null && !loading && (
-            <div className="mx-3 mb-4 rounded-xl bg-destructive/10 p-4 text-sm" role="alert">
+            <div className="bg-destructive/10 mx-3 mb-4 rounded-xl p-4 text-sm" role="alert">
               <p>{listingError}</p>
               <Button
                 className="mt-3 h-11 rounded-full px-4"
@@ -537,13 +537,13 @@ export function PlaylistPanel() {
           {loading && songs.length === 0 && <TrackLoadingState />}
           {!loading && songs.length === 0 && (
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-muted">
-                <MusicNote className="size-6 text-muted-foreground" />
+              <span className="bg-muted flex size-14 items-center justify-center rounded-2xl">
+                <MusicNote className="text-muted-foreground size-6" />
               </span>
-              <h3 className="mt-1 font-medium text-lg">
+              <h3 className="mt-1 text-lg font-medium">
                 {listingError === null ? 'A little quiet here.' : 'Community not found.'}
               </h3>
-              <p className="max-w-64 text-muted-foreground text-sm leading-6">
+              <p className="text-muted-foreground max-w-64 text-sm leading-6">
                 {searchQuery
                   ? 'Try another search, or explore a music community.'
                   : 'Try another community or sort to find something good.'}
@@ -560,7 +560,7 @@ export function PlaylistPanel() {
           )}
           {songs.length > 0 && (
             <>
-              <div className="mb-2 flex items-center justify-between px-3 py-2 text-[11px] text-muted-foreground">
+              <div className="text-muted-foreground mb-2 flex items-center justify-between px-3 py-2 text-[11px]">
                 <span>
                   {normalizedFilter ? `${visibleSongs.length} matching tracks` : 'In the mix'}
                 </span>
@@ -568,7 +568,7 @@ export function PlaylistPanel() {
               </div>
               {visibleSongs.length === 0 ? (
                 <div className="px-4 py-10 text-center">
-                  <p className="font-medium text-sm">No tracks match “{filterQuery}”.</p>
+                  <p className="text-sm font-medium">No tracks match “{filterQuery}”.</p>
                   <Button
                     className="mt-3 h-11 rounded-full px-4"
                     onClick={() => setFilterQuery('')}

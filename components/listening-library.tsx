@@ -24,7 +24,7 @@ function LibraryTrack({ song }: { song: Song }) {
     <div className="flex min-h-20 items-center gap-1">
       <button
         aria-label={`Play ${song.title}, shared in r/${song.subreddit}`}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-xl py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-3 rounded-xl py-2 text-left outline-none focus-visible:ring-2"
         onClick={play}
         type="button"
       >
@@ -38,15 +38,15 @@ function LibraryTrack({ song }: { song: Song }) {
             width={56}
           />
         ) : (
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <span className="bg-muted flex size-14 shrink-0 items-center justify-center rounded-lg">
             <MusicNote className="size-5" />
           </span>
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-sm" title={song.title}>
+          <span className="block truncate text-sm font-medium" title={song.title}>
             {display.title}
           </span>
-          <span className="mt-1 block truncate text-muted-foreground text-xs">
+          <span className="text-muted-foreground mt-1 block truncate text-xs">
             {display.artist ? `${display.artist} · ` : null}
             r/{song.subreddit}
           </span>
@@ -104,13 +104,13 @@ export function ListeningLibrary({ active = true }: { active?: boolean }) {
   return (
     <div className="flex min-h-full flex-col gap-8 px-5 py-5 lg:px-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-semibold text-3xl tracking-tight">Your library</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Your library</h1>
         <ListeningSettings />
       </div>
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 font-semibold text-xl">
-            <Heart className="size-5 text-reddit" weight="fill" />
+          <h2 className="flex items-center gap-2 text-xl font-semibold">
+            <Heart className="text-reddit size-5" weight="fill" />
             Saved tracks
           </h2>
           {savedSongs.length > 0 && (
@@ -130,7 +130,7 @@ export function ListeningLibrary({ active = true }: { active?: boolean }) {
           )}
         </div>
         {savedSongIds.length === 0 ? (
-          <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-5">
+          <div className="bg-muted/40 flex flex-col gap-2 rounded-2xl p-5">
             <p className="font-medium">Keep the good finds.</p>
             <p className="text-muted-foreground text-sm">
               Tap the save button on a track to find it here. No sign-in needed.
@@ -149,7 +149,7 @@ export function ListeningLibrary({ active = true }: { active?: boolean }) {
           </div>
         )}
         {missingIds && (
-          <div className="rounded-xl bg-muted/40 p-4 text-sm">
+          <div className="bg-muted/40 rounded-xl p-4 text-sm">
             <p aria-live="polite">
               {refreshing
                 ? 'Refreshing saved tracks…'
@@ -168,7 +168,7 @@ export function ListeningLibrary({ active = true }: { active?: boolean }) {
         )}
       </section>
       <section className="flex flex-col gap-4">
-        <h2 className="flex items-center gap-2 font-semibold text-xl">
+        <h2 className="flex items-center gap-2 text-xl font-semibold">
           <ClockCounterClockwise className="size-5" />
           Recently played
         </h2>

@@ -23,7 +23,7 @@ export function ThemeToggle() {
   return (
     <Button
       aria-label={label}
-      className="relative size-11 rounded-full text-muted-foreground hover:text-foreground"
+      className="text-muted-foreground hover:text-foreground relative size-11 rounded-full"
       disabled={!mounted}
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       size="icon"

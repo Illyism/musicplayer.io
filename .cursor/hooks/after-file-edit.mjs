@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
 const SKIP_PREFIXES = ['public/', 'node_modules/', '.next/']
-const HANDLED_FILE_REGEX = /\.(ts|tsx|js|jsx|json|css)$/
+const HANDLED_FILE_REGEX = /\.(?:ts|tsx|js|jsx|json|css)$/u
 
 function main() {
   let filePath = ''

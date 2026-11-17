@@ -17,7 +17,12 @@ if (args.length === 0) {
 // Only consider files that exist on disk (skip deleted)
 const files = args.filter(f => existsSync(f) && statSync(f).isFile())
 
-const TRIGGERS = [/\.(ts|tsx)$/, /package\.json$/, /tsconfig.*\.json$/, /^(bun|package)-lock\./]
+const TRIGGERS = [
+  /\.(?:ts|tsx)$/u,
+  /package\.json$/u,
+  /tsconfig.*\.json$/u,
+  /^(?:bun|package)-lock\./u,
+]
 
 const needsTypecheck = files.some(f => TRIGGERS.some(re => re.test(f)))
 

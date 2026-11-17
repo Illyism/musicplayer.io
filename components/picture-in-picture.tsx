@@ -266,12 +266,12 @@ function PictureInPictureWindow() {
       aria-label={isNative ? 'Picture-in-picture player' : 'Mini player'}
       className={
         isNative
-          ? 'flex min-h-screen flex-col bg-card text-foreground'
-          : 'pointer-events-none fixed right-3 bottom-[calc(152px+env(safe-area-inset-bottom))] z-80 w-80 max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-border text-foreground shadow-2xl lg:right-5 lg:bottom-[108px]'
+          ? 'bg-card text-foreground flex min-h-screen flex-col'
+          : 'border-border text-foreground pointer-events-none fixed right-3 bottom-[calc(152px+env(safe-area-inset-bottom))] z-80 w-80 max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border shadow-2xl lg:right-5 lg:bottom-[108px]'
       }
     >
-      <div className="pointer-events-auto flex h-11 shrink-0 items-center justify-between bg-card pl-4">
-        <span className="font-medium text-xs">
+      <div className="bg-card pointer-events-auto flex h-11 shrink-0 items-center justify-between pl-4">
+        <span className="text-xs font-medium">
           {isNative ? 'Music controls' : 'Mini player · this tab'}
         </span>
         <Button
@@ -285,7 +285,7 @@ function PictureInPictureWindow() {
         </Button>
       </div>
       {isNative ? (
-        <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-muted">
+        <div className="bg-muted relative aspect-video w-full shrink-0 overflow-hidden">
           {currentSong?.thumbnail ? (
             <Image
               alt=""
@@ -296,11 +296,11 @@ function PictureInPictureWindow() {
               unoptimized={isRedditHostedImage(currentSong.thumbnail)}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
+            <div className="text-muted-foreground flex h-full items-center justify-center">
               <Headphones className="size-12" />
             </div>
           )}
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-linear-to-t from-black/80 to-transparent px-3 pt-8 pb-3 text-white text-xs">
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-linear-to-t from-black/80 to-transparent px-3 pt-8 pb-3 text-xs text-white">
             <span className="truncate">r/{currentSong?.subreddit}</span>
             <span className="shrink-0 tabular-nums">
               {formatTime(currentTime)} / {formatTime(duration)}
@@ -313,11 +313,11 @@ function PictureInPictureWindow() {
           ref={setMediaDestination}
         />
       )}
-      <div className="pointer-events-auto flex items-center gap-2 bg-card p-2 pl-3">
+      <div className="bg-card pointer-events-auto flex items-center gap-2 p-2 pl-3">
         <div className="min-w-0 flex-1" title={currentSong?.title}>
-          <p className="truncate font-medium text-xs">{display?.title || 'Now playing'}</p>
+          <p className="truncate text-xs font-medium">{display?.title || 'Now playing'}</p>
           {display?.artist ? (
-            <p className="truncate text-[11px] text-muted-foreground">{display.artist}</p>
+            <p className="text-muted-foreground truncate text-[11px]">{display.artist}</p>
           ) : null}
         </div>
         <Button
@@ -417,7 +417,7 @@ export function PiPMediaHost({ children }: { children: ReactNode }) {
       {isActive ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black px-4 text-center">
           <ArrowSquareIn className="size-6 text-white/60" />
-          <p className="text-white/70 text-xs">
+          <p className="text-xs text-white/70">
             {isNative ? 'Music controls are in the separate window' : 'Playing in the mini player'}
           </p>
           <Button className="h-11 rounded-full" onClick={close} variant="secondary">

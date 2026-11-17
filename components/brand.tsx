@@ -6,7 +6,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
     <span className={cn('inline-flex items-center gap-3', compact && 'gap-2.5 sm:gap-3')}>
       <span
         className={cn(
-          'relative flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background',
+          'bg-foreground text-background relative flex size-10 shrink-0 items-center justify-center rounded-full',
           compact && 'size-8 sm:size-10'
         )}
       >
@@ -17,7 +17,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
         />
         <span
           className={cn(
-            'absolute right-0 bottom-0 size-3 rounded-full border-2 border-background bg-reddit',
+            'border-background bg-reddit absolute right-0 bottom-0 size-3 rounded-full border-2',
             compact && 'size-2.5 sm:size-3'
           )}
         />
@@ -25,7 +25,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
       <span className="flex flex-col">
         <span
           className={cn(
-            'font-semibold text-lg leading-5 tracking-tight',
+            'text-lg leading-5 font-semibold tracking-tight',
             compact && 'text-base sm:text-lg'
           )}
         >
@@ -33,11 +33,11 @@ export function Brand({ compact = false }: { compact?: boolean }) {
         </span>
         <span
           className={cn(
-            'mt-0.5 text-muted-foreground text-xs leading-4',
+            'text-muted-foreground mt-0.5 text-xs leading-4',
             compact && 'mt-0 text-[10px] leading-3 sm:mt-0.5 sm:text-xs sm:leading-4'
           )}
         >
-          for <span className="font-medium text-reddit">Reddit</span>
+          for <span className="text-reddit font-medium">Reddit</span>
         </span>
       </span>
     </span>

@@ -3,7 +3,7 @@ import { requestCommunityData } from '@/lib/community/reddit-client'
 import type { Song } from '@/lib/store/player-store'
 import { parseSong } from '@/lib/utils/song-utils'
 
-const POST_ID_PATTERN = /^[a-z0-9]{1,13}$/i
+const POST_ID_PATTERN = /^[a-z0-9]{1,13}$/iu
 const MAX_IDS = 100
 const CACHE_MS = 5 * 60_000
 const MAX_CACHE_KEYS = 20

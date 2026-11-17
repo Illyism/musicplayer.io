@@ -24,7 +24,7 @@ import { trackDisplay } from '@/lib/utils/track-display'
 
 function QueueArtwork({ song }: { song: Song }) {
   return (
-    <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-muted-foreground">
+    <span className="bg-muted text-muted-foreground relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg">
       {song.thumbnail ? (
         <Image
           alt=""
@@ -47,10 +47,10 @@ function QueueDetails({ song }: { song: Song }) {
 
   return (
     <span className="flex min-w-0 flex-1 flex-col gap-1">
-      <span className="truncate font-medium text-sm" title={song.title}>
+      <span className="truncate text-sm font-medium" title={song.title}>
         {title}
       </span>
-      <span className="flex min-w-0 items-center gap-1 text-muted-foreground text-xs">
+      <span className="text-muted-foreground flex min-w-0 items-center gap-1 text-xs">
         {artist ? (
           <>
             <span className="truncate">{artist}</span>
@@ -173,9 +173,9 @@ export function QueueDrawer() {
           type="button"
           variant="ghost"
         >
-          <span aria-hidden className="h-1 w-9 rounded-full bg-muted-foreground/40" />
+          <span aria-hidden className="bg-muted-foreground/40 h-1 w-9 rounded-full" />
         </Button>
-        <DialogHeader className="shrink-0 gap-1 border-border border-b px-6 py-6 pr-16 text-left">
+        <DialogHeader className="border-border shrink-0 gap-1 border-b px-6 py-6 pr-16 text-left">
           <DialogTitle className="text-2xl leading-tight">Queue</DialogTitle>
           <DialogDescription className="leading-relaxed">
             {repeatMode === 'one'
@@ -187,28 +187,28 @@ export function QueueDrawer() {
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(24px,env(safe-area-inset-bottom))]">
           {currentSong ? (
             <section aria-label="Now playing" className="py-5">
-              <h3 className="px-2 pb-3 font-semibold text-sm">Now playing</h3>
-              <div className="flex items-center gap-3 rounded-2xl bg-muted/60 p-3">
+              <h3 className="px-2 pb-3 text-sm font-semibold">Now playing</h3>
+              <div className="bg-muted/60 flex items-center gap-3 rounded-2xl p-3">
                 <QueueArtwork song={currentSong} />
                 <QueueDetails song={currentSong} />
-                <MusicNote aria-hidden className="size-4 text-reddit" weight="fill" />
+                <MusicNote aria-hidden className="text-reddit size-4" weight="fill" />
               </div>
             </section>
           ) : null}
 
           <section aria-label="Added to queue" className="pb-5">
             <div className="flex min-h-11 items-center justify-between gap-3 px-2">
-              <h3 className="font-semibold text-sm">
+              <h3 className="text-sm font-semibold">
                 Added by you
                 {queueSongs.length > 0 ? (
-                  <span className="ml-2 font-normal text-muted-foreground tabular-nums">
+                  <span className="text-muted-foreground ml-2 font-normal tabular-nums">
                     {queueSongs.length}
                   </span>
                 ) : null}
               </h3>
               {queueSongs.length > 0 ? (
                 <Button
-                  className="px-3 text-muted-foreground text-xs"
+                  className="text-muted-foreground px-3 text-xs"
                   onClick={() => {
                     clearQueue()
                     setAnnouncement('Queue cleared. Your current track keeps playing.')
@@ -309,14 +309,14 @@ export function QueueDrawer() {
                 ))}
               </ol>
             ) : (
-              <p className="px-2 py-3 text-muted-foreground text-sm leading-relaxed">
+              <p className="text-muted-foreground px-2 py-3 text-sm leading-relaxed">
                 Use a track’s menu to add music here.
               </p>
             )}
           </section>
 
           <section aria-label="Next from the feed" className="border-border border-t pt-5">
-            <h3 className="px-2 pb-3 font-semibold text-sm">Next from this feed</h3>
+            <h3 className="px-2 pb-3 text-sm font-semibold">Next from this feed</h3>
             {nextTracks.length > 0 ? (
               <ol className="space-y-1">
                 {nextTracks.map(({ index, song }) => (
@@ -327,8 +327,8 @@ export function QueueDrawer() {
               </ol>
             ) : (
               <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
-                <Queue aria-hidden className="mb-1 size-7 text-muted-foreground" />
-                <p className="font-medium text-sm">That’s the end of this feed.</p>
+                <Queue aria-hidden className="text-muted-foreground mb-1 size-7" />
+                <p className="text-sm font-medium">That’s the end of this feed.</p>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   Find more music or add tracks to your queue.
                 </p>

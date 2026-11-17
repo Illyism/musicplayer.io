@@ -35,7 +35,7 @@ function ShareLink({
 }) {
   return (
     <div className="space-y-2">
-      <label className="font-medium text-sm" htmlFor={id}>
+      <label className="text-sm font-medium" htmlFor={id}>
         {label}
       </label>
       <div className="flex gap-2">
@@ -145,14 +145,14 @@ export function ShareModal({ isOpen, onClose, subreddits, song }: ShareModalProp
       open={isOpen}
     >
       <DialogContent className="gap-6 sm:max-w-md">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-muted">
+        <div className="bg-muted flex size-12 items-center justify-center rounded-2xl">
           <ShareNetwork aria-hidden className="size-6" />
         </div>
         <DialogHeader className="gap-2 text-left">
           <DialogTitle className="text-2xl leading-tight">
             {song ? 'Share this track' : 'Share your mix'}
           </DialogTitle>
-          <DialogDescription className="text-pretty leading-relaxed">
+          <DialogDescription className="leading-relaxed text-pretty">
             {song
               ? song.title
               : 'Share this mix. Your communities and sort order come along with it.'}
@@ -184,7 +184,7 @@ export function ShareModal({ isOpen, onClose, subreddits, song }: ShareModalProp
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2 border-border border-t pt-5">
+        <div className="border-border grid grid-cols-3 gap-2 border-t pt-5">
           {platforms.map(({ Icon, label, url }) => (
             <Button
               asChild

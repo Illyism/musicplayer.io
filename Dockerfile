@@ -1,5 +1,6 @@
 # Use a pinned Bun image as base
-FROM oven/bun:1.4.4 AS base
+ARG BUN_VERSION=1.4.4
+FROM oven/bun:${BUN_VERSION} AS base
 
 # Install dependencies only when needed
 FROM base AS deps

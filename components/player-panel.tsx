@@ -67,7 +67,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
   return (
     <section
       aria-label="Now playing"
-      className="relative min-h-full overflow-hidden bg-background pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+      className="bg-background relative min-h-full overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
       {!!currentSong.thumbnail && (
         <div
@@ -82,7 +82,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
             unoptimized={isRedditHostedImage(currentSong.thumbnail)}
             width={600}
           />
-          <div className="absolute inset-0 bg-linear-to-b from-transparent to-background" />
+          <div className="to-background absolute inset-0 bg-linear-to-b from-transparent" />
         </div>
       )}
       <div className="relative mx-auto flex max-w-lg flex-col gap-5 px-5 sm:px-7">
@@ -106,10 +106,10 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
             <CaretDown className="size-6" />
           </Button>
           <div className="min-w-0 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em]">
+            <p className="text-muted-foreground text-[10px] tracking-[0.12em] uppercase">
               Playing from
             </p>
-            <p className="mt-1 truncate font-semibold text-xs">r/{currentSong.subreddit}</p>
+            <p className="mt-1 truncate text-xs font-semibold">r/{currentSong.subreddit}</p>
           </div>
           <TrackMenu song={currentSong} />
         </div>
@@ -124,10 +124,10 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
         )}
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="line-clamp-2 font-semibold text-2xl leading-tight tracking-tight">
+            <h1 className="line-clamp-2 text-2xl leading-tight font-semibold tracking-tight">
               {display.title}
             </h1>
-            <p className="mt-2 truncate text-muted-foreground text-sm">
+            <p className="text-muted-foreground mt-2 truncate text-sm">
               {display.artist ?? `r/${currentSong.subreddit}`} ·{' '}
               {getPlatformName(currentSong.domain)}
             </p>
@@ -135,8 +135,8 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
           <SaveTrackButton className="size-12" song={currentSong} />
         </div>
         <div>
-          <SeekControl className="h-8 [&>div]:bg-foreground/20" />
-          <div className="flex justify-between text-[11px] text-muted-foreground tabular-nums">
+          <SeekControl className="[&>div]:bg-foreground/20 h-8" />
+          <div className="text-muted-foreground flex justify-between text-[11px] tabular-nums">
             <span>{formatTime(currentTime)}</span>
             <span>
               {duration > 0 ? `−${formatTime(Math.max(0, duration - currentTime))}` : '0:00'}
@@ -146,7 +146,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
         <div className="flex items-center justify-between gap-1">
           <Button
             aria-label="Shuffle your mix"
-            className="size-12 rounded-full text-muted-foreground"
+            className="text-muted-foreground size-12 rounded-full"
             disabled={songs.length < 2}
             onClick={shufflePlaylist}
             size="icon"
@@ -188,7 +188,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
             aria-label={`Repeat: ${repeatMode}. Change repeat mode`}
             aria-pressed={repeatMode !== 'off'}
             className={cn(
-              'size-12 rounded-full text-muted-foreground',
+              'text-muted-foreground size-12 rounded-full',
               repeatMode !== 'off' && 'text-reddit'
             )}
             onClick={cycleRepeatMode}
@@ -206,7 +206,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
           <Button
             aria-label={pip.isActive ? 'Close picture-in-picture' : 'Open picture-in-picture'}
             aria-pressed={pip.isActive}
-            className="size-12 rounded-full text-muted-foreground"
+            className="text-muted-foreground size-12 rounded-full"
             disabled={pip.isOpening}
             onClick={pip.toggle}
             size="icon"
@@ -217,7 +217,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
           <div className="flex items-center gap-3">
             <Button
               aria-label="Share this track"
-              className="size-12 rounded-full text-muted-foreground"
+              className="text-muted-foreground size-12 rounded-full"
               onClick={() => setShare(true)}
               size="icon"
               variant="ghost"
@@ -226,7 +226,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
             </Button>
             <Button
               aria-label="Open queue"
-              className="size-12 rounded-full text-muted-foreground"
+              className="text-muted-foreground size-12 rounded-full"
               onClick={() => setQueueOpen(true)}
               size="icon"
               variant="ghost"
@@ -235,8 +235,8 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
             </Button>
           </div>
         </div>
-        <details className="rounded-2xl bg-card/80 p-5">
-          <summary className="cursor-pointer font-semibold text-base">Behind the track</summary>
+        <details className="bg-card/80 rounded-2xl p-5">
+          <summary className="cursor-pointer text-base font-semibold">Behind the track</summary>
           <div className="pt-5">
             <SongInfoContent key={currentSong.id} song={currentSong} />
           </div>

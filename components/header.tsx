@@ -89,11 +89,11 @@ function ShortcutsDialog({
         <div className="grid gap-6 pt-2">
           {shortcutGroups.map(group => (
             <section className="grid gap-2" key={group.title}>
-              <h3 className="font-medium text-muted-foreground text-xs">{group.title}</h3>
+              <h3 className="text-muted-foreground text-xs font-medium">{group.title}</h3>
               {group.shortcuts.map(([label, key]) => (
                 <div className="flex items-center justify-between gap-4 py-1" key={label}>
                   <span className="text-sm">{label}</span>
-                  <kbd className="min-w-8 rounded-lg border bg-muted px-2 py-1 text-center font-medium text-xs">
+                  <kbd className="bg-muted min-w-8 rounded-lg border px-2 py-1 text-center text-xs font-medium">
                     {key}
                   </kbd>
                 </div>
@@ -118,16 +118,16 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
 
   return (
     <>
-      <header className="z-40 flex h-14 shrink-0 items-center justify-between gap-2 bg-background px-4 sm:h-[72px] sm:gap-4 sm:border-border/60 sm:border-b sm:px-6">
+      <header className="bg-background sm:border-border/60 z-40 flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:h-[72px] sm:gap-4 sm:border-b sm:px-6">
         <Link
           aria-label="Music Player for Reddit home"
-          className="flex min-h-11 shrink-0 items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="focus-visible:ring-ring flex min-h-11 shrink-0 items-center rounded-lg outline-none focus-visible:ring-2"
           href="/"
           onClick={() => setMobileView('playlist')}
         >
           <Brand compact />
         </Link>
-        <span className="hidden text-muted-foreground text-sm md:block">
+        <span className="text-muted-foreground hidden text-sm md:block">
           Good music. Human taste.
         </span>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">

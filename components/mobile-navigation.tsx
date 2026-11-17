@@ -17,13 +17,13 @@ export function MobileNavigation() {
   return (
     <nav
       aria-label="Main navigation"
-      className="grid shrink-0 grid-cols-3 bg-background px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden"
+      className="bg-background grid shrink-0 grid-cols-3 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden"
     >
       {destinations.map(({ icon: Icon, label, view }) => (
         <button
           aria-current={mobileView === view ? 'page' : undefined}
           className={cn(
-            'flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'focus-visible:ring-ring flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] outline-none focus-visible:ring-2',
             mobileView === view ? 'text-foreground' : 'text-muted-foreground'
           )}
           key={view}

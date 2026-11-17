@@ -49,8 +49,8 @@ export function SeekControl({ className = '' }: { className?: string }) {
 
   return (
     <div className={`group relative flex h-6 items-center ${className}`}>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-foreground" style={{ width: `${progress}%` }} />
+      <div className="bg-muted h-1 w-full overflow-hidden rounded-full">
+        <div className="bg-foreground h-full rounded-full" style={{ width: `${progress}%` }} />
       </div>
       <input
         aria-label="Seek"
@@ -72,7 +72,7 @@ export function SeekControl({ className = '' }: { className?: string }) {
         value={Math.min(currentTime, duration)}
       />
       <div
-        className="pointer-events-none absolute size-2.5 rounded-full bg-foreground opacity-0 ring-4 ring-background transition-opacity duration-100 group-focus-within:opacity-100 group-focus-within:ring-ring/30 group-hover:opacity-100"
+        className="bg-foreground ring-background group-focus-within:ring-ring/30 pointer-events-none absolute size-2.5 rounded-full opacity-0 ring-4 transition-opacity duration-100 group-focus-within:opacity-100 group-hover:opacity-100"
         style={{ left: `calc(${progress}% - 5px)` }}
       />
     </div>
@@ -91,7 +91,7 @@ function TrackArtwork({ song }: { song: Song | null }) {
       width={44}
     />
   ) : (
-    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+    <div className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-xl">
       <MusicNote className="size-5" />
     </div>
   )
@@ -103,10 +103,10 @@ function TrackSummary({ song }: { song: Song | null }) {
     <>
       <TrackArtwork song={song} />
       <span className="min-w-0">
-        <span className="block truncate font-medium text-sm">
+        <span className="block truncate text-sm font-medium">
           {display?.title || 'Your next favorite is waiting'}
         </span>
-        <span className="mt-0.5 block truncate text-muted-foreground text-xs">
+        <span className="text-muted-foreground mt-0.5 block truncate text-xs">
           {song ? (display?.artist ?? `r/${song.subreddit}`) : 'Choose a track to start listening'}
         </span>
       </span>
@@ -141,14 +141,14 @@ export function PlayerControls() {
   return (
     <section
       aria-label="Playback controls"
-      className="relative z-50 mx-2 flex h-16 shrink-0 items-center overflow-hidden rounded-xl bg-muted px-2 lg:mx-0 lg:grid lg:h-24 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1.2fr)_minmax(0,1fr)] lg:gap-6 lg:rounded-none lg:border-t lg:bg-sidebar lg:px-6 lg:py-3"
+      className="bg-muted lg:bg-sidebar relative z-50 mx-2 flex h-16 shrink-0 items-center overflow-hidden rounded-xl px-2 lg:mx-0 lg:grid lg:h-24 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1.2fr)_minmax(0,1fr)] lg:gap-6 lg:rounded-none lg:border-t lg:px-6 lg:py-3"
     >
       <SeekControl className="absolute inset-x-2 -bottom-2 lg:hidden" />
 
       <div className="flex w-full min-w-0 items-center gap-2 lg:gap-3">
         <button
           aria-label={currentSong ? `Show details for ${currentSong.title}` : 'Now playing'}
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          className="focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-2 lg:hidden"
           disabled={!currentSong}
           onClick={() => setMobileView('player')}
           type="button"
@@ -172,7 +172,7 @@ export function PlayerControls() {
           </Button>
           <Button
             aria-label={isPlaying ? 'Pause' : 'Play'}
-            className="size-11 rounded-full bg-transparent text-foreground hover:bg-accent"
+            className="text-foreground hover:bg-accent size-11 rounded-full bg-transparent"
             disabled={!currentSong}
             onClick={togglePlay}
             size="icon"
@@ -202,7 +202,7 @@ export function PlayerControls() {
         <div className="flex items-center gap-4">
           <Button
             aria-label="Previous track"
-            className="size-11 rounded-full text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground size-11 rounded-full"
             disabled={!currentSong}
             onClick={previous}
             size="icon"
@@ -227,7 +227,7 @@ export function PlayerControls() {
           </Button>
           <Button
             aria-label="Next track"
-            className="size-11 rounded-full text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground size-11 rounded-full"
             disabled={!currentSong}
             onClick={next}
             size="icon"
@@ -237,7 +237,7 @@ export function PlayerControls() {
             <SkipForward className="size-5" weight="fill" />
           </Button>
         </div>
-        <div className="flex w-full items-center gap-3 text-[11px] text-muted-foreground tabular-nums">
+        <div className="text-muted-foreground flex w-full items-center gap-3 text-[11px] tabular-nums">
           <span className="w-9 text-right">{formatTime(currentTime)}</span>
           <SeekControl className="flex-1" />
           <span className="w-9">{formatTime(duration)}</span>
@@ -268,7 +268,7 @@ export function PlayerControls() {
         <Button
           aria-label={volume === 0 ? 'Unmute' : 'Mute'}
           aria-pressed={volume === 0}
-          className="size-11 rounded-full text-muted-foreground"
+          className="text-muted-foreground size-11 rounded-full"
           onClick={() => {
             if (volume === 0) {
               setVolume(previousVolumeRef.current)
@@ -284,9 +284,9 @@ export function PlayerControls() {
           <VolumeIcon className="size-5" />
         </Button>
         <div className="group relative flex h-11 w-24 items-center">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div className="bg-muted h-1 w-full overflow-hidden rounded-full">
             <div
-              className="h-full rounded-full bg-muted-foreground"
+              className="bg-muted-foreground h-full rounded-full"
               style={{ width: `${volume}%` }}
             />
           </div>
@@ -301,11 +301,11 @@ export function PlayerControls() {
             value={volume}
           />
           <span
-            className="pointer-events-none absolute size-2.5 rounded-full bg-foreground opacity-0 ring-4 ring-ring/30 group-focus-within:opacity-100"
+            className="bg-foreground ring-ring/30 pointer-events-none absolute size-2.5 rounded-full opacity-0 ring-4 group-focus-within:opacity-100"
             style={{ left: `calc(${volume}% - 5px)` }}
           />
         </div>
-        <span className="w-8 text-right text-[11px] text-muted-foreground tabular-nums">
+        <span className="text-muted-foreground w-8 text-right text-[11px] tabular-nums">
           {volume}%
         </span>
       </div>

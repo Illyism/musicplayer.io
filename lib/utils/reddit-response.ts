@@ -40,9 +40,9 @@ function observeApiQuota(response: Response) {
 }
 
 const CONTROL_CHAR_REGEX = /\p{Cc}/u
-const ENCODED_SEPARATOR_REGEX = /%(?:2f|5c)/i
+const ENCODED_SEPARATOR_REGEX = /%(?:2f|5c)/iu
 const REDDIT_PERMALINK_REGEX =
-  /^\/(?:r\/[a-zA-Z0-9_-]{1,100}|user\/[a-zA-Z0-9_-]{1,50})\/comments\/[a-zA-Z0-9]{1,13}\/([^/?#\\]+?)(?:\/([a-zA-Z0-9]{1,13}))?\/?$/u
+  /^\/(?:r\/[a-zA-Z0-9_-]{1,100}|user\/[a-zA-Z0-9_-]{1,50})\/comments\/[a-zA-Z0-9]{1,13}\/(?<slug>[^/?#\\]+?)(?:\/(?<commentId>[a-zA-Z0-9]{1,13}))?\/?$/u
 
 function hasDotPathSegment(path: string): boolean {
   return path.split('/').some(segment => segment === '.' || segment === '..')

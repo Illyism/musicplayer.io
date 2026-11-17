@@ -6,9 +6,9 @@ import { getPersistedSubreddits, usePlayerStore } from '@/lib/store/player-store
 import { hydratePlayerStore } from './use-player-hydration'
 import { isSubredditFetchInFlight, useRedditAPI } from './use-reddit-api'
 
-const REDDIT_PATH_REGEX = /^\/r\/([^/]+)\/?$/
-const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/
-const VALID_SUBREDDIT_REGEX = /^[a-z0-9_-]{1,100}$/i
+const REDDIT_PATH_REGEX = /^\/r\/(?<communities>[^/]+)\/?$/u
+const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/u
+const VALID_SUBREDDIT_REGEX = /^[a-z0-9_-]{1,100}$/iu
 const MAX_ROUTE_COMMUNITIES = 50
 
 const SORT_METHODS = ['hot', 'new', 'top'] as const

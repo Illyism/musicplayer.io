@@ -16,21 +16,21 @@ export const STARTER_COMMUNITIES: { category: CommunityCategory; name: string }[
 ]
 
 const CATEGORY_MATCHERS: { category: CommunityCategory; pattern: RegExp }[] = [
-  { category: 'Ambient', pattern: /ambient|drone|chillout/i },
-  { category: 'Jazz', pattern: /jazz|bebop/i },
-  { category: 'Classical', pattern: /classical|orchestra|baroque|chamber music/i },
-  { category: 'Hip-hop', pattern: /hip[ -]?hop|rap\b|trap music/i },
-  { category: 'Metal', pattern: /metal|hardcore|doom|blackmetal/i },
+  { category: 'Ambient', pattern: /ambient|drone|chillout/iu },
+  { category: 'Jazz', pattern: /jazz|bebop/iu },
+  { category: 'Classical', pattern: /classical|orchestra|baroque|chamber music/iu },
+  { category: 'Hip-hop', pattern: /hip[ -]?hop|rap\b|trap music/iu },
+  { category: 'Metal', pattern: /metal|hardcore|doom|blackmetal/iu },
   {
     category: 'Electronic',
-    pattern: /electronic|techno|house music|edm|dubstep|synthwave|drum.?and.?bass/i,
+    pattern: /electronic|techno|house music|edm|dubstep|synthwave|drum.?and.?bass/iu,
   },
-  { category: 'Indie', pattern: /indie|alternative music/i },
-  { category: 'Rock', pattern: /rock|punk|shoegaze/i },
-  { category: 'Pop', pattern: /pop music|popheads|k[ -]?pop/i },
+  { category: 'Indie', pattern: /indie|alternative music/iu },
+  { category: 'Rock', pattern: /rock|punk|shoegaze/iu },
+  { category: 'Pop', pattern: /pop music|popheads|k[ -]?pop/iu },
 ]
 const MUSIC_COMMUNITY_PATTERN =
-  /music|song|listen|jazz|classical|hip[ -]?hop|rap\b|metal|indie|rock|punk|ambient|techno|edm|dubstep|synthwave|shoegaze|orchestra|album/i
+  /music|song|listen|jazz|classical|hip[ -]?hop|rap\b|metal|indie|rock|punk|ambient|techno|edm|dubstep|synthwave|shoegaze|orchestra|album/iu
 
 export function inferCommunityCategory(name: string, description: string): CommunityCategory {
   const starter = STARTER_COMMUNITIES.find(item => item.name.toLowerCase() === name.toLowerCase())

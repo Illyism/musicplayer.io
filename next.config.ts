@@ -74,7 +74,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   reactStrictMode: true,
   // Skip Next's embedded typecheck inside Docker builds. The real gate is CI/pre-commit
-  // `bun run typecheck` (TS7 via @typescript/native).
+  // `bun run typecheck` (TS7 via `bun --check`).
   typescript: {
     ignoreBuildErrors: process.env.DOCKER_BUILD === 'true',
   },

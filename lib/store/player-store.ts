@@ -125,7 +125,7 @@ function _loadFromStorage<T>(key: string, defaultValue: T): T {
   }
 }
 
-const VALID_SUBREDDIT_NAME_REGEX = /^[a-z0-9_-]{1,100}$/i
+const VALID_SUBREDDIT_NAME_REGEX = /^[a-z0-9_-]{1,100}$/iu
 
 function saveToStorage<T>(key: string, value: T): void {
   if (typeof window === 'undefined') {

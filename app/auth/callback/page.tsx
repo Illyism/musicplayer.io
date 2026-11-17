@@ -18,15 +18,15 @@ function AuthStatus({ message }: { message: string }) {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-10 bg-background px-6 text-center">
+    <main className="bg-background flex min-h-dvh flex-col items-center justify-center gap-10 px-6 text-center">
       <Link aria-label="Music Player for Reddit home" href="/">
         <Brand />
       </Link>
       <div className="flex max-w-sm flex-col items-center gap-4" role="status">
         <StatusIcon
-          className={`size-7 text-muted-foreground ${hasError || isSuccess ? '' : 'motion-safe:animate-spin'}`}
+          className={`text-muted-foreground size-7 ${hasError || isSuccess ? '' : 'motion-safe:animate-spin'}`}
         />
-        <p className="text-balance font-medium text-lg">{message}</p>
+        <p className="text-lg font-medium text-balance">{message}</p>
         <p className="text-muted-foreground text-sm">
           {hasError
             ? 'Return to the player and try signing in again.'

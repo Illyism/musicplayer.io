@@ -49,6 +49,7 @@
   --sidebar-accent-foreground: #171717;
   --sidebar-border: oklch(0 0 0 / 9%);
   --sidebar-ring: #888888;
+  --app-toast-offset: 112px;
 }
 
 .dark {
@@ -151,9 +152,11 @@
   .dark img {
     outline-color: oklch(1 0 0 / 0.1);
   }
-  * {
-    scrollbar-color: var(--input) transparent;
-    scrollbar-width: thin;
+  @supports (scrollbar-width: thin) and (scrollbar-color: auto auto) {
+    * {
+      scrollbar-color: var(--input) transparent;
+      scrollbar-width: thin;
+    }
   }
 }
 
@@ -195,10 +198,10 @@ html[data-input-method="keyboard"] *::after {
   *,
   *::before,
   *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0ms !important;
-    scroll-behavior: auto !important;
   }
 }
 
@@ -206,10 +209,6 @@ html[data-input-method="keyboard"] *::after {
   --app-header-height: 72px;
   --app-player-height: 64px;
   --app-nav-height: calc(61px + max(8px, env(safe-area-inset-bottom)));
-}
-
-:root {
-  --app-toast-offset: 112px;
 }
 
 :root:has([data-pip-mode="floating"]) {

@@ -50,28 +50,28 @@ function MusicAppContent() {
   }, [])
 
   useEffect(() => {
-    const useKeyboard = () => {
+    const handleKeyDown = () => {
       document.documentElement.dataset.inputMethod = 'keyboard'
     }
-    const usePointer = () => {
+    const handlePointerDown = () => {
       delete document.documentElement.dataset.inputMethod
     }
-    window.addEventListener('keydown', useKeyboard)
-    window.addEventListener('pointerdown', usePointer)
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('pointerdown', handlePointerDown)
     return () => {
-      window.removeEventListener('keydown', useKeyboard)
-      window.removeEventListener('pointerdown', usePointer)
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('pointerdown', handlePointerDown)
       delete document.documentElement.dataset.inputMethod
     }
   }, [])
 
   return (
     <div
-      className="music-app flex h-dvh min-h-0 flex-col overflow-hidden bg-background"
+      className="music-app bg-background flex h-dvh min-h-0 flex-col overflow-hidden"
       data-now-playing={!isDesktop && mobileView === 'player'}
     >
       <a
-        className="sr-only z-110 rounded-full bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
+        className="bg-primary text-primary-foreground sr-only z-110 rounded-full px-4 py-3 focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
         href="#main-content"
       >
         Skip to music
@@ -91,7 +91,7 @@ function MusicAppContent() {
         {isDesktop ? (
           <ResizablePanelGroup className="min-h-0" direction="horizontal">
             <ResizablePanel
-              className="overflow-y-auto bg-sidebar"
+              className="bg-sidebar overflow-y-auto"
               defaultSize={248}
               maxSize={320}
               minSize={220}
@@ -104,7 +104,7 @@ function MusicAppContent() {
             </ResizablePanel>
             <ResizableHandle className="bg-border/60" />
             <ResizablePanel
-              className="flex min-h-0 flex-col bg-background"
+              className="bg-background flex min-h-0 flex-col"
               defaultSize={340}
               maxSize={480}
               minSize={280}
@@ -115,7 +115,7 @@ function MusicAppContent() {
         ) : (
           <>
             <div
-              className="min-h-0 w-full overflow-y-auto bg-sidebar"
+              className="bg-sidebar min-h-0 w-full overflow-y-auto"
               hidden={mobileView !== 'browse'}
             >
               <BrowsePanel />

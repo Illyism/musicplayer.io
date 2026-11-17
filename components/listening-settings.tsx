@@ -50,13 +50,13 @@ export function ListeningSettings() {
               history stays in this browser.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-between gap-4 rounded-xl bg-muted/50 p-4">
-            <label className="cursor-pointer font-medium text-sm" htmlFor="learn-from-listening">
+          <div className="bg-muted/50 flex items-center justify-between gap-4 rounded-xl p-4">
+            <label className="cursor-pointer text-sm font-medium" htmlFor="learn-from-listening">
               Learn from my listening
             </label>
             <input
               checked={enabled}
-              className="size-5 accent-reddit"
+              className="accent-reddit size-5"
               id="learn-from-listening"
               onChange={event => setEnabled(event.target.checked)}
               type="checkbox"

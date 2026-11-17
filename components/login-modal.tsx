@@ -62,20 +62,20 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
       open={isOpen}
     >
       <DialogContent className="gap-6 sm:max-w-md">
-        <div className="flex size-14 items-center justify-center rounded-2xl bg-reddit/10 text-reddit">
+        <div className="bg-reddit/10 text-reddit flex size-14 items-center justify-center rounded-2xl">
           <RedditLogo aria-hidden className="size-8" weight="fill" />
         </div>
         <DialogHeader className="gap-2 text-left">
-          <DialogTitle className="text-balance text-2xl leading-tight">
+          <DialogTitle className="text-2xl leading-tight text-balance">
             Sign in with Reddit
           </DialogTitle>
-          <DialogDescription className="text-pretty text-sm leading-relaxed">
+          <DialogDescription className="text-sm leading-relaxed text-pretty">
             {getMessage()}
           </DialogDescription>
         </DialogHeader>
 
         {error !== null && (
-          <p className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm" role="alert">
+          <p className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm" role="alert">
             {error}
           </p>
         )}
@@ -97,7 +97,7 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
             {isSigningIn ? (
               <CircleNotch aria-hidden className="size-4 animate-spin" />
             ) : (
-              <RedditLogo aria-hidden className="size-4 text-reddit" weight="fill" />
+              <RedditLogo aria-hidden className="text-reddit size-4" weight="fill" />
             )}
             {isSigningIn ? 'Connecting…' : 'Continue with Reddit'}
           </Button>
