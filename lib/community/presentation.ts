@@ -14,8 +14,5 @@ export function discoveryStatus(data: CommunityDiscoveryResult) {
         month: 'short',
       })
     : 'recently'
-  if (data.source === 'snapshot') {
-    return `Snapshot from ${checked} · live checks unavailable.`
-  }
   return `Checked ${checked}${data.degraded ? ' · some checks unavailable' : ''}.`
 }

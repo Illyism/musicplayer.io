@@ -1,3 +1,4 @@
+import { createRequestQuota } from '@/lib/utils/reddit-quota'
 import {
   getAppAccessToken,
   invalidateAppAccessToken,
@@ -5,38 +6,12 @@ import {
   USER_AGENT,
 } from '@/lib/utils/reddit-token'
 
-const MINUTE_MS = 60_000
-const REQUEST_BUDGET = 40
-const QUOTA_RESERVE = 10
-let windowStartsAt = Date.now()
-let usedInWindow = 0
-let blockedUntil = 0
+const quota = createRequestQuota(40, 10)
 
-export class DiscoveryUnavailableError extends Error {
+class DiscoveryUnavailableError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'DiscoveryUnavailableError'
-  }
-}
-
-function reserveRequest() {
-  const now = Date.now()
-  if (now - windowStartsAt >= MINUTE_MS) {
-    windowStartsAt = now
-    usedInWindow = 0
-  }
-  if (now < blockedUntil || usedInWindow >= REQUEST_BUDGET) {
-    throw new DiscoveryUnavailableError('Reddit discovery is cooling down to respect API limits.')
-  }
-  usedInWindow += 1
-}
-
-function observeQuota(response: Response) {
-  const remainingHeader = response.headers.get('x-ratelimit-remaining')
-  const remaining = remainingHeader === null ? Number.NaN : Number(remainingHeader)
-  const resetSeconds = Number(response.headers.get('x-ratelimit-reset')) || 60
-  if (response.status === 429 || (Number.isFinite(remaining) && remaining <= QUOTA_RESERVE)) {
-    blockedUntil = Date.now() + Math.max(1, resetSeconds) * 1000
   }
 }
 
@@ -59,7 +34,9 @@ async function fetchWithToken(
   if (targetUrl.origin !== REDDIT_API_BASE || targetUrl.pathname !== path) {
     throw new DiscoveryUnavailableError('Invalid Reddit discovery path.')
   }
-  reserveRequest()
+  if (!quota.take()) {
+    throw new DiscoveryUnavailableError('Reddit discovery is cooling down to respect API limits.')
+  }
   params.set('raw_json', '1')
   targetUrl.search = params.toString()
   const response = await fetch(targetUrl.href, {
@@ -72,7 +49,7 @@ async function fetchWithToken(
     redirect: 'manual',
     signal: AbortSignal.timeout(8000),
   })
-  observeQuota(response)
+  quota.observe(response)
   return response
 }
 
@@ -95,7 +72,7 @@ export async function requestCommunityData(
   path: string,
   params: URLSearchParams
 ): Promise<unknown> {
-  if (Date.now() < blockedUntil) {
+  if (quota.isBlocked()) {
     throw new DiscoveryUnavailableError('Reddit discovery is cooling down to respect API limits.')
   }
   const token = await getTokenWithinDeadline()

@@ -1,6 +1,6 @@
 import type { PlayerState, Song } from '@/lib/store/player-store'
 
-export type ListeningSnapshot = Pick<
+type ListeningSnapshot = Pick<
   PlayerState,
   | 'currentSong'
   | 'currentTime'
@@ -12,7 +12,7 @@ export type ListeningSnapshot = Pick<
   | 'seekRevision'
 >
 
-export interface SessionSignal {
+interface SessionSignal {
   seconds: number
   song: Song
   type: 'listen' | 'complete' | 'skip'

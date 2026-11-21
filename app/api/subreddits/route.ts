@@ -1,26 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { discoverCommunities } from '@/lib/community/discovery'
 import { parseCommunityCategory } from '@/lib/community/types'
+import { isCrossSiteRequest } from '@/lib/utils/cross-site'
 
 const CONTROL_CHAR_REGEX = /\p{Cc}/u
-
-function isCrossSiteRequest(request: NextRequest): boolean {
-  if (request.headers.get('sec-fetch-site') === 'cross-site') {
-    return true
-  }
-  const origin = request.headers.get('origin')
-  if (!origin) {
-    return false
-  }
-  try {
-    const parsedOrigin = new URL(origin)
-    const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
-    const host = forwardedHost || request.headers.get('host') || request.nextUrl.host
-    return parsedOrigin.host !== host
-  } catch {
-    return true
-  }
-}
 
 export async function GET(request: NextRequest) {
   if (isCrossSiteRequest(request)) {

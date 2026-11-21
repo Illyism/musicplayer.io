@@ -37,7 +37,7 @@ export async function requestPictureInPictureWindow(
   }
 }
 
-export interface PictureInPictureState {
+interface PictureInPictureState {
   close: () => void
   isActive: boolean
   isNative: boolean

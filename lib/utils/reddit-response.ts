@@ -1,4 +1,5 @@
 import { RedditError } from '@/lib/errors/reddit-error'
+import { createRequestQuota } from './reddit-quota'
 import {
   getAppAccessToken,
   invalidateAppAccessToken,
@@ -6,37 +7,9 @@ import {
   USER_AGENT,
 } from './reddit-token'
 
-const MINUTE_MS = 60_000
-const REQUEST_BUDGET = 60
-const QUOTA_RESERVE = 5
 const REQUEST_TIMEOUT_MS = 5000
-let windowStartsAt = Date.now()
-let usedInWindow = 0
-let blockedUntil = 0
-
-function reserveApiRequest() {
-  const now = Date.now()
-  if (now - windowStartsAt >= MINUTE_MS) {
-    windowStartsAt = now
-    usedInWindow = 0
-  }
-  if (now < blockedUntil || usedInWindow >= REQUEST_BUDGET) {
-    throw new RedditError('Rate limited (429). Please try again later.', {
-      statusCode: 429,
-      reason: 'You are making too many requests. Please wait a few minutes before trying again.',
-    })
-  }
-  usedInWindow += 1
-}
-
-function observeApiQuota(response: Response) {
-  const remainingHeader = response.headers.get('x-ratelimit-remaining')
-  const remaining = remainingHeader === null ? Number.NaN : Number(remainingHeader)
-  const resetSeconds = Number(response.headers.get('x-ratelimit-reset')) || 60
-  if (response.status === 429 || (Number.isFinite(remaining) && remaining <= QUOTA_RESERVE)) {
-    blockedUntil = Date.now() + Math.max(1, resetSeconds) * 1000
-  }
-}
+const RETRIES = 1
+const quota = createRequestQuota(60, 5)
 
 const CONTROL_CHAR_REGEX = /\p{Cc}/u
 const ENCODED_SEPARATOR_REGEX = /%(?:2f|5c)/iu
@@ -47,20 +20,21 @@ function hasDotPathSegment(path: string): boolean {
   return path.split('/').some(segment => segment === '.' || segment === '..')
 }
 
+function isUnsafePath(path: string): boolean {
+  return (
+    !path.startsWith('/') ||
+    path.includes('//') ||
+    path.includes('\\') ||
+    path.includes('?') ||
+    path.includes('#') ||
+    CONTROL_CHAR_REGEX.test(path) ||
+    ENCODED_SEPARATOR_REGEX.test(path) ||
+    hasDotPathSegment(path)
+  )
+}
+
 export function isValidRedditPermalink(val: string): boolean {
-  if (
-    val.length <= 3 ||
-    val.length > 500 ||
-    !val.startsWith('/') ||
-    val.startsWith('//') ||
-    val.includes('//') ||
-    val.includes('\\') ||
-    val.includes('?') ||
-    val.includes('#') ||
-    CONTROL_CHAR_REGEX.test(val) ||
-    ENCODED_SEPARATOR_REGEX.test(val) ||
-    hasDotPathSegment(val)
-  ) {
+  if (val.length <= 3 || val.length > 500 || isUnsafePath(val)) {
     return false
   }
 
@@ -106,18 +80,8 @@ export function isValidRedditPermalink(val: string): boolean {
   }
 }
 
-export function resolveRedditApiUrl(path: string, params: URLSearchParams): string {
-  if (
-    !path.startsWith('/') ||
-    path.startsWith('//') ||
-    path.includes('//') ||
-    path.includes('\\') ||
-    path.includes('?') ||
-    path.includes('#') ||
-    CONTROL_CHAR_REGEX.test(path) ||
-    ENCODED_SEPARATOR_REGEX.test(path) ||
-    hasDotPathSegment(path)
-  ) {
+function resolveRedditApiUrl(path: string, params: URLSearchParams): string {
+  if (isUnsafePath(path)) {
     throw new RedditError('Invalid Reddit API path.', {
       statusCode: 400,
       reason: 'Invalid request path.',
@@ -180,10 +144,8 @@ function slimPostData(data: Record<string, unknown>) {
     author: data.author,
     created_utc: data.created_utc,
     domain: data.domain,
-    downs: data.downs,
     id: data.id,
     is_self: data.is_self,
-    media: data.media,
     name: data.name,
     num_comments: data.num_comments,
     permalink: data.permalink,
@@ -195,21 +157,21 @@ function slimPostData(data: Record<string, unknown>) {
     subreddit: data.subreddit,
     thumbnail: data.thumbnail,
     title: data.title,
-    ups: data.ups,
     url: data.url,
   }
 }
 
-export async function redditFetch(
-  url: string,
-  headers: HeadersInit,
-  retries = 1
-): Promise<Response> {
+async function redditFetch(url: string, headers: HeadersInit): Promise<Response> {
   let lastResponse: Response | undefined
   let lastError: unknown
 
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    reserveApiRequest()
+  for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
+    if (!quota.take()) {
+      throw new RedditError('Rate limited (429). Please try again later.', {
+        statusCode: 429,
+        reason: 'You are making too many requests. Please wait a few minutes before trying again.',
+      })
+    }
     try {
       // biome-ignore lint/performance/noAwaitInLoops: sequential retry with backoff
       lastResponse = await fetch(url, {
@@ -218,7 +180,7 @@ export async function redditFetch(
         redirect: 'manual',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       })
-      observeApiQuota(lastResponse)
+      quota.observe(lastResponse)
 
       if (lastResponse.ok || lastResponse.status < 500) {
         return lastResponse
@@ -227,7 +189,7 @@ export async function redditFetch(
       lastError = error
     }
 
-    if (attempt < retries) {
+    if (attempt < RETRIES) {
       await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)))
     }
   }

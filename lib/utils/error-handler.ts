@@ -1,4 +1,4 @@
-import { getErrorMessage, isRedditError, RedditError } from '@/lib/errors/reddit-error'
+import { RedditError } from '@/lib/errors/reddit-error'
 
 export async function handleRedditApiError(response: Response): Promise<never> {
   let errorMessage = `Reddit API error: ${response.status}`
@@ -40,18 +40,4 @@ export async function handleRedditApiError(response: Response): Promise<never> {
   }
 
   throw new RedditError(errorMessage, { statusCode: response.status, reason })
-}
-
-export function wrapServerActionError<T extends (...args: any[]) => Promise<any>>(fn: T): T {
-  return (async (...args: Parameters<T>) => {
-    try {
-      return await fn(...args)
-    } catch (error) {
-      if (isRedditError(error)) {
-        throw error
-      }
-      const message = getErrorMessage(error)
-      throw new RedditError(message, { cause: error })
-    }
-  }) as T
 }
