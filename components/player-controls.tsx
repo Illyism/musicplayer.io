@@ -17,14 +17,14 @@ import {
 } from '@phosphor-icons/react'
 import Image from 'next/image'
 import { type ChangeEvent, useRef } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { SaveTrackButton } from '@/components/save-track-button'
 import { Button } from '@/components/ui/button'
-import { VoteControl } from '@/components/vote-control'
 import { seekCurrentMedia } from '@/lib/hooks/use-media-session'
 import { usePictureInPicture } from '@/lib/hooks/use-picture-in-picture'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { cn } from '@/lib/utils'
-import { formatTime, isRedditHostedImage } from '@/lib/utils/song-utils'
+import { formatTime, isRedditHostedImage, smallCover } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
 function useSeek() {
@@ -104,14 +104,15 @@ export function SeekControl({ className = '' }: { className?: string }) {
 }
 
 function TrackArtwork({ song }: { song: Song | null }) {
-  return song?.thumbnail ? (
+  const cover = song ? smallCover(song) : undefined
+  return cover ? (
     <Image
       alt=""
       className="size-11 shrink-0 rounded-sm object-cover lg:size-14"
       height={56}
       priority
-      src={song.thumbnail}
-      unoptimized={isRedditHostedImage(song.thumbnail)}
+      src={cover}
+      unoptimized={isRedditHostedImage(cover)}
       width={56}
     />
   ) : (
@@ -138,11 +139,20 @@ function TrackSummary({ song }: { song: Song | null }) {
   )
 }
 
+function PlaybackTime() {
+  const elapsed = usePlayerStore(state => Math.floor(state.currentTime))
+  const duration = usePlayerStore(state => state.duration)
+
+  return (
+    <span className="text-muted-foreground ml-3 hidden min-w-[5.25rem] text-left text-xs whitespace-nowrap tabular-nums min-[1100px]:inline">
+      {formatTime(elapsed)} / {formatTime(duration)}
+    </span>
+  )
+}
+
 export function PlayerControls() {
   const {
     isPlaying,
-    currentTime,
-    duration,
     volume,
     currentSong,
     songs,
@@ -155,7 +165,23 @@ export function PlayerControls() {
     setVolume,
     setMobileView,
     setQueueOpen,
-  } = usePlayerStore()
+  } = usePlayerStore(
+    useShallow(state => ({
+      currentSong: state.currentSong,
+      cycleRepeatMode: state.cycleRepeatMode,
+      isPlaying: state.isPlaying,
+      next: state.next,
+      previous: state.previous,
+      repeatMode: state.repeatMode,
+      setMobileView: state.setMobileView,
+      setQueueOpen: state.setQueueOpen,
+      setVolume: state.setVolume,
+      shufflePlaylist: state.shufflePlaylist,
+      songs: state.songs,
+      togglePlay: state.togglePlay,
+      volume: state.volume,
+    }))
+  )
   const pip = usePictureInPicture()
   const previousVolumeRef = useRef(volume > 0 ? volume : 100)
 
@@ -287,15 +313,10 @@ export function PlayerControls() {
         >
           {repeatMode === 'one' ? <RepeatOnce className="size-5" /> : <Repeat className="size-5" />}
         </Button>
-        <span className="text-muted-foreground ml-3 hidden text-xs whitespace-nowrap tabular-nums min-[1100px]:inline">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
+        <PlaybackTime />
       </div>
 
       <div className="hidden items-center justify-end gap-1 lg:flex">
-        {currentSong !== null && (
-          <VoteControl className="mr-3 hidden min-[1060px]:inline-flex" score={currentSong.score} />
-        )}
         <Button
           aria-label="Open queue"
           className="text-muted-foreground hover:text-foreground size-11 rounded-full"

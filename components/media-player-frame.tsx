@@ -31,11 +31,11 @@ export function MediaPlayerFrame({
   const toggleTheatreMode = usePlayerStore(state => state.toggleTheatreMode)
   const setTheatreMode = usePlayerStore(state => state.setTheatreMode)
   const isPlaying = usePlayerStore(state => state.isPlaying)
-  const currentTime = usePlayerStore(state => state.currentTime)
+  const hasStarted = usePlayerStore(state => state.currentTime > 0)
   const play = usePlayerStore(state => state.play)
   const { isActive } = usePictureInPicture()
   const showTheatre = isTheatreMode && !isActive
-  const loadEmbed = isPlaying || currentTime > 0
+  const loadEmbed = isPlaying || hasStarted
 
   useEffect(() => {
     if (!isTheatreMode) {
@@ -92,7 +92,7 @@ export function MediaPlayerFrame({
                 </Button>
               </div>
             )}
-            {!isPlaying && currentTime === 0 && song.thumbnail && !playbackError && !showTheatre ? (
+            {!(isPlaying || hasStarted) && song.thumbnail && !playbackError && !showTheatre ? (
               <button
                 aria-label={`Play ${song.title}`}
                 className="absolute inset-0 z-10"

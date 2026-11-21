@@ -15,6 +15,7 @@ import {
 } from '@phosphor-icons/react'
 import Image from 'next/image'
 import { useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { SaveTrackButton } from '@/components/save-track-button'
 import { ShareModal } from '@/components/share-modal'
 import { TrackMenu } from '@/components/track-menu'
@@ -28,12 +29,22 @@ import { MediaPlayerFrame } from './media-player-frame'
 import { SeekControl } from './player-controls'
 import { PlayerEmptyState, SongInfoContent } from './song-info-sidebar'
 
+function PlaybackTimes() {
+  const elapsed = usePlayerStore(state => Math.floor(state.currentTime))
+  const duration = usePlayerStore(state => state.duration)
+
+  return (
+    <div className="text-muted-foreground flex justify-between text-[11px] tabular-nums">
+      <span>{formatTime(elapsed)}</span>
+      <span>{duration > 0 ? `−${formatTime(Math.max(0, duration - elapsed))}` : '0:00'}</span>
+    </div>
+  )
+}
+
 export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
   const {
     currentSong,
     isPlaying,
-    currentTime,
-    duration,
     togglePlay,
     previous,
     next,
@@ -44,7 +55,22 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
     setQueueOpen,
     setMobileView,
     selectedSubreddits,
-  } = usePlayerStore()
+  } = usePlayerStore(
+    useShallow(state => ({
+      currentSong: state.currentSong,
+      cycleRepeatMode: state.cycleRepeatMode,
+      isPlaying: state.isPlaying,
+      next: state.next,
+      previous: state.previous,
+      repeatMode: state.repeatMode,
+      selectedSubreddits: state.selectedSubreddits,
+      setMobileView: state.setMobileView,
+      setQueueOpen: state.setQueueOpen,
+      shufflePlaylist: state.shufflePlaylist,
+      songs: state.songs,
+      togglePlay: state.togglePlay,
+    }))
+  )
   const pip = usePictureInPicture()
   const [share, setShare] = useState(false)
   const gestureStart = useRef(0)
@@ -136,12 +162,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
         </div>
         <div>
           <SeekControl className="[&>div]:bg-foreground/20 h-8" />
-          <div className="text-muted-foreground flex justify-between text-[11px] tabular-nums">
-            <span>{formatTime(currentTime)}</span>
-            <span>
-              {duration > 0 ? `−${formatTime(Math.max(0, duration - currentTime))}` : '0:00'}
-            </span>
-          </div>
+          <PlaybackTimes />
         </div>
         <div className="flex items-center justify-between gap-1">
           <Button

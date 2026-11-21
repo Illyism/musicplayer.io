@@ -3,17 +3,19 @@
 import { MusicNote, RedditLogo } from '@phosphor-icons/react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useShallow } from 'zustand/react/shallow'
 import { ListeningSettings } from '@/components/listening-settings'
 import { discoveryStatus } from '@/lib/community/presentation'
 import { recommendCommunities } from '@/lib/community/recommendations'
 import { useCommunityDiscovery } from '@/lib/hooks/use-community-discovery'
 import { recommendTracks, useListeningStore } from '@/lib/store/listening-store'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
-import { isRedditHostedImage } from '@/lib/utils/song-utils'
+import { isRedditHostedImage, mediumCover } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
 function TrackCard({ song, priority = false }: { song: Song; priority?: boolean }) {
   const display = trackDisplay(song)
+  const cover = mediumCover(song)
   const enqueue = usePlayerStore(state => state.enqueueSong)
   const playQueued = usePlayerStore(state => state.playQueuedSong)
   return (
@@ -25,15 +27,15 @@ function TrackCard({ song, priority = false }: { song: Song; priority?: boolean 
       }}
       type="button"
     >
-      {song.thumbnail ? (
+      {cover ? (
         <Image
           alt=""
           className="aspect-square w-full rounded-md object-cover"
           height={160}
           loading={priority ? 'eager' : 'lazy'}
           priority={priority}
-          src={song.thumbnail}
-          unoptimized={isRedditHostedImage(song.thumbnail)}
+          src={cover}
+          unoptimized={isRedditHostedImage(cover)}
           width={160}
         />
       ) : (
@@ -52,7 +54,13 @@ function TrackCard({ song, priority = false }: { song: Song; priority?: boolean 
 export function DiscoveryShelves() {
   const { data } = useCommunityDiscovery()
   const { events, recentSongs } = useListeningStore()
-  const { songs, selectedSubreddits, searchQuery } = usePlayerStore()
+  const { songs, selectedSubreddits, searchQuery } = usePlayerStore(
+    useShallow(state => ({
+      searchQuery: state.searchQuery,
+      selectedSubreddits: state.selectedSubreddits,
+      songs: state.songs,
+    }))
+  )
   if (searchQuery) {
     return null
   }

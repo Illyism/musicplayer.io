@@ -3,10 +3,12 @@
 import { MusicNote, RedditLogo } from '@phosphor-icons/react'
 import Image from 'next/image'
 import { type CSSProperties, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useCommunityDiscovery } from '@/lib/hooks/use-community-discovery'
+import { useEffectiveSubreddits } from '@/lib/hooks/use-route-subreddits'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { cn } from '@/lib/utils'
-import { isRedditHostedImage } from '@/lib/utils/song-utils'
+import { isRedditHostedImage, mediumCover } from '@/lib/utils/song-utils'
 
 const MOSAIC_TILES = 4
 const MIN_TITLE_CHARS = 8
@@ -28,6 +30,7 @@ export function MixWash({ src }: { src: string | null }) {
             className="animate-in fade-in absolute inset-0 size-full scale-150 object-cover opacity-50 blur-[64px] saturate-150 duration-700 outline-none dark:opacity-70 dark:outline-none"
             height={320}
             key={url}
+            loading="eager"
             src={url}
             unoptimized={isRedditHostedImage(url)}
             width={320}
@@ -44,8 +47,9 @@ export function MixWash({ src }: { src: string | null }) {
 function MixMosaic({ songs, className }: { songs: Song[]; className?: string }) {
   const covers: string[] = []
   for (const song of songs) {
-    if (song.thumbnail && !covers.includes(song.thumbnail)) {
-      covers.push(song.thumbnail)
+    const cover = mediumCover(song)
+    if (cover && !covers.includes(cover)) {
+      covers.push(cover)
     }
     if (covers.length === MOSAIC_TILES) {
       break
@@ -92,9 +96,16 @@ function communityList(names: string[]) {
 }
 
 export function MixHeader({ songs }: { songs: Song[] }) {
-  const { selectedSubreddits, searchQuery, listingUpdatedAt } = usePlayerStore()
+  const effectiveSubreddits = useEffectiveSubreddits()
+  const { searchQuery, listingUpdatedAt, loading } = usePlayerStore(
+    useShallow(state => ({
+      listingUpdatedAt: state.listingUpdatedAt,
+      loading: state.loading,
+      searchQuery: state.searchQuery,
+    }))
+  )
   const { data } = useCommunityDiscovery()
-  const single = selectedSubreddits.length === 1 ? selectedSubreddits[0] : null
+  const single = effectiveSubreddits.length === 1 ? effectiveSubreddits[0] : null
 
   let label = 'Your mix'
   let title = 'Your mix'
@@ -107,8 +118,8 @@ export function MixHeader({ songs }: { songs: Song[] }) {
     label = 'Subreddit mix'
     title = `r/${single}`
     context = `Fresh finds from r/${single}, ready to play.`
-  } else if (selectedSubreddits.length > 1) {
-    context = `Your own mix of ${selectedSubreddits.length} music communities.`
+  } else if (effectiveSubreddits.length > 1) {
+    context = `Your own mix of ${effectiveSubreddits.length} music communities.`
   }
 
   const longestWord = Math.max(...title.split(WORD_SPLIT).map(word => word.length))
@@ -143,7 +154,7 @@ export function MixHeader({ songs }: { songs: Song[] }) {
         <p className="text-muted-foreground text-sm font-medium @min-[720px]/mix:text-base">
           {context}
         </p>
-        <p className="text-muted-foreground mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+        <p className="text-muted-foreground mt-2 flex h-6 min-w-0 flex-nowrap items-center gap-x-1.5 overflow-hidden text-sm">
           {searchQuery ? null : (
             <>
               <span className="bg-muted text-reddit flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full">
@@ -161,19 +172,29 @@ export function MixHeader({ songs }: { songs: Song[] }) {
                 )}
               </span>
               <span className="text-foreground min-w-0 truncate font-bold">
-                {selectedSubreddits.length > 0 ? communityList(selectedSubreddits) : 'Reddit'}
+                {effectiveSubreddits.length > 0 ? communityList(effectiveSubreddits) : 'Reddit'}
               </span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="shrink-0">
+                ·
+              </span>
             </>
           )}
-          <span className="tabular-nums">
-            {songs.length} {songs.length === 1 ? 'track' : 'tracks'}
-          </span>
+          {loading && songs.length === 0 ? (
+            <span
+              aria-hidden="true"
+              className="bg-muted inline-block h-3.5 w-16 shrink-0 rounded-full motion-safe:animate-pulse"
+              key="tracks-skeleton"
+            />
+          ) : (
+            <span className="shrink-0 whitespace-nowrap tabular-nums" key="tracks-count">
+              {songs.length} {songs.length === 1 ? 'track' : 'tracks'}
+            </span>
+          )}
           {updated ? (
-            <>
+            <span className="hidden shrink-0 items-center gap-x-1.5 whitespace-nowrap @min-[600px]/mix:inline-flex">
               <span aria-hidden="true">·</span>
               <span>updated {updated}</span>
-            </>
+            </span>
           ) : null}
         </p>
       </div>

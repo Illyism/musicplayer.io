@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, DotsThree, MusicNote, Queue, X } from '@phosphor-icons/react'
 import Image from 'next/image'
 import { useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,21 +19,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useUpcomingTracks } from '@/lib/hooks/use-upcoming-tracks'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
-import { isRedditHostedImage } from '@/lib/utils/song-utils'
+import { isRedditHostedImage, smallCover } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
 function QueueArtwork({ song }: { song: Song }) {
+  const cover = smallCover(song)
   return (
     <span className="bg-muted text-muted-foreground relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg">
-      {song.thumbnail ? (
+      {cover ? (
         <Image
           alt=""
           className="object-cover"
           fill
           sizes="48px"
-          src={song.thumbnail}
-          unoptimized={isRedditHostedImage(song.thumbnail)}
+          src={cover}
+          unoptimized={isRedditHostedImage(cover)}
         />
       ) : (
         <MusicNote aria-hidden className="size-5" />
@@ -85,29 +88,30 @@ export function QueueDrawer() {
   const {
     clearQueue,
     currentSong,
-    failedSongIds,
-    listingCursorId,
     moveQueuedSong,
     playQueuedSong,
     queueOpen,
-    queueSongs,
     removeQueuedSong,
     repeatMode,
     setCurrentSong,
     setQueueOpen,
-    songs,
-  } = usePlayerStore()
+  } = usePlayerStore(
+    useShallow(state => ({
+      clearQueue: state.clearQueue,
+      currentSong: state.currentSong,
+      moveQueuedSong: state.moveQueuedSong,
+      playQueuedSong: state.playQueuedSong,
+      queueOpen: state.queueOpen,
+      removeQueuedSong: state.removeQueuedSong,
+      repeatMode: state.repeatMode,
+      setCurrentSong: state.setCurrentSong,
+      setQueueOpen: state.setQueueOpen,
+    }))
+  )
+  const { nextTracks, queueSongs } = useUpcomingTracks()
   const [announcement, setAnnouncement] = useState('')
   const swipeStartRef = useRef<{ pointerId: number; y: number } | null>(null)
   const suppressClickRef = useRef<boolean>(false)
-  const cursorIndex = songs.findIndex(song => song.id === listingCursorId)
-  const availableTracks = songs
-    .map((song, index) => ({ index, song }))
-    .filter(({ song }) => song.playable && !failedSongIds.includes(song.id))
-  const nextTracks = availableTracks.filter(({ index }) => index > cursorIndex)
-  if (repeatMode === 'all' && cursorIndex >= 0) {
-    nextTracks.push(...availableTracks.filter(({ index }) => index <= cursorIndex))
-  }
 
   const reorder = (song: Song, direction: 'up' | 'down') => {
     moveQueuedSong(song.id, direction)

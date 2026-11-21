@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { usePlayerStore } from '@/lib/store/player-store'
 
 interface KeyboardShortcutsProps {
@@ -16,7 +17,15 @@ function ownsNativeKeyboard(target: EventTarget | null): boolean {
 }
 
 export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
-  const { togglePlay, next, previous, setVolume, shufflePlaylist } = usePlayerStore()
+  const { togglePlay, next, previous, setVolume, shufflePlaylist } = usePlayerStore(
+    useShallow(state => ({
+      next: state.next,
+      previous: state.previous,
+      setVolume: state.setVolume,
+      shufflePlaylist: state.shufflePlaylist,
+      togglePlay: state.togglePlay,
+    }))
+  )
 
   const previousVolumeRef = useRef<number>(100)
 

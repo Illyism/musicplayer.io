@@ -12,6 +12,7 @@ import {
   X,
 } from '@phosphor-icons/react'
 import { type RefObject, useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { DiscoveryShelves } from '@/components/discovery-shelves'
 import { MixHeader, MixWash } from '@/components/mix-header'
 import { TrackLoadingState, TrackRow, TrackTableHeader } from '@/components/track-table'
@@ -29,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
 import { type PlayerState, usePlayerStore } from '@/lib/store/player-store'
 import { cn } from '@/lib/utils'
+import { smallCover } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
 const TOP_PERIODS = [
@@ -53,7 +55,14 @@ function sortLabel(sortMethod: PlayerState['sortMethod'], topPeriod: PlayerState
 }
 
 function SortMenu({ loading }: { loading: boolean }) {
-  const { sortMethod, topPeriod, setSortMethod, setTopPeriod } = usePlayerStore()
+  const { sortMethod, topPeriod, setSortMethod, setTopPeriod } = usePlayerStore(
+    useShallow(state => ({
+      setSortMethod: state.setSortMethod,
+      setTopPeriod: state.setTopPeriod,
+      sortMethod: state.sortMethod,
+      topPeriod: state.topPeriod,
+    }))
+  )
   const label = sortLabel(sortMethod, topPeriod)
   const value = sortMethod === 'top' ? `top:${topPeriod}` : sortMethod
 
@@ -116,7 +125,14 @@ function ActionRow({
   onToggleFilter: () => void
   filterTriggerRef: RefObject<HTMLButtonElement | null>
 }) {
-  const { songs, isPlaying, loading, shufflePlaylist } = usePlayerStore()
+  const { songs, isPlaying, loading, shufflePlaylist } = usePlayerStore(
+    useShallow(state => ({
+      isPlaying: state.isPlaying,
+      loading: state.loading,
+      shufflePlaylist: state.shufflePlaylist,
+      songs: state.songs,
+    }))
+  )
   const hasPlayableSongs = songs.some(song => song.playable)
 
   return (
@@ -250,7 +266,24 @@ export function PlaylistPanel() {
     setCurrentSong,
     togglePlay,
     setMobileView,
-  } = usePlayerStore()
+  } = usePlayerStore(
+    useShallow(state => ({
+      after: state.after,
+      currentIndex: state.currentIndex,
+      currentSong: state.currentSong,
+      isPlaying: state.isPlaying,
+      listingError: state.listingError,
+      loading: state.loading,
+      searchQuery: state.searchQuery,
+      selectedSubreddits: state.selectedSubreddits,
+      setCurrentSong: state.setCurrentSong,
+      setMobileView: state.setMobileView,
+      songs: state.songs,
+      sortMethod: state.sortMethod,
+      togglePlay: state.togglePlay,
+      topPeriod: state.topPeriod,
+    }))
+  )
   const { fetchSongs } = useRedditAPI()
   const previousSort = useRef({ sortMethod, topPeriod })
   const contextKey = searchQuery ? `search/${searchQuery}` : selectedSubreddits.join('+')
@@ -302,7 +335,8 @@ export function PlaylistPanel() {
   const genreCount = songs.filter(song => trackDisplay(song).genre !== null).length
   const showSharedBy = genreCount * 2 < songs.length
   const showSubreddit = Boolean(searchQuery) || selectedSubreddits.length > 1
-  const washSource = currentSong?.thumbnail || songs.find(song => song.thumbnail)?.thumbnail || null
+  const washSong = currentSong?.thumbnail ? currentSong : songs.find(song => song.thumbnail)
+  const washSource = washSong ? (smallCover(washSong) ?? null) : null
 
   return (
     <section
@@ -347,6 +381,7 @@ export function PlaylistPanel() {
               </Button>
             </div>
           )}
+          {(songs.length > 0 || loading) && <TrackTableHeader showSharedBy={showSharedBy} />}
           {loading && songs.length === 0 && <TrackLoadingState />}
           {!loading && songs.length === 0 && (
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
@@ -373,7 +408,6 @@ export function PlaylistPanel() {
           )}
           {songs.length > 0 && (
             <>
-              <TrackTableHeader showSharedBy={showSharedBy} />
               {normalizedFilter ? (
                 <p className="text-muted-foreground px-3 pb-2 text-xs">
                   {visibleSongs.length} matching {visibleSongs.length === 1 ? 'track' : 'tracks'}
@@ -393,7 +427,10 @@ export function PlaylistPanel() {
               ) : (
                 <ol className="flex flex-col">
                   {visibleSongs.map(({ song, index }, visibleIndex) => (
-                    <li className="min-h-14" key={song.id}>
+                    <li
+                      className="min-h-14 [contain-intrinsic-size:auto_56px] [content-visibility:auto]"
+                      key={song.id}
+                    >
                       <TrackRow
                         index={index}
                         isCurrent={currentIndex === index}

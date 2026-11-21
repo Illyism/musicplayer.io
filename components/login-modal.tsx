@@ -51,7 +51,7 @@ export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             Sign in with Reddit
           </DialogTitle>
           <DialogDescription className="text-sm leading-relaxed text-pretty">
-            Keep the music playing. Connect your account to vote with the community.
+            Connect your Reddit account to show your username in the player.
           </DialogDescription>
         </DialogHeader>
 

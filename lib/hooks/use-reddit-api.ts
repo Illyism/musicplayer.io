@@ -3,11 +3,10 @@ import { toast } from 'sonner'
 import { getSubredditPosts, searchReddit } from '@/lib/actions/reddit'
 import { getErrorMessage, isRedditError } from '@/lib/errors/reddit-error'
 import { removeSubredditsFromStorage, type Song, usePlayerStore } from '@/lib/store/player-store'
+import { parseRouteCommunities } from '@/lib/utils/listing-request'
 import { parsePlayableSongs } from '@/lib/utils/song-utils'
 
 const REDDIT_PATH_REGEX = /^\/r\/(?<communities>[^/]+)\/?$/u
-const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/u
-const VALID_SUBREDDIT_REGEX = /^[a-z0-9_-]{1,100}$/iu
 
 let activeRequestId = 0
 let inFlightSelectionKey: string | null = null
@@ -22,23 +21,7 @@ function getRouteSubredditsFromWindow(): string[] {
     return []
   }
   const raw = window.location.pathname.match(REDDIT_PATH_REGEX)?.[1]
-  if (!raw) {
-    return []
-  }
-  let decoded = raw
-  try {
-    decoded = decodeURIComponent(raw)
-  } catch {
-    decoded = raw
-  }
-  return [
-    ...new Set(
-      decoded
-        .split(COMMUNITY_SEPARATOR_REGEX)
-        .map(value => value.trim().toLowerCase())
-        .filter(value => VALID_SUBREDDIT_REGEX.test(value))
-    ),
-  ]
+  return raw ? parseRouteCommunities(raw) : []
 }
 
 export function useRedditAPI() {

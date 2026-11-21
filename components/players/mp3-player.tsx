@@ -3,6 +3,7 @@
 import { MusicNote } from '@phosphor-icons/react'
 import Image from 'next/image'
 import { useEffect, useRef } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { isRedditHostedImage } from '@/lib/utils/song-utils'
 
@@ -19,7 +20,17 @@ interface MP3PlayerProps {
 export function MP3Player({ song }: MP3PlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const { isPlaying, volume, setCurrentTime, setDuration, togglePlay, play, pause } =
-    usePlayerStore()
+    usePlayerStore(
+      useShallow(state => ({
+        isPlaying: state.isPlaying,
+        pause: state.pause,
+        play: state.play,
+        setCurrentTime: state.setCurrentTime,
+        setDuration: state.setDuration,
+        togglePlay: state.togglePlay,
+        volume: state.volume,
+      }))
+    )
 
   useEffect(() => {
     const audio = audioRef.current

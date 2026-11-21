@@ -1,9 +1,8 @@
 import { RedditError } from '@/lib/errors/reddit-error'
+import { listingRequestPath } from '@/lib/utils/listing-request'
 
-async function requestRedditApi(params: URLSearchParams) {
-  const response = await fetch(`/api/reddit?${params.toString()}`, {
-    credentials: 'same-origin',
-  })
+async function requestRedditApi(path: string) {
+  const response = await fetch(path, { credentials: 'same-origin' })
   const data = await response.json().catch(() => null)
   if (!response.ok) {
     const message =
@@ -21,14 +20,7 @@ export function getSubredditPosts(
   timePeriod?: string,
   after?: string
 ) {
-  const params = new URLSearchParams({
-    limit: '100',
-    sort,
-    subreddit,
-    ...(timePeriod && { t: timePeriod }),
-    ...(after && { after }),
-  })
-  return requestRedditApi(params)
+  return requestRedditApi(listingRequestPath(subreddit, sort, timePeriod, after))
 }
 
 export function searchReddit(
@@ -44,5 +36,5 @@ export function searchReddit(
     ...(timePeriod && { t: timePeriod }),
     ...(after && { after }),
   })
-  return requestRedditApi(params)
+  return requestRedditApi(`/api/reddit?${params.toString()}`)
 }

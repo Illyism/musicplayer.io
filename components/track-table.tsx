@@ -2,11 +2,12 @@
 
 import { ArrowUp, MusicNote, Play, SpeakerHigh } from '@phosphor-icons/react'
 import Image from 'next/image'
+import { memo } from 'react'
 import { TrackMenu } from '@/components/track-menu'
 import { Button } from '@/components/ui/button'
 import type { Song } from '@/lib/store/player-store'
 import { cn } from '@/lib/utils'
-import { formatNumber, isRedditHostedImage } from '@/lib/utils/song-utils'
+import { formatNumber, isRedditHostedImage, smallCover } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
 const TRACK_GRID =
@@ -37,7 +38,7 @@ export function TrackTableHeader({ showSharedBy }: { showSharedBy: boolean }) {
   )
 }
 
-export function TrackRow({
+function TrackRowBase({
   song,
   index,
   isCurrent,
@@ -57,6 +58,7 @@ export function TrackRow({
   showSubreddit: boolean
 }) {
   const display = trackDisplay(song)
+  const cover = smallCover(song)
   const artist = display.artist ?? `r/${song.subreddit}`
   const subtitle = display.artist && showSubreddit ? `${artist} · r/${song.subreddit}` : artist
   const thirdColumn = showSharedBy ? `u/${song.author}` : (display.genre ?? '')
@@ -105,15 +107,15 @@ export function TrackRow({
         </span>
         <span className="flex min-w-0 items-center gap-3">
           <span className="bg-muted relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-sm">
-            {song.thumbnail ? (
+            {cover ? (
               <Image
                 alt=""
                 className="size-full object-cover"
                 height={40}
                 loading={priority ? 'eager' : 'lazy'}
                 priority={priority}
-                src={song.thumbnail}
-                unoptimized={isRedditHostedImage(song.thumbnail)}
+                src={cover}
+                unoptimized={isRedditHostedImage(cover)}
                 width={40}
               />
             ) : (
@@ -163,23 +165,56 @@ export function TrackRow({
   )
 }
 
+export const TrackRow = memo(TrackRowBase)
+
+const LOADING_ROW_KEYS = [
+  'row-1',
+  'row-2',
+  'row-3',
+  'row-4',
+  'row-5',
+  'row-6',
+  'row-7',
+  'row-8',
+  'row-9',
+  'row-10',
+]
+
 export function TrackLoadingState() {
   return (
-    <div aria-label="Loading tracks" className="flex flex-col py-2" role="status">
+    <div aria-label="Loading tracks" role="status">
       <span className="sr-only">Finding music from your communities…</span>
-      {['one', 'two', 'three', 'four', 'five', 'six'].map(key => (
-        <div
-          aria-hidden="true"
-          className="flex h-14 items-center gap-3 rounded-md px-3 motion-safe:animate-pulse"
-          key={key}
-        >
-          <div className="bg-muted size-10 shrink-0 rounded-sm" />
-          <div className="flex flex-1 flex-col gap-2">
-            <div className="bg-muted h-3 w-3/4 rounded-full" />
-            <div className="bg-muted h-2.5 w-2/5 rounded-full" />
-          </div>
-        </div>
-      ))}
+      <ol className="flex flex-col">
+        {LOADING_ROW_KEYS.map(key => (
+          <li className="min-h-14" key={key}>
+            <div
+              aria-hidden="true"
+              className={cn(TRACK_GRID, 'h-14 w-full rounded-md px-3 motion-safe:animate-pulse')}
+            >
+              <span className={cn(NUMBER_CELL, 'items-center justify-center')}>
+                <span className="bg-muted size-3.5 rounded-full" />
+              </span>
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="bg-muted size-10 shrink-0 rounded-sm" />
+                <span className="flex min-w-0 flex-1 flex-col gap-2">
+                  <span className="bg-muted h-3.5 w-3/4 rounded-full" />
+                  <span className="bg-muted h-3 w-2/5 rounded-full" />
+                </span>
+              </span>
+              <span className={cn(GENRE_CELL, 'min-w-0')}>
+                <span className="bg-muted block h-3.5 w-20 rounded-full" />
+              </span>
+              <span className={cn(POSTED_CELL, 'min-w-0')}>
+                <span className="bg-muted block h-3.5 w-16 rounded-full" />
+              </span>
+              <span className="flex justify-end">
+                <span className="bg-muted h-3.5 w-9 rounded-full" />
+              </span>
+              <span />
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

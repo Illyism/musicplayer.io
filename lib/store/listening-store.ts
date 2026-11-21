@@ -162,6 +162,8 @@ function readSong(value: unknown): Song | null {
     selftext: typeof item.selftext === 'string' ? item.selftext : undefined,
     subreddit: item.subreddit,
     thumbnail: isWebUrl(item.thumbnail) ? item.thumbnail : undefined,
+    thumbnailMedium: isWebUrl(item.thumbnailMedium) ? item.thumbnailMedium : undefined,
+    thumbnailSmall: isWebUrl(item.thumbnailSmall) ? item.thumbnailSmall : undefined,
     title: item.title,
     type: item.type ?? 'none',
     url: item.url,

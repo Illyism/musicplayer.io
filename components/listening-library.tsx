@@ -9,13 +9,14 @@ import { TrackMenu } from '@/components/track-menu'
 import { Button } from '@/components/ui/button'
 import { useListeningStore } from '@/lib/store/listening-store'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
-import { isRedditHostedImage } from '@/lib/utils/song-utils'
+import { isRedditHostedImage, smallCover } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
 function LibraryTrack({ song }: { song: Song }) {
   const playQueuedSong = usePlayerStore(state => state.playQueuedSong)
   const enqueueSong = usePlayerStore(state => state.enqueueSong)
   const display = trackDisplay(song)
+  const cover = smallCover(song)
   const play = () => {
     enqueueSong(song, 'next')
     playQueuedSong(song.id)
@@ -28,13 +29,13 @@ function LibraryTrack({ song }: { song: Song }) {
         onClick={play}
         type="button"
       >
-        {song.thumbnail ? (
+        {cover ? (
           <Image
             alt=""
             className="size-14 shrink-0 rounded-lg object-cover"
             height={56}
-            src={song.thumbnail}
-            unoptimized={isRedditHostedImage(song.thumbnail)}
+            src={cover}
+            unoptimized={isRedditHostedImage(cover)}
             width={56}
           />
         ) : (

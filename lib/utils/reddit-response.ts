@@ -87,9 +87,25 @@ export function slimListingResponse(data: any): any {
   }
 }
 
-function slimPostData(data: Record<string, unknown>) {
-  const preview = data.preview as { images?: Array<{ source?: { url?: string } }> } | undefined
+const MAX_RENDITION_WIDTH = 216
 
+interface RedditPreviewImage {
+  resolutions?: Array<{ url?: string; width?: number }>
+  source?: { url?: string }
+}
+
+function slimPreview(preview: unknown) {
+  const image = (preview as { images?: RedditPreviewImage[] } | undefined)?.images?.[0]
+  if (!image?.source?.url) {
+    return
+  }
+  const resolutions = (image.resolutions ?? [])
+    .filter(rendition => rendition.url && (rendition.width ?? 0) <= MAX_RENDITION_WIDTH)
+    .map(({ url, width }) => ({ url, width }))
+  return { images: [{ resolutions, source: { url: image.source.url } }] }
+}
+
+function slimPostData(data: Record<string, unknown>) {
   return {
     author: data.author,
     created_utc: data.created_utc,
@@ -98,9 +114,7 @@ function slimPostData(data: Record<string, unknown>) {
     is_self: data.is_self,
     name: data.name,
     permalink: data.permalink,
-    preview: preview?.images?.[0]?.source?.url
-      ? { images: [{ source: { url: preview.images[0].source.url } }] }
-      : undefined,
+    preview: slimPreview(data.preview),
     score: data.score,
     selftext: data.selftext,
     subreddit: data.subreddit,
