@@ -94,12 +94,22 @@ function CommentItem({
 }
 
 export function Comments({ permalink, onLogin }: CommentsProps) {
+  const [attempt, setAttempt] = useState(0)
+  return (
+    <CommentThread
+      key={attempt}
+      onLogin={onLogin}
+      onRetry={() => setAttempt(attempt + 1)}
+      permalink={permalink}
+    />
+  )
+}
+
+function CommentThread({ permalink, onLogin, onRetry }: CommentsProps & { onRetry: () => void }) {
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [retry, setRetry] = useState(0)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retry intentionally restarts the request after the user chooses Try again.
   useEffect(() => {
     if (!permalink) {
       setComments([])
@@ -132,7 +142,7 @@ export function Comments({ permalink, onLogin }: CommentsProps) {
     return () => {
       cancelled = true
     }
-  }, [permalink, retry])
+  }, [permalink])
 
   if (loading) {
     return (
@@ -153,11 +163,7 @@ export function Comments({ permalink, onLogin }: CommentsProps) {
     return (
       <div className="flex flex-col items-start gap-3 py-4" role="status">
         <p className="text-muted-foreground text-sm">{error}</p>
-        <Button
-          className="h-11 rounded-full"
-          onClick={() => setRetry(retry + 1)}
-          variant="secondary"
-        >
+        <Button className="h-11 rounded-full" onClick={onRetry} variant="secondary">
           <ArrowClockwise className="size-4" />
           Try again
         </Button>

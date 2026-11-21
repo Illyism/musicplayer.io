@@ -1,10 +1,5 @@
 import type { Song } from '@/lib/store/player-store'
 
-// ============================================================================
-// SONG PARSER
-// ============================================================================
-
-/** Decode HTML entities in Reddit CDN URLs (e.g. &amp; → &) */
 export function decodeHtmlEntities(url: string): string {
   return url
     .replace(/&amp;/gu, '&')
@@ -13,7 +8,6 @@ export function decodeHtmlEntities(url: string): string {
     .replace(/&quot;/gu, '"')
 }
 
-/** Normalize a Reddit thumbnail/preview URL for use in img/Image src */
 export function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): string | undefined {
   let url = previewUrl || thumbnail
   if (!url || url === 'self' || url === 'default' || url === 'nsfw' || url === 'spoiler') {
@@ -31,7 +25,6 @@ export function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): 
   return url.startsWith('https://') ? url : undefined
 }
 
-// Module-level regexes (compiled once)
 const YOUTUBE_ID_PATTERNS = [
   /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)(?<id>[^&\n?#]+)/u,
   /youtube\.com\/watch\?.*v=(?<id>[^&\n?#]+)/u,
@@ -39,7 +32,6 @@ const YOUTUBE_ID_PATTERNS = [
 const VIMEO_ID_REGEX = /vimeo\.com\/(?<id>\d+)/u
 const REDDIT_CDN_REGEX = /(?:^|\.)(?:redd\.it|redditmedia\.com|redditstatic\.com)$/iu
 
-/** Reddit CDN blocks Next.js image optimization; load these directly */
 export function isRedditHostedImage(url: string): boolean {
   try {
     return REDDIT_CDN_REGEX.test(new URL(url).hostname)
@@ -78,14 +70,10 @@ function sanitizeRedditPermalink(rawPermalink: unknown): string {
   return ''
 }
 
-/**
- * Parse Reddit post data into Song object
- */
 export function parseSong(data: any): Song {
   const thumbnail = normalizeThumbnailUrl(data.thumbnail, data.preview?.images?.[0]?.source?.url)
   const safeUrl = sanitizeHttpUrl(data.url)
 
-  // Determine media type and playability
   const { type, playable } = determineMediaType({ ...data, url: safeUrl })
 
   return {
@@ -97,7 +85,7 @@ export function parseSong(data: any): Song {
     id: data.id,
     is_self: data.is_self,
     media: data.media,
-    name: data.name, // Reddit fullname
+    name: data.name,
     num_comments: data.num_comments || 0,
     permalink: sanitizeRedditPermalink(data.permalink),
     playable,
@@ -112,9 +100,6 @@ export function parseSong(data: any): Song {
   }
 }
 
-/**
- * Determine media type from post data
- */
 function determineMediaType(data: any): {
   type: Song['type']
   playable: boolean
@@ -126,7 +111,6 @@ function determineMediaType(data: any): {
   const domain = data.domain?.toLowerCase() || ''
   const url = safeUrl.toLowerCase()
 
-  // YouTube
   if (
     domain === 'youtube.com' ||
     domain === 'youtu.be' ||
@@ -136,28 +120,21 @@ function determineMediaType(data: any): {
     return { playable: true, type: 'youtube' }
   }
 
-  // SoundCloud
   if (domain === 'soundcloud.com' || domain === 'www.soundcloud.com') {
     return { playable: true, type: 'soundcloud' }
   }
 
-  // Vimeo
   if (domain === 'vimeo.com' || domain === 'www.vimeo.com') {
     return { playable: true, type: 'vimeo' }
   }
 
-  // MP3
   if (url.endsWith('.mp3')) {
     return { playable: true, type: 'mp3' }
   }
 
-  // Not playable
   return { playable: false, type: 'none' }
 }
 
-/**
- * Format timestamp as "X time ago"
- */
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
@@ -180,13 +157,6 @@ function formatTimeAgo(date: Date): string {
   return 'just now'
 }
 
-// ============================================================================
-// FILTER FUNCTIONS
-// ============================================================================
-
-/**
- * Filter Reddit posts to only include playable media
- */
 export function filterPlayableSongs(posts: any[]): any[] {
   if (!Array.isArray(posts)) {
     return []
@@ -199,7 +169,6 @@ export function filterPlayableSongs(posts: any[]): any[] {
 
     const { data } = post
 
-    // Exclude self posts or non-http(s) URLs
     const safeUrl = sanitizeHttpUrl(data.url)
     if (data.is_self || !safeUrl) {
       return false
@@ -208,7 +177,6 @@ export function filterPlayableSongs(posts: any[]): any[] {
     const domain = data.domain?.toLowerCase() || ''
     const url = safeUrl.toLowerCase()
 
-    // Check if it's a playable domain
     return (
       domain === 'youtube.com' ||
       domain === 'youtu.be' ||
@@ -223,13 +191,6 @@ export function filterPlayableSongs(posts: any[]): any[] {
   })
 }
 
-// ============================================================================
-// PLAYER UTILITIES
-// ============================================================================
-
-/**
- * Extract YouTube video ID from URL
- */
 export function extractYouTubeId(url: string): string | null {
   if (!url) {
     return null
@@ -245,9 +206,6 @@ export function extractYouTubeId(url: string): string | null {
   return null
 }
 
-/**
- * Extract Vimeo video ID from URL
- */
 export function extractVimeoId(url: string): string | null {
   if (!url) {
     return null
@@ -257,9 +215,6 @@ export function extractVimeoId(url: string): string | null {
   return match?.[1] || null
 }
 
-/**
- * Format seconds to MM:SS
- */
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || Number.isNaN(seconds)) {
     return '0:00'
@@ -270,9 +225,6 @@ export function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-/**
- * Format large numbers (e.g., 1234 -> 1.2k)
- */
 export function formatNumber(num: number): string {
   if (num >= 1_000_000) {
     return `${(num / 1_000_000).toFixed(1)}M`
@@ -283,9 +235,6 @@ export function formatNumber(num: number): string {
   return num.toString()
 }
 
-/**
- * Validate if URL is a valid media URL
- */
 export function isValidMediaUrl(url: string): boolean {
   if (!url) {
     return false
@@ -311,9 +260,6 @@ export function isValidMediaUrl(url: string): boolean {
   }
 }
 
-/**
- * Get platform name from domain
- */
 export function getPlatformName(domain: string): string {
   const normalizedDomain = domain.toLowerCase().replace('www.', '')
 
@@ -327,23 +273,14 @@ export function getPlatformName(domain: string): string {
   return platforms[normalizedDomain] || domain
 }
 
-/**
- * Generate a unique ID for a song (for React keys)
- */
 export function generateSongKey(song: Song, index: number): string {
   return `${song.id}-${song.name}-${index}`
 }
 
-/**
- * Check if song is currently playing
- */
 export function isSongPlaying(song: Song, currentSong: Song | null, isPlaying: boolean): boolean {
   return currentSong?.id === song.id && isPlaying
 }
 
-/**
- * Get song duration in human-readable format
- */
 export function formatDuration(seconds: number): string {
   if (!(seconds && Number.isFinite(seconds))) {
     return 'Unknown'
@@ -360,9 +297,6 @@ export function formatDuration(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-/**
- * Calculate progress percentage
- */
 export function calculateProgress(currentTime: number, duration: number): number {
   if (!duration || duration === 0) {
     return 0
@@ -370,9 +304,6 @@ export function calculateProgress(currentTime: number, duration: number): number
   return Math.min(100, Math.max(0, (currentTime / duration) * 100))
 }
 
-/**
- * Shuffle array (Fisher-Yates algorithm)
- */
 export function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -382,9 +313,6 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled
 }
 
-/**
- * Debounce function
- */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -404,9 +332,6 @@ export function debounce<T extends (...args: any[]) => any>(
   }
 }
 
-/**
- * Throttle function
- */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number

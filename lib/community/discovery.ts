@@ -6,7 +6,7 @@ import {
 } from './catalog'
 import {
   type DiscoveryPost,
-  isPlayableMusicLink,
+  isSupportedMusicLink,
   rankCommunities,
   scoreActivitySample,
 } from './ranking'
@@ -227,7 +227,7 @@ export function createCommunityDiscovery({
       }
     }
     for (const post of listing<DiscoveryPost>(results[1])) {
-      if (typeof post.subreddit === 'string' && isPlayableMusicLink(post)) {
+      if (typeof post.subreddit === 'string' && isSupportedMusicLink(post)) {
         addCandidate(post.subreddit, 'music-links')
       }
     }

@@ -91,7 +91,6 @@ async function getTokenWithinDeadline(forceRefresh = false): Promise<string> {
   }
 }
 
-/** Existing app OAuth, no anonymous scraping and no retry loop on refused requests. */
 export async function requestCommunityData(
   path: string,
   params: URLSearchParams

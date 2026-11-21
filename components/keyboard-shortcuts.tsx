@@ -8,54 +8,50 @@ interface KeyboardShortcutsProps {
 }
 
 const arrowShortcutKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
+const NATIVE_KEYBOARD_TARGETS =
+  'input, textarea, select, button, a, [contenteditable]:not([contenteditable="false"]), [role="dialog"], [role="alertdialog"], [role="menu"], [role="menuitem"], [role="slider"], [role="combobox"], [role="listbox"]'
+
+function ownsNativeKeyboard(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(NATIVE_KEYBOARD_TARGETS) !== null
+}
 
 export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
   const { togglePlay, next, previous, setVolume, shufflePlaylist } = usePlayerStore()
 
-  // Store previous volume for unmute
   const previousVolumeRef = useRef<number>(100)
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Let focused controls and dialogs keep their native keyboard behavior.
       if (
         e.defaultPrevented ||
         ((e.ctrlKey || e.metaKey) && !arrowShortcutKeys.has(e.key)) ||
         e.altKey ||
-        (e.target instanceof Element &&
-          e.target.closest(
-            'input, textarea, select, button, a, [contenteditable]:not([contenteditable="false"]), [role="dialog"], [role="alertdialog"], [role="menu"], [role="menuitem"], [role="slider"], [role="combobox"], [role="listbox"]'
-          ))
+        ownsNativeKeyboard(e.target)
       ) {
         return
       }
 
-      // ? - Show keyboard shortcuts
       if (e.key === '?' && onShowShortcuts) {
         e.preventDefault()
         onShowShortcuts()
         return
       }
 
-      // Space - Play/Pause
       if (e.code === 'Space') {
         e.preventDefault()
         togglePlay()
       }
 
-      // Arrow Right or Cmd/Ctrl + Right - Next Track
       if (e.key === 'ArrowRight') {
         e.preventDefault()
         next()
       }
 
-      // Arrow Left or Cmd/Ctrl + Left - Previous Track
       if (e.key === 'ArrowLeft') {
         e.preventDefault()
         previous()
       }
 
-      // Arrow Up - Volume Up
       if (e.key === 'ArrowUp') {
         e.preventDefault()
         const newVolume = Math.min(100, usePlayerStore.getState().volume + 10)
@@ -65,7 +61,6 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
         }
       }
 
-      // Arrow Down - Volume Down
       if (e.key === 'ArrowDown') {
         e.preventDefault()
         const newVolume = Math.max(0, usePlayerStore.getState().volume - 10)
@@ -75,22 +70,18 @@ export function KeyboardShortcuts({ onShowShortcuts }: KeyboardShortcutsProps) {
         }
       }
 
-      // S - Shuffle
       if ((e.key === 's' || e.key === 'S') && !(e.ctrlKey || e.metaKey)) {
         e.preventDefault()
         shufflePlaylist()
       }
 
-      // M - Mute/Unmute
       if ((e.key === 'm' || e.key === 'M') && !(e.ctrlKey || e.metaKey)) {
         e.preventDefault()
         const currentVolume = usePlayerStore.getState().volume
         if (currentVolume > 0) {
-          // Mute: save current volume and set to 0
           previousVolumeRef.current = currentVolume
           setVolume(0)
         } else {
-          // Unmute: restore previous volume (or 100 if never set)
           setVolume(previousVolumeRef.current || 100)
         }
       }

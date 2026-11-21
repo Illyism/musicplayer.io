@@ -21,11 +21,10 @@ function reserveApiRequest() {
     usedInWindow = 0
   }
   if (now < blockedUntil || usedInWindow >= REQUEST_BUDGET) {
-    throw new RedditError(
-      'Rate limited (429). Please try again later.',
-      429,
-      'You are making too many requests. Please wait a few minutes before trying again.'
-    )
+    throw new RedditError('Rate limited (429). Please try again later.', {
+      statusCode: 429,
+      reason: 'You are making too many requests. Please wait a few minutes before trying again.',
+    })
   }
   usedInWindow += 1
 }
@@ -119,7 +118,10 @@ export function resolveRedditApiUrl(path: string, params: URLSearchParams): stri
     ENCODED_SEPARATOR_REGEX.test(path) ||
     hasDotPathSegment(path)
   ) {
-    throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.')
+    throw new RedditError('Invalid Reddit API path.', {
+      statusCode: 400,
+      reason: 'Invalid request path.',
+    })
   }
   let targetUrl: URL
   let decodedPathname: string
@@ -129,9 +131,10 @@ export function resolveRedditApiUrl(path: string, params: URLSearchParams): stri
     decodedPathname = decodeURI(targetUrl.pathname)
     decodedInputPath = decodeURI(path)
   } catch (error) {
-    // biome-ignore lint/style/useErrorCause: cause forwarded via RedditError's ErrorOptions
-    throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.', {
+    throw new RedditError('Invalid Reddit API path.', {
       cause: error,
+      statusCode: 400,
+      reason: 'Invalid request path.',
     })
   }
   if (
@@ -142,16 +145,15 @@ export function resolveRedditApiUrl(path: string, params: URLSearchParams): stri
     hasDotPathSegment(decodedPathname) ||
     CONTROL_CHAR_REGEX.test(decodedPathname)
   ) {
-    throw new RedditError('Invalid Reddit API path.', 400, 'Invalid request path.')
+    throw new RedditError('Invalid Reddit API path.', {
+      statusCode: 400,
+      reason: 'Invalid request path.',
+    })
   }
   targetUrl.search = params.toString()
   return targetUrl.href
 }
 
-/**
- * Slim Reddit listing responses before caching.
- * Full search results (limit=100) can exceed Next.js's 2MB cache limit.
- */
 export function slimListingResponse(data: any): any {
   if (!data?.data?.children) {
     return data
@@ -198,10 +200,6 @@ function slimPostData(data: Record<string, unknown>) {
   }
 }
 
-/**
- * Fetch from Reddit with retries on transient 5xx errors.
- * Uses no-store since callers rely on Next.js "use cache" for caching.
- */
 export async function redditFetch(
   url: string,
   headers: HeadersInit,
@@ -210,7 +208,6 @@ export async function redditFetch(
   let lastResponse: Response | undefined
   let lastError: unknown
 
-  // Retries are inherently sequential — each attempt depends on the previous failure
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     reserveApiRequest()
     try {
@@ -241,10 +238,6 @@ export async function redditFetch(
   return lastResponse
 }
 
-/**
- * Fetch an oauth.reddit.com endpoint with the app-only bearer token.
- * A rejected token (401) is retried once with a freshly minted app token.
- */
 export async function redditApiFetch(path: string, params: URLSearchParams): Promise<Response> {
   // raw_json=1 stops Reddit HTML-escaping &, < and > in titles and selftext
   params.set('raw_json', '1')
@@ -263,7 +256,6 @@ export async function redditApiFetch(path: string, params: URLSearchParams): Pro
     return response
   }
 
-  // Token was rejected — mint a fresh app token and try once more
   invalidateAppAccessToken()
   const freshToken = await getAppAccessToken(true)
   if (freshToken === token) {

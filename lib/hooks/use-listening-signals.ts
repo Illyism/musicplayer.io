@@ -5,7 +5,6 @@ import { createListeningSession } from '@/lib/listening/session'
 import { useListeningStore } from '@/lib/store/listening-store'
 import { usePlayerStore } from '@/lib/store/player-store'
 
-/** Device-local signals count advancing playback, with explicit seek and natural-end markers. */
 export function useListeningSignals() {
   useEffect(() => {
     const listening = useListeningStore.getState()

@@ -46,9 +46,6 @@ export interface FetchSubredditsOptions {
 }
 
 export function useRedditAPI() {
-  /**
-   * Fetch from subreddits
-   */
   const fetchFromSubreddits = useCallback(
     async (
       subreddits: string[],
@@ -144,7 +141,7 @@ export function useRedditAPI() {
         const errorMessage = getErrorMessage(error)
         state.setListingError(errorMessage)
         toast.error(errorMessage, { duration: 10_000 })
-        throw error
+        return []
       } finally {
         if (pagination) {
           isPaginationInFlight = false
@@ -158,9 +155,6 @@ export function useRedditAPI() {
     []
   )
 
-  /**
-   * Search Reddit
-   */
   const fetchSearch = useCallback(async (query: string, pagination?: string) => {
     if (!query.trim()) {
       return []
@@ -223,7 +217,7 @@ export function useRedditAPI() {
       const errorMessage = getErrorMessage(error)
       state.setListingError(errorMessage)
       toast.error(errorMessage, { duration: 10_000 })
-      throw error
+      return []
     } finally {
       if (pagination) {
         isPaginationInFlight = false
@@ -234,9 +228,6 @@ export function useRedditAPI() {
     }
   }, [])
 
-  /**
-   * Fetch songs from Reddit
-   */
   const fetchSongs = useCallback(
     (pagination?: string) => {
       const state = usePlayerStore.getState()

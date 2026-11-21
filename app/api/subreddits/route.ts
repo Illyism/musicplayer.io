@@ -22,7 +22,6 @@ function isCrossSiteRequest(request: NextRequest): boolean {
   }
 }
 
-/** Live OAuth discovery; old YAML membership/activity numbers are never served. */
 export async function GET(request: NextRequest) {
   if (isCrossSiteRequest(request)) {
     return NextResponse.json({ error: 'Cross-origin requests are not allowed.' }, { status: 403 })

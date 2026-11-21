@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
+import { EMBED_SANDBOX, PauseOverlay } from './embed-frame'
 
 declare global {
   interface Window {
@@ -23,8 +24,7 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
   const generationRef = useRef(0)
   const [isReady, setIsReady] = useState(false)
   const { isPlaying, volume, togglePlay } = usePlayerStore()
-  // Changing src would reload the iframe behind the persistent widget.
-  const iframeUrl = useRef(
+  const initialIframeSrc = useRef(
     `https://w.soundcloud.com/player/?url=${encodeURIComponent(song.url)}&auto_play=false&visual=true`
   )
 
@@ -38,10 +38,10 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
       }
       const widget = window.SC.Widget(iframeRef.current)
       widgetRef.current = widget
-      window.__soundcloudWidget = widget
       const events = window.SC.Widget.Events
       widget.bind(events.READY, () => {
         if (mounted) {
+          window.__soundcloudWidget = widget
           setIsReady(true)
         }
       })
@@ -181,26 +181,18 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
 
   return (
     <div className="relative h-full w-full">
-      {/* biome-ignore lint/security/useIframeSandbox: official SoundCloud Widget SDK embed requires unsandboxed origin for postMessage/storage */}
       <iframe
         allow="autoplay"
         frameBorder="no"
         height="100%"
         ref={iframeRef}
+        sandbox={EMBED_SANDBOX}
         scrolling="no"
-        src={iframeUrl.current}
+        src={initialIframeSrc.current}
         title={`SoundCloud player: ${song.title}`}
         width="100%"
       />
-      {/* Transparent click-to-pause overlay; keyboard users use the main controls */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: widget has no DOM API */}
-      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: widget has no DOM API */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: widget has no DOM API */}
-      <div
-        className={`absolute inset-0 z-10 ${isPlaying ? 'cursor-pointer' : ''}`}
-        onClick={isPlaying ? togglePlay : undefined}
-        style={{ pointerEvents: isPlaying ? 'auto' : 'none' }}
-      />
+      {isPlaying ? <PauseOverlay onPause={togglePlay} /> : null}
     </div>
   )
 }

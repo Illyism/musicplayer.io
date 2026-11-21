@@ -13,21 +13,14 @@ export async function seekCurrentMedia(requestedTime: number) {
     state.duration > 0 ? Math.min(state.duration, requestedTime) : requestedTime
   )
   state.seekTo(time)
-  try {
-    if (state.currentSong.type === 'youtube') {
-      window.__youtubePlayer?.seekTo(time, true)
-    } else if (state.currentSong.type === 'soundcloud') {
-      window.__soundcloudWidget?.seekTo(time * 1000)
-    } else if (state.currentSong.type === 'vimeo') {
-      await window.__vimeoPlayer?.setCurrentTime(time)
-    } else if (state.currentSong.type === 'mp3') {
-      const audio = window.__audioPlayer || document.querySelector('audio')
-      if (audio) {
-        audio.currentTime = time
-      }
-    }
-  } catch {
-    // A provider may still be preparing its media.
+  if (state.currentSong.type === 'youtube') {
+    window.__youtubePlayer?.seekTo(time, true)
+  } else if (state.currentSong.type === 'soundcloud') {
+    window.__soundcloudWidget?.seekTo(time * 1000)
+  } else if (state.currentSong.type === 'vimeo') {
+    await window.__vimeoPlayer?.setCurrentTime(time)
+  } else if (state.currentSong.type === 'mp3' && window.__audioPlayer) {
+    window.__audioPlayer.currentTime = time
   }
 }
 
@@ -131,18 +124,14 @@ export function useMediaSession() {
     if (!session?.setPositionState) {
       return
     }
-    try {
-      if (duration > 0 && Number.isFinite(duration)) {
-        session.setPositionState({
-          duration,
-          playbackRate: 1,
-          position: Math.min(duration, Math.max(0, currentTime)),
-        })
-      } else {
-        session.setPositionState()
-      }
-    } catch {
-      // Some browsers expose position state without supporting every provider.
+    if (duration > 0 && Number.isFinite(duration)) {
+      session.setPositionState({
+        duration,
+        playbackRate: 1,
+        position: Math.min(duration, Math.max(0, currentTime)),
+      })
+    } else {
+      session.setPositionState()
     }
   }, [currentTime, duration])
 }

@@ -16,7 +16,6 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch auth status from server
     getAuthStatus()
       .then(status => {
         setAuthState({

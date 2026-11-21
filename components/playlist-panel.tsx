@@ -37,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getErrorMessage } from '@/lib/errors/reddit-error'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { cn } from '@/lib/utils'
@@ -371,7 +370,6 @@ export function PlaylistPanel() {
     loading,
     after,
     setCurrentSong,
-    setListingError,
     shufflePlaylist,
     togglePlay,
     setMobileView,
@@ -381,7 +379,6 @@ export function PlaylistPanel() {
   const contextKey = searchQuery ? `search/${searchQuery}` : selectedSubreddits.join('+')
   const previousContext = useRef(contextKey)
 
-  // Initial loading belongs to the app shell. Only changed sort settings reload here.
   useEffect(() => {
     const previous = previousSort.current
     previousSort.current = { sortMethod, topPeriod }
@@ -392,16 +389,8 @@ export function PlaylistPanel() {
       return
     }
 
-    const refresh = async () => {
-      setListingError(null)
-      try {
-        await fetchSongs()
-      } catch (error) {
-        setListingError(getErrorMessage(error))
-      }
-    }
-    refresh()
-  }, [fetchSongs, setListingError, sortMethod, topPeriod])
+    fetchSongs()
+  }, [fetchSongs, sortMethod, topPeriod])
 
   useEffect(() => {
     if (previousContext.current === contextKey) {
@@ -410,15 +399,6 @@ export function PlaylistPanel() {
     previousContext.current = contextKey
     setFilterQuery('')
   }, [contextKey])
-
-  const handleFetch = async (pagination?: string) => {
-    setListingError(null)
-    try {
-      await fetchSongs(pagination)
-    } catch (error) {
-      setListingError(getErrorMessage(error))
-    }
-  }
 
   const handlePlayMix = () => {
     if (currentIndex >= 0) {
@@ -501,7 +481,7 @@ export function PlaylistPanel() {
               aria-label="Refresh your mix"
               className="text-muted-foreground ml-auto size-11 rounded-full"
               disabled={loading}
-              onClick={() => handleFetch()}
+              onClick={() => fetchSongs()}
               size="icon"
               variant="ghost"
             >
@@ -527,7 +507,7 @@ export function PlaylistPanel() {
               <Button
                 className="mt-3 h-11 rounded-full px-4"
                 disabled={loading}
-                onClick={() => handleFetch()}
+                onClick={() => fetchSongs()}
                 variant="outline"
               >
                 Try again
@@ -598,7 +578,7 @@ export function PlaylistPanel() {
                   <Button
                     className="h-11 rounded-full px-6 text-sm"
                     disabled={loading}
-                    onClick={() => handleFetch(after)}
+                    onClick={() => fetchSongs(after)}
                     variant="outline"
                   >
                     {loading ? 'Finding more…' : 'Load more tracks'}

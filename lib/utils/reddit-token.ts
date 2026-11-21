@@ -4,34 +4,21 @@ import { RedditError } from '@/lib/errors/reddit-error'
 const REDDIT_USERNAME = process.env.REDDIT_USERNAME || 'musicplayer'
 export const USER_AGENT = `web:musicplayer.io:v0.6.14 (by /u/${REDDIT_USERNAME})`
 
-// All data requests go through oauth.reddit.com. The public www.reddit.com/*.json
-// endpoints now reject anonymous traffic with 403, so a token is always required.
 export const REDDIT_API_BASE = 'https://oauth.reddit.com'
 
 const { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } = process.env
 
-// Refresh a little before the real expiry so an in-flight request never races it
 const EXPIRY_SKEW_MS = 60_000
 
 let cachedToken: { token: string; expiresAt: number } | null = null
 let inflight: Promise<string> | null = null
 
-/**
- * Get an app-only ("client credentials") access token.
- *
- * This is what unauthenticated visitors use. Reddit blocks anonymous access to
- * the .json endpoints, and Basic auth is only accepted by /api/v1/access_token —
- * sending it to a data endpoint is what produces a 403.
- *
- * Tokens are cached in module scope and shared across requests until they expire.
- */
 export async function getAppAccessToken(forceRefresh = false): Promise<string> {
   if (!(REDDIT_CLIENT_ID && REDDIT_CLIENT_SECRET)) {
-    throw new RedditError(
-      'Reddit API credentials are not configured.',
-      500,
-      'Server is missing REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET.'
-    )
+    throw new RedditError('Reddit API credentials are not configured.', {
+      statusCode: 500,
+      reason: 'Server is missing REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET.',
+    })
   }
 
   if (forceRefresh) {
@@ -42,7 +29,6 @@ export async function getAppAccessToken(forceRefresh = false): Promise<string> {
     return cachedToken.token
   }
 
-  // Collapse concurrent misses into a single token request
   if (inflight) {
     return inflight
   }
@@ -65,19 +51,20 @@ export async function getAppAccessToken(forceRefresh = false): Promise<string> {
       const body = await response.text().catch(() => '')
       throw new RedditError(
         `Failed to obtain Reddit app token (${response.status}). ${body}`.trim(),
-        response.status,
-        'Could not authenticate with Reddit. Check the app credentials.'
+        {
+          statusCode: response.status,
+          reason: 'Could not authenticate with Reddit. Check the app credentials.',
+        }
       )
     }
 
     const data = (await response.json()) as { access_token?: string; expires_in?: number }
 
     if (!data.access_token) {
-      throw new RedditError(
-        'Reddit returned no access token.',
-        502,
-        'Could not authenticate with Reddit. Check the app credentials.'
-      )
+      throw new RedditError('Reddit returned no access token.', {
+        statusCode: 502,
+        reason: 'Could not authenticate with Reddit. Check the app credentials.',
+      })
     }
 
     const ttlMs = (data.expires_in ?? 3600) * 1000
@@ -96,9 +83,6 @@ export async function getAppAccessToken(forceRefresh = false): Promise<string> {
   }
 }
 
-/**
- * Drop the cached app token, e.g. after Reddit rejects it with a 401.
- */
 export function invalidateAppAccessToken(): void {
   cachedToken = null
 }

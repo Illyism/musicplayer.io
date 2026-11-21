@@ -1,7 +1,12 @@
 import type { Community, CommunityActivity } from './types'
 
 const DAY_SECONDS = 86_400
-const PLAYABLE_HOSTS = new Set([
+const ACTIVITY_WEIGHT = 45
+const SUPPORTED_RATIO_WEIGHT = 30
+const RECENCY_WEIGHT = 25
+const RECENT_POSTS_FOR_FULL_ACTIVITY = 10
+const RECENCY_HORIZON_DAYS = 14
+const SUPPORTED_MUSIC_HOSTS = new Set([
   'youtube.com',
   'm.youtube.com',
   'youtu.be',
@@ -30,8 +35,7 @@ export interface ActivitySample {
   sampledPosts: number
 }
 
-/** Supported embed/direct-audio links; this does not prove provider playback availability. */
-export function isPlayableMusicLink(post: DiscoveryPost): boolean {
+export function isSupportedMusicLink(post: DiscoveryPost): boolean {
   if (post.is_self || post.over_18 || post.removed_by_category || !post.url) {
     return false
   }
@@ -40,7 +44,10 @@ export function isPlayableMusicLink(post: DiscoveryPost): boolean {
     if (url.protocol !== 'https:' && url.protocol !== 'http:') {
       return false
     }
-    return PLAYABLE_HOSTS.has(url.hostname.replace(WWW_PREFIX, '')) || MP3_SUFFIX.test(url.pathname)
+    return (
+      SUPPORTED_MUSIC_HOSTS.has(url.hostname.replace(WWW_PREFIX, '')) ||
+      MP3_SUFFIX.test(url.pathname)
+    )
   } catch {
     return false
   }
@@ -55,7 +62,7 @@ export function scoreActivitySample(posts: DiscoveryPost[], now = Date.now()): A
       post.created_utc > 0 &&
       post.created_utc <= nowSeconds + 60
   )
-  const playablePosts = validPosts.filter(isPlayableMusicLink)
+  const playablePosts = validPosts.filter(isSupportedMusicLink)
   const recentPlayablePosts = playablePosts.filter(
     post => post.created_utc >= nowSeconds - 7 * DAY_SECONDS
   )
@@ -69,11 +76,15 @@ export function scoreActivitySample(posts: DiscoveryPost[], now = Date.now()): A
     activity = 'recent'
   }
 
-  // A transparent heuristic, not a trained model. Size does not dominate discovery.
   const playableRatio = validPosts.length > 0 ? playablePosts.length / validPosts.length : 0
-  const activityScore = Math.min(recentPlayablePosts.length / 10, 1) * 45
-  const recencyScore = Number.isFinite(newestAgeDays) ? Math.max(0, 1 - newestAgeDays / 14) * 25 : 0
-  const qualityScore = Math.round(activityScore + playableRatio * 30 + recencyScore)
+  const activityScore =
+    Math.min(recentPlayablePosts.length / RECENT_POSTS_FOR_FULL_ACTIVITY, 1) * ACTIVITY_WEIGHT
+  const recencyScore = Number.isFinite(newestAgeDays)
+    ? Math.max(0, 1 - newestAgeDays / RECENCY_HORIZON_DAYS) * RECENCY_WEIGHT
+    : 0
+  const qualityScore = Math.round(
+    activityScore + playableRatio * SUPPORTED_RATIO_WEIGHT + recencyScore
+  )
   return {
     activity,
     latestPlayableAt: newest > 0 ? new Date(newest * 1000).toISOString() : null,

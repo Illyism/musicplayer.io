@@ -16,35 +16,16 @@ import Image from 'next/image'
 import { useRef } from 'react'
 import { SaveTrackButton } from '@/components/save-track-button'
 import { Button } from '@/components/ui/button'
+import { seekCurrentMedia } from '@/lib/hooks/use-media-session'
 import { usePictureInPicture } from '@/lib/hooks/use-picture-in-picture'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { formatTime, isRedditHostedImage } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
 
-function seekMedia(song: Song, time: number) {
-  try {
-    if (song.type === 'youtube') {
-      window.__youtubePlayer?.seekTo(time, true)
-    } else if (song.type === 'vimeo') {
-      window.__vimeoPlayer?.setCurrentTime(time)
-    } else if (song.type === 'soundcloud') {
-      window.__soundcloudWidget?.seekTo(time * 1000)
-    } else if (song.type === 'mp3') {
-      const audio = window.__audioPlayer ?? document.querySelector('audio')
-      if (audio) {
-        audio.currentTime = time
-      }
-    }
-  } catch {
-    // A provider may still be loading when the user seeks.
-  }
-}
-
 export function SeekControl({ className = '' }: { className?: string }) {
   const currentTime = usePlayerStore(state => state.currentTime)
   const duration = usePlayerStore(state => state.duration)
   const currentSong = usePlayerStore(state => state.currentSong)
-  const seekTo = usePlayerStore(state => state.seekTo)
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0
 
   return (
@@ -59,14 +40,7 @@ export function SeekControl({ className = '' }: { className?: string }) {
         disabled={!currentSong || duration === 0}
         max={duration || 1}
         min={0}
-        onChange={event => {
-          if (!currentSong) {
-            return
-          }
-          const time = Number(event.target.value)
-          seekTo(time)
-          seekMedia(currentSong, time)
-        }}
+        onChange={event => seekCurrentMedia(Number(event.target.value))}
         step={1}
         type="range"
         value={Math.min(currentTime, duration)}

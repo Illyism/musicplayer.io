@@ -3,7 +3,6 @@ import type { Song } from '@/lib/store/player-store'
 const TITLE_SEPARATOR = /^(?<artist>.+?)\s+(?:--|—|–|-)\s+(?<track>.+)$/u
 const TRAILING_METADATA = /\s*\[[^\]]+\]\s*(?:\((?:19|20)\d{2}\))?\s*$/u
 
-/** Format common Artist — Track titles while retaining the original in the source record. */
 export function trackDisplay(song: Pick<Song, 'title'>) {
   const title = song.title.replace(TRAILING_METADATA, '').trim() || song.title
   const parts = title.match(TITLE_SEPARATOR)

@@ -1,0 +1,3 @@
+export const MAX_LISTENING_SIGNALS = 500
+export const SIGNAL_RETENTION_DAYS = 30
+export const CACHED_TRACK_RETENTION_DAYS = 2
