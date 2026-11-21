@@ -55,7 +55,7 @@ export function buildRedditAuthorizationUrl(config: RedditOAuthConfig, state: st
     duration: 'permanent',
     redirect_uri: config.redirectUri,
     response_type: 'code',
-    scope: 'identity read vote submit',
+    scope: 'identity read vote',
     state,
   }).toString()
   return url.href

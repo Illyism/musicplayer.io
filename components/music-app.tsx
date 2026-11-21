@@ -20,6 +20,9 @@ import { useMediaSession } from '@/lib/hooks/use-media-session'
 import { usePlayerHydration } from '@/lib/hooks/use-player-hydration'
 import { usePlayerStore } from '@/lib/store/player-store'
 
+const PANEL_GUTTER =
+  'w-2 bg-transparent before:absolute before:inset-y-3 before:left-1/2 before:w-px before:-translate-x-1/2 before:rounded-full before:bg-transparent before:transition-colors hover:before:bg-foreground/25 data-[separator=hover]:before:bg-foreground/25 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:before:w-0.5 focus-visible:before:bg-ring data-[separator=active]:before:bg-foreground/40'
+
 function RouteInitializer() {
   useInitializeApp()
   return null
@@ -84,30 +87,36 @@ function MusicAppContent() {
         <Header setShowKeyboardModal={setShowKeyboardModal} showKeyboardModal={showKeyboardModal} />
       </div>
       <main
-        className="relative flex min-h-0 flex-1 overflow-hidden"
+        className="relative flex min-h-0 flex-1 overflow-hidden lg:pb-2"
         id="main-content"
         tabIndex={-1}
       >
         {isDesktop ? (
-          <ResizablePanelGroup className="min-h-0" direction="horizontal">
+          <ResizablePanelGroup className="min-h-0 px-2" direction="horizontal">
             <ResizablePanel
-              className="bg-sidebar overflow-y-auto"
-              defaultSize={248}
-              maxSize={320}
-              minSize={220}
+              className="bg-panel min-h-0 overflow-hidden rounded-lg"
+              defaultSize={325}
+              maxSize={420}
+              minSize={240}
             >
               <BrowsePanel />
             </ResizablePanel>
-            <ResizableHandle className="bg-border/60" />
-            <ResizablePanel className="overflow-y-auto" minSize={340}>
-              {mobileView === 'library' ? <ListeningLibrary /> : <PlaylistPanel />}
+            <ResizableHandle className={PANEL_GUTTER} />
+            <ResizablePanel className="bg-panel min-h-0 overflow-hidden rounded-lg" minSize={340}>
+              {mobileView === 'library' ? (
+                <div className="h-full overflow-y-auto">
+                  <ListeningLibrary />
+                </div>
+              ) : (
+                <PlaylistPanel />
+              )}
             </ResizablePanel>
-            <ResizableHandle className="bg-border/60" />
+            <ResizableHandle className={PANEL_GUTTER} />
             <ResizablePanel
-              className="bg-background flex min-h-0 flex-col"
-              defaultSize={340}
-              maxSize={480}
-              minSize={280}
+              className="bg-panel flex min-h-0 flex-col overflow-hidden rounded-lg"
+              defaultSize={400}
+              maxSize={520}
+              minSize={300}
             >
               <SongInfoSidebar isDesktop />
             </ResizablePanel>
@@ -115,12 +124,15 @@ function MusicAppContent() {
         ) : (
           <>
             <div
-              className="bg-sidebar min-h-0 w-full overflow-y-auto"
+              className="bg-panel min-h-0 w-full overflow-y-auto"
               hidden={mobileView !== 'browse'}
             >
               <BrowsePanel />
             </div>
-            <div className="min-h-0 w-full overflow-y-auto" hidden={mobileView !== 'playlist'}>
+            <div
+              className="bg-panel min-h-0 w-full overflow-y-auto"
+              hidden={mobileView !== 'playlist'}
+            >
               <PlaylistPanel />
             </div>
             <div
@@ -129,7 +141,10 @@ function MusicAppContent() {
             >
               <PlayerPanel isDesktop={false} />
             </div>
-            <div className="min-h-0 w-full overflow-y-auto" hidden={mobileView !== 'library'}>
+            <div
+              className="bg-panel min-h-0 w-full overflow-y-auto"
+              hidden={mobileView !== 'library'}
+            >
               <ListeningLibrary active={mobileView === 'library'} />
             </div>
           </>

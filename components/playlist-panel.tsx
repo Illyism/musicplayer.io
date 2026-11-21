@@ -2,52 +2,34 @@
 
 import {
   ArrowClockwise,
-  ArrowUp,
   CaretDown,
-  Clock,
   Compass,
-  Flame,
   MagnifyingGlass,
   MusicNote,
   Pause,
   Play,
-  RedditLogo,
   Shuffle,
-  SpeakerHigh,
-  Trophy,
   X,
 } from '@phosphor-icons/react'
-import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useRef, useState } from 'react'
 import { DiscoveryShelves } from '@/components/discovery-shelves'
-import { TrackMenu } from '@/components/track-menu'
+import { MixHeader, MixWash } from '@/components/mix-header'
+import { TrackLoadingState, TrackRow, TrackTableHeader } from '@/components/track-table'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
-import { type Song, usePlayerStore } from '@/lib/store/player-store'
+import { type PlayerState, usePlayerStore } from '@/lib/store/player-store'
 import { cn } from '@/lib/utils'
-import { formatNumber, getPlatformName, isRedditHostedImage } from '@/lib/utils/song-utils'
 import { trackDisplay } from '@/lib/utils/track-display'
-
-const SORT_OPTIONS = [
-  { icon: Flame, label: 'Hot', value: 'hot' },
-  { icon: Clock, label: 'New', value: 'new' },
-  { icon: Trophy, label: 'Top', value: 'top' },
-] as const
 
 const TOP_PERIODS = [
   { label: 'Today', value: 'day' },
@@ -57,310 +39,206 @@ const TOP_PERIODS = [
   { label: 'All time', value: 'all' },
 ] as const
 
-function SortControls({ loading }: { loading: boolean }) {
+const EAGER_COVER_COUNT = 6
+
+function sortLabel(sortMethod: PlayerState['sortMethod'], topPeriod: PlayerState['topPeriod']) {
+  if (sortMethod === 'hot') {
+    return 'Hot'
+  }
+  if (sortMethod === 'new') {
+    return 'New'
+  }
+  const period = TOP_PERIODS.find(option => option.value === topPeriod)
+  return `Top · ${period?.label ?? 'This week'}`
+}
+
+function SortMenu({ loading }: { loading: boolean }) {
   const { sortMethod, topPeriod, setSortMethod, setTopPeriod } = usePlayerStore()
+  const label = sortLabel(sortMethod, topPeriod)
+  const value = sortMethod === 'top' ? `top:${topPeriod}` : sortMethod
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <fieldset
-        aria-label="Sort tracks"
-        className="lg:bg-muted flex gap-1 lg:gap-0 lg:rounded-full lg:p-1"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          aria-label={`Sort tracks: ${label}`}
+          className="text-muted-foreground hover:text-foreground aria-expanded:text-foreground h-11 gap-1.5 px-3 text-sm font-semibold"
+          disabled={loading}
+          variant="ghost"
+        >
+          <span className="text-foreground">{label}</span>
+          <CaretDown aria-hidden className="size-3.5" weight="bold" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          onValueChange={next => {
+            if (next === 'hot' || next === 'new') {
+              setSortMethod(next)
+              return
+            }
+            const period = TOP_PERIODS.find(option => `top:${option.value}` === next)
+            if (period) {
+              setTopPeriod(period.value)
+              setSortMethod('top')
+            }
+          }}
+          value={value}
+        >
+          <DropdownMenuRadioItem value="hot">Hot</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="new">New</DropdownMenuRadioItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Top</DropdownMenuLabel>
+          {TOP_PERIODS.map(period => (
+            <DropdownMenuRadioItem key={period.value} value={`top:${period.value}`}>
+              {period.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function ActionRow({
+  filterOpen,
+  filterActive,
+  onPlay,
+  onRefresh,
+  onToggleFilter,
+  filterTriggerRef,
+}: {
+  filterOpen: boolean
+  filterActive: boolean
+  onPlay: () => void
+  onRefresh: () => void
+  onToggleFilter: () => void
+  filterTriggerRef: RefObject<HTMLButtonElement | null>
+}) {
+  const { songs, isPlaying, loading, shufflePlaylist } = usePlayerStore()
+  const hasPlayableSongs = songs.some(song => song.playable)
+
+  return (
+    <div className="flex shrink-0 items-center gap-2 px-4 py-5 @min-[480px]/mix:gap-3 @min-[480px]/mix:px-6">
+      <Button
+        aria-label={isPlaying ? 'Pause' : 'Play mix'}
+        className="bg-reddit hover:bg-reddit mr-1 size-14 text-white shadow-[0_4px_12px_rgb(0_0_0/0.25)] transition-[scale,background-color] hover:scale-105 active:scale-95"
+        disabled={!hasPlayableSongs}
+        onClick={onPlay}
+        size="icon"
+        static
       >
-        {SORT_OPTIONS.map(({ icon: Icon, label, value }) => (
-          <Button
-            aria-pressed={sortMethod === value}
-            className={cn(
-              'h-11 gap-1.5 rounded-full px-3 text-xs lg:h-9 lg:px-4',
-              value === 'top' && 'hidden lg:inline-flex',
-              sortMethod === value
-                ? 'bg-muted text-foreground lg:bg-background lg:shadow-sm'
-                : 'text-muted-foreground'
-            )}
-            disabled={loading}
-            key={value}
-            onClick={() => setSortMethod(value)}
-            variant="ghost"
-          >
-            <Icon className="size-3.5" weight={sortMethod === value ? 'fill' : 'regular'} />
-            {label}
-          </Button>
-        ))}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              aria-label="Choose top tracks time period"
-              aria-pressed={sortMethod === 'top'}
-              className={cn(
-                'h-11 gap-1.5 px-3 text-xs lg:hidden',
-                sortMethod === 'top' ? 'bg-muted text-foreground' : 'text-muted-foreground'
-              )}
-              disabled={loading}
-              variant="ghost"
-            >
-              <Trophy className="size-3.5" weight={sortMethod === 'top' ? 'fill' : 'regular'} />
-              Top
-              <CaretDown className="size-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuLabel>Top tracks</DropdownMenuLabel>
-            {TOP_PERIODS.map(period => (
-              <DropdownMenuItem
-                className={cn(
-                  'min-h-11',
-                  sortMethod === 'top' && topPeriod === period.value && 'bg-muted'
-                )}
-                key={period.value}
-                onSelect={() => {
-                  setTopPeriod(period.value)
-                  setSortMethod('top')
-                }}
-              >
-                {period.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </fieldset>
-      {sortMethod === 'top' && (
-        <div className="hidden lg:block">
-          <Select
-            disabled={loading}
-            onValueChange={value => {
-              const period = TOP_PERIODS.find(option => option.value === value)
-              if (period) {
-                setTopPeriod(period.value)
-              }
-            }}
-            value={topPeriod}
-          >
-            <SelectTrigger
-              aria-label="Top tracks time period"
-              className="border-border h-11 rounded-full bg-transparent px-4 text-xs data-[size=default]:h-11 sm:data-[size=default]:h-10"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {TOP_PERIODS.map(period => (
-                <SelectItem
-                  className="min-h-11 px-3 text-sm"
-                  key={period.value}
-                  value={period.value}
-                >
-                  {period.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+        {isPlaying ? (
+          <Pause className="size-6" weight="fill" />
+        ) : (
+          <Play className="size-6 translate-x-px" weight="fill" />
+        )}
+      </Button>
+      <Button
+        aria-label="Shuffle your mix"
+        className="text-muted-foreground hover:text-foreground size-11"
+        disabled={songs.length < 2}
+        onClick={shufflePlaylist}
+        size="icon"
+        variant="ghost"
+      >
+        <Shuffle className="size-6" />
+      </Button>
+      <Button
+        aria-label="Refresh your mix"
+        className="text-muted-foreground hover:text-foreground size-11"
+        disabled={loading}
+        onClick={onRefresh}
+        size="icon"
+        variant="ghost"
+      >
+        <ArrowClockwise className={cn('size-6', loading && 'motion-safe:animate-spin')} />
+      </Button>
+      <Button
+        aria-expanded={filterOpen}
+        aria-label="Find in this mix"
+        className={cn(
+          'text-muted-foreground hover:text-foreground relative size-11',
+          (filterOpen || filterActive) && 'text-foreground'
+        )}
+        onClick={onToggleFilter}
+        ref={filterTriggerRef}
+        size="icon"
+        variant="ghost"
+      >
+        <MagnifyingGlass className="size-6" />
+        {filterActive ? (
+          <span className="bg-reddit absolute top-2 right-2 size-1.5 rounded-full">
+            <span className="sr-only">Filter active</span>
+          </span>
+        ) : null}
+      </Button>
+      <div className="ml-auto">
+        <SortMenu loading={loading} />
+      </div>
     </div>
   )
 }
 
-function TrackToolbar({
+function TrackFilter({
   filterQuery,
-  loading,
+  onClose,
   onFilterChange,
 }: {
   filterQuery: string
-  loading: boolean
+  onClose: () => void
   onFilterChange: (query: string) => void
 }) {
-  const [filterOpen, setFilterOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-
   useEffect(() => {
-    if (filterOpen) {
-      inputRef.current?.focus()
-    }
-  }, [filterOpen])
+    inputRef.current?.focus()
+  }, [])
 
   return (
-    <div
-      className="border-border/70 bg-background/95 sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-b px-4 py-2 backdrop-blur-sm sm:px-8 lg:gap-3 lg:pb-4"
-      data-track-toolbar
-    >
-      <div className="flex items-center justify-between gap-2">
-        <SortControls loading={loading} />
+    <div className="relative mx-4 mb-4 shrink-0 @min-[480px]/mix:mx-6 @min-[480px]/mix:max-w-sm">
+      <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
+      <Input
+        aria-label="Filter tracks in this mix"
+        className="bg-muted dark:bg-card h-11 rounded-md border-transparent pr-11 pl-10 text-base shadow-none md:text-sm"
+        onChange={event => onFilterChange(event.target.value)}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            event.stopPropagation()
+            onClose()
+          }
+        }}
+        placeholder="Find in this mix"
+        ref={inputRef}
+        value={filterQuery}
+      />
+      {filterQuery.length > 0 && (
         <Button
-          aria-expanded={filterOpen}
-          aria-label="Find in this mix"
-          className={cn(
-            'text-muted-foreground relative size-11 lg:hidden',
-            (filterOpen || filterQuery.length > 0) && 'bg-muted text-foreground'
-          )}
-          onClick={() => setFilterOpen(open => !open)}
-          ref={triggerRef}
+          aria-label="Clear track filter"
+          className="text-muted-foreground absolute top-0 right-0 size-11 rounded-md"
+          onClick={() => {
+            onFilterChange('')
+            inputRef.current?.focus()
+          }}
           size="icon"
           variant="ghost"
         >
-          <MagnifyingGlass className="size-5" />
-          {filterQuery.length > 0 && (
-            <span className="bg-reddit absolute top-2 right-2 size-1.5 rounded-full">
-              <span className="sr-only">Filter active</span>
-            </span>
-          )}
+          <X className="size-4" />
         </Button>
-      </div>
-      <div className={cn('relative hidden lg:block', filterOpen && 'block')}>
-        <MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
-        <Input
-          aria-label="Filter tracks in this mix"
-          className="bg-muted/50 h-11 rounded-xl border-transparent pr-11 pl-10 text-base shadow-none lg:text-sm"
-          onChange={event => onFilterChange(event.target.value)}
-          onKeyDown={event => {
-            if (event.key === 'Escape') {
-              event.preventDefault()
-              event.stopPropagation()
-              setFilterOpen(false)
-              triggerRef.current?.focus()
-            }
-          }}
-          placeholder="Find in this mix"
-          ref={inputRef}
-          value={filterQuery}
-        />
-        {filterQuery.length > 0 && (
-          <Button
-            aria-label="Clear track filter"
-            className="text-muted-foreground absolute top-0 right-0 size-11 rounded-xl"
-            onClick={() => {
-              onFilterChange('')
-              inputRef.current?.focus()
-            }}
-            size="icon"
-            variant="ghost"
-          >
-            <X className="size-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-const EAGER_COVER_COUNT = 6
-
-function TrackRow({
-  song,
-  index,
-  isCurrent,
-  isPlaying,
-  onPlay,
-  priority,
-}: {
-  song: Song
-  index: number
-  isCurrent: boolean
-  isPlaying: boolean
-  onPlay: (index: number) => void
-  priority?: boolean
-}) {
-  const display = trackDisplay(song)
-  return (
-    <div className={cn('flex items-center rounded-xl', isCurrent && 'bg-muted')}>
-      <Button
-        aria-label={`Play ${song.title}, shared in r/${song.subreddit}`}
-        aria-pressed={isCurrent}
-        className={cn(
-          'group/track grid h-auto min-h-[76px] min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-xl px-3 py-3 text-left md:grid-cols-[1.5rem_minmax(0,1fr)_auto] xl:grid-cols-[1.5rem_minmax(0,1fr)_4rem]',
-          isCurrent ? 'bg-muted hover:bg-muted' : 'hover:bg-muted/60'
-        )}
-        disabled={!song.playable}
-        onClick={() => onPlay(index)}
-        variant="ghost"
-      >
-        <span className="text-muted-foreground hidden items-center justify-center md:flex">
-          {isCurrent && isPlaying ? (
-            <SpeakerHigh className="text-reddit size-4" weight="fill" />
-          ) : (
-            <>
-              <span className="text-xs tabular-nums group-hover/track:hidden group-focus-visible/track:hidden">
-                {index + 1}
-              </span>
-              <Play
-                className="hidden size-3.5 group-hover/track:block group-focus-visible/track:block"
-                weight="fill"
-              />
-            </>
-          )}
-        </span>
-        <span className="flex min-w-0 items-center gap-3">
-          <span className="bg-muted relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg outline outline-black/10 dark:outline-white/10">
-            {song.thumbnail ? (
-              <Image
-                alt=""
-                className="size-full object-cover"
-                height={48}
-                loading={priority ? 'eager' : 'lazy'}
-                priority={priority}
-                src={song.thumbnail}
-                unoptimized={isRedditHostedImage(song.thumbnail)}
-                width={48}
-              />
-            ) : (
-              <MusicNote className="text-muted-foreground size-5" />
-            )}
-            {isCurrent === true && (
-              <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white md:hidden">
-                {isPlaying ? (
-                  <SpeakerHigh className="size-4" weight="fill" />
-                ) : (
-                  <Play className="size-4" weight="fill" />
-                )}
-              </span>
-            )}
-          </span>
-          <span className="min-w-0">
-            <span className="line-clamp-2 text-[13px] leading-5 font-medium whitespace-normal md:block md:truncate">
-              {display.title}
-            </span>
-            <span className="text-muted-foreground mt-1 flex min-w-0 items-center gap-1.5 text-[11px]">
-              <span className="truncate">{display.artist ?? `r/${song.subreddit}`}</span>
-              <span aria-hidden="true">·</span>
-              <span className="shrink-0">{getPlatformName(song.domain)}</span>
-              <span className="hidden min-w-0 truncate 2xl:inline">· u/{song.author}</span>
-            </span>
-          </span>
-        </span>
-        <span className="text-muted-foreground flex items-center justify-end gap-1 text-[11px] tabular-nums">
-          <ArrowUp className="size-3" />
-          {formatNumber(song.score)}
-        </span>
-      </Button>
-      <TrackMenu song={song} />
-    </div>
-  )
-}
-
-function TrackLoadingState() {
-  return (
-    <div aria-label="Loading tracks" className="flex flex-col gap-2 py-2" role="status">
-      <span className="sr-only">Finding music from your communities…</span>
-      {['one', 'two', 'three', 'four', 'five', 'six'].map(key => (
-        <div
-          aria-hidden="true"
-          className="flex items-center gap-3 rounded-xl px-3 py-3 motion-safe:animate-pulse"
-          key={key}
-        >
-          <div className="bg-muted size-12 shrink-0 rounded-lg" />
-          <div className="flex flex-1 flex-col gap-2">
-            <div className="bg-muted h-3.5 w-3/4 rounded-full" />
-            <div className="bg-muted h-2.5 w-2/5 rounded-full" />
-          </div>
-        </div>
-      ))}
+      )}
     </div>
   )
 }
 
 export function PlaylistPanel() {
   const [filterQuery, setFilterQuery] = useState('')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterTriggerRef = useRef<HTMLButtonElement>(null)
   const {
     songs,
     currentIndex,
+    currentSong,
     isPlaying,
     sortMethod,
     topPeriod,
@@ -370,7 +248,6 @@ export function PlaylistPanel() {
     loading,
     after,
     setCurrentSong,
-    shufflePlaylist,
     togglePlay,
     setMobileView,
   } = usePlayerStore()
@@ -411,98 +288,54 @@ export function PlaylistPanel() {
     }
   }
 
+  const closeFilter = () => {
+    setFilterOpen(false)
+    filterTriggerRef.current?.focus()
+  }
+
   const normalizedFilter = filterQuery.trim().toLowerCase()
   const visibleSongs = songs
     .map((song, index) => ({ index, song }))
     .filter(({ song }) =>
       `${song.title} ${song.subreddit} ${song.author}`.toLowerCase().includes(normalizedFilter)
     )
-  const hasPlayableSongs = songs.some(song => song.playable)
-
-  let context = 'Music shared by the communities you love.'
-  if (searchQuery) {
-    context = `Music from across Reddit, matching “${searchQuery}”.`
-  } else if (selectedSubreddits.length === 1) {
-    context = `Fresh finds from r/${selectedSubreddits[0]}, ready to play.`
-  } else if (selectedSubreddits.length > 1) {
-    context = `Your own mix of ${selectedSubreddits.length} music communities.`
-  }
+  const genreCount = songs.filter(song => trackDisplay(song).genre !== null).length
+  const showSharedBy = genreCount * 2 < songs.length
+  const showSubreddit = Boolean(searchQuery) || selectedSubreddits.length > 1
+  const washSource = currentSong?.thumbnail || songs.find(song => song.thumbnail)?.thumbnail || null
 
   return (
-    <section aria-label="Your music mix" className="bg-background flex h-full min-h-0 flex-col">
+    <section
+      aria-label="Your music mix"
+      className="bg-panel @container/mix flex h-full min-h-0 flex-col"
+    >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <header className="flex shrink-0 flex-col gap-3 px-4 pt-4 pb-3 sm:px-8 lg:gap-4 lg:pt-8 lg:pb-5">
-          <div className="text-muted-foreground hidden items-center gap-2 text-xs lg:flex">
-            <RedditLogo className="text-reddit size-4" weight="fill" />
-            <span>Good music. Real communities.</span>
-          </div>
-          <div>
-            <h1 className="max-w-[26ch] text-2xl leading-[1.15] font-semibold tracking-[-0.04em] text-balance lg:text-[32px]">
-              {searchQuery ? (
-                `Sounds like “${searchQuery}”.`
-              ) : (
-                <>
-                  <span className="lg:hidden">Your mix</span>
-                  <span className="hidden lg:inline">Your next favorite is here.</span>
-                </>
-              )}
-            </h1>
-            <p className="text-muted-foreground mt-2 max-w-[46ch] text-sm leading-5 lg:mt-3 lg:leading-6">
-              {context}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              className="h-11 gap-2 rounded-full px-5 text-sm"
-              disabled={!hasPlayableSongs}
-              onClick={handlePlayMix}
-            >
-              {isPlaying ? (
-                <Pause className="size-4" weight="fill" />
-              ) : (
-                <Play className="size-4 translate-x-px" weight="fill" />
-              )}
-              {isPlaying ? 'Pause' : 'Play mix'}
-            </Button>
-            <Button
-              aria-label="Shuffle your mix"
-              className="border-border size-11 rounded-full"
-              disabled={songs.length < 2}
-              onClick={shufflePlaylist}
-              size="icon"
-              variant="outline"
-            >
-              <Shuffle className="size-4" />
-            </Button>
-            <span className="text-muted-foreground pl-2 text-xs tabular-nums">
-              {songs.length} {songs.length === 1 ? 'track' : 'tracks'}
-            </span>
-            <Button
-              aria-label="Refresh your mix"
-              className="text-muted-foreground ml-auto size-11 rounded-full"
-              disabled={loading}
-              onClick={() => fetchSongs()}
-              size="icon"
-              variant="ghost"
-            >
-              <ArrowClockwise className={cn('size-4', loading && 'motion-safe:animate-spin')} />
-            </Button>
-          </div>
-        </header>
-
-        <div
-          className={
-            searchQuery || (!loading && songs.length === 0) ? undefined : 'min-h-[228px] shrink-0'
-          }
-        >
-          {songs.length > 0 ? <DiscoveryShelves /> : null}
+        <div className="relative isolate flex shrink-0 flex-col">
+          <MixWash src={washSource} />
+          <MixHeader songs={songs} />
+          <ActionRow
+            filterActive={filterQuery.length > 0}
+            filterOpen={filterOpen}
+            filterTriggerRef={filterTriggerRef}
+            onPlay={handlePlayMix}
+            onRefresh={() => fetchSongs()}
+            onToggleFilter={() => setFilterOpen(open => !open)}
+          />
+          {filterOpen ? (
+            <TrackFilter
+              filterQuery={filterQuery}
+              onClose={closeFilter}
+              onFilterChange={setFilterQuery}
+            />
+          ) : null}
         </div>
 
-        <TrackToolbar filterQuery={filterQuery} loading={loading} onFilterChange={setFilterQuery} />
-
-        <div aria-busy={loading} className="flex-1 px-2 pt-3 pb-6 sm:px-5 lg:px-7">
+        <div aria-busy={loading} className="shrink-0 px-2 pb-6 @min-[480px]/mix:px-4">
+          <span aria-live="polite" className="sr-only">
+            {loading ? 'Updating tracks…' : ''}
+          </span>
           {listingError !== null && !loading && (
-            <div className="bg-destructive/10 mx-3 mb-4 rounded-xl p-4 text-sm" role="alert">
+            <div className="bg-destructive/10 mx-2 mb-4 rounded-lg p-4 text-sm" role="alert">
               <p>{listingError}</p>
               <Button
                 className="mt-3 h-11 rounded-full px-4"
@@ -517,10 +350,10 @@ export function PlaylistPanel() {
           {loading && songs.length === 0 && <TrackLoadingState />}
           {!loading && songs.length === 0 && (
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-              <span className="bg-muted flex size-14 items-center justify-center rounded-2xl">
+              <span className="bg-muted flex size-14 items-center justify-center rounded-lg">
                 <MusicNote className="text-muted-foreground size-6" />
               </span>
-              <h3 className="mt-1 text-lg font-medium">
+              <h3 className="mt-1 text-lg font-bold">
                 {listingError === null ? 'A little quiet here.' : 'Community not found.'}
               </h3>
               <p className="text-muted-foreground max-w-64 text-sm leading-6">
@@ -540,12 +373,12 @@ export function PlaylistPanel() {
           )}
           {songs.length > 0 && (
             <>
-              <div className="text-muted-foreground mb-2 flex items-center justify-between px-3 py-2 text-[11px]">
-                <span>
-                  {normalizedFilter ? `${visibleSongs.length} matching tracks` : 'In the mix'}
-                </span>
-                <span aria-live="polite">{loading ? 'Updating…' : 'Upvotes'}</span>
-              </div>
+              <TrackTableHeader showSharedBy={showSharedBy} />
+              {normalizedFilter ? (
+                <p className="text-muted-foreground px-3 pb-2 text-xs">
+                  {visibleSongs.length} matching {visibleSongs.length === 1 ? 'track' : 'tracks'}
+                </p>
+              ) : null}
               {visibleSongs.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <p className="text-sm font-medium">No tracks match “{filterQuery}”.</p>
@@ -558,15 +391,17 @@ export function PlaylistPanel() {
                   </Button>
                 </div>
               ) : (
-                <ol className="flex min-h-[480px] flex-col gap-1">
+                <ol className="flex flex-col">
                   {visibleSongs.map(({ song, index }, visibleIndex) => (
-                    <li className="min-h-[76px]" key={song.id}>
+                    <li className="min-h-14" key={song.id}>
                       <TrackRow
                         index={index}
                         isCurrent={currentIndex === index}
                         isPlaying={isPlaying}
                         onPlay={setCurrentSong}
                         priority={visibleIndex < EAGER_COVER_COUNT}
+                        showSharedBy={showSharedBy}
+                        showSubreddit={showSubreddit}
                         song={song}
                       />
                     </li>
@@ -576,7 +411,7 @@ export function PlaylistPanel() {
               {after !== null && (
                 <div className="flex justify-center px-3 pt-6">
                   <Button
-                    className="h-11 rounded-full px-6 text-sm"
+                    className="h-11 rounded-full px-6 text-sm font-semibold"
                     disabled={loading}
                     onClick={() => fetchSongs(after)}
                     variant="outline"
@@ -588,6 +423,12 @@ export function PlaylistPanel() {
             </>
           )}
         </div>
+
+        {songs.length > 0 ? (
+          <div className="shrink-0">
+            <DiscoveryShelves />
+          </div>
+        ) : null}
       </div>
     </section>
   )

@@ -156,7 +156,6 @@ function readSong(value: unknown): Song | null {
     domain: typeof item.domain === 'string' ? item.domain : new URL(item.url).hostname,
     id: item.id,
     name: typeof item.name === 'string' ? item.name : `t3_${item.id}`,
-    num_comments: Number.isFinite(item.num_comments) ? (item.num_comments ?? 0) : 0,
     permalink: typeof item.permalink === 'string' ? item.permalink : '',
     playable: item.playable,
     score: Number.isFinite(item.score) ? (item.score ?? 0) : 0,

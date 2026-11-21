@@ -20,6 +20,7 @@ import { useTheme } from 'next-themes'
 import { useState } from 'react'
 import { Brand } from '@/components/brand'
 import { LoginModal } from '@/components/login-modal'
+import { SearchForm } from '@/components/search-form'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,11 +40,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { usePlayerStore } from '@/lib/store/player-store'
-
-interface HeaderProps {
-  setShowKeyboardModal?: (show: boolean) => void
-  showKeyboardModal?: boolean
-}
 
 const shortcutGroups = [
   {
@@ -106,7 +102,13 @@ function ShortcutsDialog({
   )
 }
 
-export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps) {
+export function Header({
+  showKeyboardModal,
+  setShowKeyboardModal,
+}: {
+  setShowKeyboardModal?: (show: boolean) => void
+  showKeyboardModal?: boolean
+}) {
   const { isAuthenticated, username, logout } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
   const mobileView = usePlayerStore(state => state.mobileView)
@@ -118,33 +120,33 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
 
   return (
     <>
-      <header className="bg-background sm:border-border/60 z-40 flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:h-[72px] sm:gap-4 sm:border-b sm:px-6">
+      <header className="bg-background z-40 flex h-14 shrink-0 items-center gap-2 px-4 sm:h-16 sm:gap-3 lg:px-4">
         <Link
           aria-label="Music Player for Reddit home"
-          className="focus-visible:ring-ring flex min-h-11 shrink-0 items-center rounded-lg outline-none focus-visible:ring-2"
+          className="focus-visible:ring-ring flex min-h-11 shrink-0 items-center rounded-lg px-1 outline-none focus-visible:ring-2"
           href="/"
           onClick={() => setMobileView('playlist')}
         >
           <Brand compact />
         </Link>
-        <span className="text-muted-foreground hidden text-sm md:block">
-          Good music. Human taste.
-        </span>
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex">
           <Button
             aria-label="Home"
             aria-pressed={mobileView !== 'library'}
-            className="hidden lg:inline-flex"
+            className="bg-panel hover:bg-panel dark:bg-card dark:hover:bg-muted size-12 shrink-0"
             onClick={() => setMobileView('playlist')}
             size="icon"
             variant="ghost"
           >
-            <House className="size-5" weight={mobileView === 'library' ? 'regular' : 'fill'} />
+            <House className="size-6" weight={mobileView === 'library' ? 'regular' : 'fill'} />
           </Button>
+          <SearchForm className="w-full max-w-[760px] min-w-0 flex-1" variant="bar" />
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
           <Button
             aria-label="Your library"
             aria-pressed={mobileView === 'library'}
-            className="hidden lg:inline-flex"
+            className="text-muted-foreground hover:text-foreground aria-pressed:text-foreground hidden lg:inline-flex"
             onClick={() => setMobileView('library')}
             size="icon"
             variant="ghost"
@@ -156,7 +158,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
           </div>
           <Button
             aria-label="Keyboard shortcuts"
-            className="hidden lg:inline-flex"
+            className="text-muted-foreground hover:text-foreground hidden lg:inline-flex"
             onClick={() => setIsKeyboardModalOpen(true)}
             size="icon"
             variant="ghost"
@@ -165,7 +167,12 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button aria-label="Open app menu" size="icon" variant="ghost">
+              <Button
+                aria-label="Open app menu"
+                className="text-muted-foreground hover:text-foreground"
+                size="icon"
+                variant="ghost"
+              >
                 <DotsThree className="size-6" weight="bold" />
               </Button>
             </DropdownMenuTrigger>
@@ -243,7 +250,7 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
               <DropdownMenuTrigger asChild>
                 <Button
                   aria-label="Account menu"
-                  className="hidden max-w-40 sm:inline-flex"
+                  className="ml-1 hidden h-12 max-w-40 font-semibold sm:inline-flex"
                   variant="secondary"
                 >
                   <User />
@@ -259,8 +266,10 @@ export function Header({ showKeyboardModal, setShowKeyboardModal }: HeaderProps)
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button className="hidden sm:inline-flex" onClick={() => setShowLoginModal(true)}>
-              <RedditLogo className="size-4" />
+            <Button
+              className="ml-1 hidden h-12 px-6 font-bold sm:inline-flex"
+              onClick={() => setShowLoginModal(true)}
+            >
               Sign in
             </Button>
           )}
