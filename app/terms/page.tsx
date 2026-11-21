@@ -55,8 +55,8 @@ export default function TermsPage() {
         <p>
           Please use the player responsibly. Do not attempt to scrape, overload, bypass rate limits
           on, or disrupt <code>musicplayer.io</code> or the upstream services it connects to. If you
-          choose to sign in with Reddit to vote or comment, you are responsible for actions taken
-          with your Reddit account and for following Reddit&apos;s content rules.
+          choose to sign in with Reddit to vote, you are responsible for actions taken with your
+          Reddit account and for following Reddit&apos;s content rules.
         </p>
       </section>
 

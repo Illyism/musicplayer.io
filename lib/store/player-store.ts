@@ -7,7 +7,6 @@ export interface Song {
   domain: string
   id: string
   name: string
-  num_comments: number
   permalink: string
   playable: boolean
   score: number
@@ -31,6 +30,7 @@ export interface PlayerState {
   isTheatreMode: boolean
   listingCursorId: string | null
   listingError: string | null
+  listingUpdatedAt: number | null
   loading: boolean
 
   mobileView: 'browse' | 'playlist' | 'player' | 'library'
@@ -233,6 +233,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isTheatreMode: false,
   listingCursorId: null,
   listingError: null,
+  listingUpdatedAt: null,
   loading: true,
 
   mobileView: 'playlist',
@@ -439,6 +440,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   setSongs: songs => {
     const state = get()
     const uniqueSongs = uniqueSongsById(songs)
+    set({ listingUpdatedAt: uniqueSongs.length > 0 ? Date.now() : null })
     if (state.currentSong) {
       const currentIndex =
         state.playbackSource === 'queue'

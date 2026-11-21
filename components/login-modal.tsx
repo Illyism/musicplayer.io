@@ -13,13 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { getRedditAuthorizationUrl } from '@/lib/actions/auth'
 
-interface LoginModalProps {
-  action?: string
-  isOpen: boolean
-  onClose: () => void
-}
-
-export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
+export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [isSigningIn, setIsSigningIn] = useState(false)
   const handleLogin = async () => {
@@ -37,19 +31,6 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
     } finally {
       setIsSigningIn(false)
     }
-  }
-
-  const getMessage = () => {
-    if (action === 'vote' || action === 'upvote' || action === 'downvote') {
-      return 'Connect your account to vote with the community.'
-    }
-    if (action === 'reply') {
-      return 'Connect your account to join the conversation.'
-    }
-    if (action === 'comment') {
-      return 'Connect your account to share what you think.'
-    }
-    return 'Keep the music playing. Connect your account to vote and join the conversation.'
   }
 
   return (
@@ -70,7 +51,7 @@ export function LoginModal({ isOpen, onClose, action }: LoginModalProps) {
             Sign in with Reddit
           </DialogTitle>
           <DialogDescription className="text-sm leading-relaxed text-pretty">
-            {getMessage()}
+            Keep the music playing. Connect your account to vote with the community.
           </DialogDescription>
         </DialogHeader>
 

@@ -13,9 +13,6 @@ const quota = createRequestQuota(60, 5)
 
 const CONTROL_CHAR_REGEX = /\p{Cc}/u
 const ENCODED_SEPARATOR_REGEX = /%(?:2f|5c)/iu
-const REDDIT_PERMALINK_REGEX =
-  /^\/(?:r\/[a-zA-Z0-9_-]{1,100}|user\/[a-zA-Z0-9_-]{1,50})\/comments\/[a-zA-Z0-9]{1,13}\/(?<slug>[^/?#\\]+?)(?:\/(?<commentId>[a-zA-Z0-9]{1,13}))?\/?$/u
-
 function hasDotPathSegment(path: string): boolean {
   return path.split('/').some(segment => segment === '.' || segment === '..')
 }
@@ -31,53 +28,6 @@ function isUnsafePath(path: string): boolean {
     ENCODED_SEPARATOR_REGEX.test(path) ||
     hasDotPathSegment(path)
   )
-}
-
-export function isValidRedditPermalink(val: string): boolean {
-  if (val.length <= 3 || val.length > 500 || isUnsafePath(val)) {
-    return false
-  }
-
-  const match = REDDIT_PERMALINK_REGEX.exec(val)
-  if (!match) {
-    return false
-  }
-
-  const [, rawSlug] = match
-  let decodedSlug: string
-  try {
-    decodedSlug = decodeURIComponent(rawSlug)
-  } catch {
-    return false
-  }
-
-  if (
-    decodedSlug.length === 0 ||
-    decodedSlug.length > 200 ||
-    decodedSlug === '.' ||
-    decodedSlug === '..' ||
-    decodedSlug.includes('/') ||
-    decodedSlug.includes('\\') ||
-    decodedSlug.includes('?') ||
-    decodedSlug.includes('#') ||
-    CONTROL_CHAR_REGEX.test(decodedSlug)
-  ) {
-    return false
-  }
-
-  try {
-    const parsed = new URL(val, REDDIT_API_BASE)
-    const decodedPathname = decodeURI(parsed.pathname)
-    return (
-      parsed.origin === REDDIT_API_BASE &&
-      decodedPathname === decodeURI(val) &&
-      parsed.search === '' &&
-      parsed.hash === '' &&
-      !hasDotPathSegment(decodedPathname)
-    )
-  } catch {
-    return false
-  }
 }
 
 function resolveRedditApiUrl(path: string, params: URLSearchParams): string {
@@ -147,7 +97,6 @@ function slimPostData(data: Record<string, unknown>) {
     id: data.id,
     is_self: data.is_self,
     name: data.name,
-    num_comments: data.num_comments,
     permalink: data.permalink,
     preview: preview?.images?.[0]?.source?.url
       ? { images: [{ source: { url: preview.images[0].source.url } }] }

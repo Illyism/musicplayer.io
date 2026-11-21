@@ -1,15 +1,6 @@
 import { RedditError } from '@/lib/errors/reddit-error'
 
-export interface RedditComment {
-  author: string
-  body: string
-  created_ago: string
-  id: string
-  replies: RedditComment[]
-  score: number
-}
-
-async function requestRedditApi<T>(params: URLSearchParams): Promise<T> {
+async function requestRedditApi(params: URLSearchParams) {
   const response = await fetch(`/api/reddit?${params.toString()}`, {
     credentials: 'same-origin',
   })
@@ -21,7 +12,7 @@ async function requestRedditApi<T>(params: URLSearchParams): Promise<T> {
         : `Reddit API error: ${response.status}`
     throw new RedditError(message, { statusCode: response.status, reason: message })
   }
-  return data as T
+  return data
 }
 
 export function getSubredditPosts(
@@ -37,7 +28,7 @@ export function getSubredditPosts(
     ...(timePeriod && { t: timePeriod }),
     ...(after && { after }),
   })
-  return requestRedditApi<any>(params)
+  return requestRedditApi(params)
 }
 
 export function searchReddit(
@@ -53,10 +44,5 @@ export function searchReddit(
     ...(timePeriod && { t: timePeriod }),
     ...(after && { after }),
   })
-  return requestRedditApi<any>(params)
-}
-
-export function getComments(permalink: string) {
-  const params = new URLSearchParams({ permalink })
-  return requestRedditApi<{ comments: RedditComment[]; count: number }>(params)
+  return requestRedditApi(params)
 }

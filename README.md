@@ -52,7 +52,7 @@ The app will be available at `http://localhost:3000`
 - 🔍 **Reddit Search** - Search Reddit for music
 - 📱 **Mobile Friendly** - Responsive design with mobile navigation
 - ⌨️ **Keyboard Shortcuts** - Space for play/pause, Ctrl+Arrows for navigation
-- 🔐 **Reddit Authentication** - Login to vote and comment
+- 🔐 **Reddit Authentication** - Login to vote
 - 💾 **LocalStorage** - Saves your subreddit preferences
 - 🔗 **Share Playlists** - Share your custom playlists
 - 🎨 **Modern UI** - Built with Next.js 16, React, and Tailwind CSS
@@ -84,7 +84,7 @@ Recommendations adapt to play, skip, and save events on this device. They use fi
 
 ### Reddit OAuth
 
-Reddit app credentials are required for listing reads and for sign-in, voting, and comment posting:
+Reddit app credentials are required for listing reads and for sign-in and voting:
 
 1. Create a **web app** at https://www.reddit.com/prefs/apps
 2. Set redirect URI: `http://localhost:3000/auth/callback`

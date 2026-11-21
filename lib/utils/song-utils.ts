@@ -30,6 +30,7 @@ const YOUTUBE_ID_PATTERNS = [
   /youtube\.com\/watch\?.*v=(?<id>[^&\n?#]+)/u,
 ]
 const VIMEO_ID_REGEX = /vimeo\.com\/(?<id>\d+)/u
+const HOST_PREFIX_REGEX = /^(?:www|m)\./u
 const REDDIT_CDN_REGEX = /(?:^|\.)(?:redd\.it|redditmedia\.com|redditstatic\.com)$/iu
 
 export function isRedditHostedImage(url: string): boolean {
@@ -81,7 +82,6 @@ export function parseSong(data: any): Song {
     domain: data.domain,
     id: data.id,
     name: data.name,
-    num_comments: data.num_comments || 0,
     permalink: sanitizeRedditPermalink(data.permalink),
     playable: type !== 'none',
     score: data.score || 0,
@@ -193,7 +193,7 @@ export function formatNumber(num: number): string {
 }
 
 export function getPlatformName(domain: string): string {
-  const normalizedDomain = domain.toLowerCase().replace('www.', '')
+  const normalizedDomain = domain.toLowerCase().replace(HOST_PREFIX_REGEX, '')
 
   const platforms: Record<string, string> = {
     'soundcloud.com': 'SoundCloud',

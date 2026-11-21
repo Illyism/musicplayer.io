@@ -54,23 +54,22 @@ export default function PrivacyPage() {
       <section>
         <h2>Optional Reddit sign-in</h2>
         <p>
-          Signing in with Reddit is completely optional and only used if you want to upvote,
-          downvote, or comment from the player. Authentication happens directly with Reddit via
-          OAuth. We never see your Reddit password; OAuth session tokens are stored in{' '}
-          <code>httpOnly</code> cookies in your browser solely to perform actions you initiate and
-          are cleared when you sign out.
+          Signing in with Reddit is completely optional and only used if you want to upvote or
+          downvote from the player. Authentication happens directly with Reddit via OAuth. We never
+          see your Reddit password; OAuth session tokens are stored in <code>httpOnly</code> cookies
+          in your browser solely to perform actions you initiate and are cleared when you sign out.
         </p>
       </section>
 
       <section>
         <h2>Public Reddit feeds &amp; embedded media players</h2>
         <p>
-          Community listings, track metadata, and comment threads are retrieved from Reddit&apos;s
-          public feeds and Data API. Audio and video streams play directly from third-party
-          providers embedded in the page, including <strong>YouTube</strong>,{' '}
-          <strong>SoundCloud</strong>, <strong>Vimeo</strong>, and direct audio links. When you play
-          an embedded stream, that provider receives standard request data (such as your IP address
-          and browser headers) and may apply its own cookies and privacy policy.
+          Community listings and track metadata are retrieved from Reddit&apos;s public feeds and
+          Data API. Audio and video streams play directly from third-party providers embedded in the
+          page, including <strong>YouTube</strong>, <strong>SoundCloud</strong>,{' '}
+          <strong>Vimeo</strong>, and direct audio links. When you play an embedded stream, that
+          provider receives standard request data (such as your IP address and browser headers) and
+          may apply its own cookies and privacy policy.
         </p>
       </section>
 

@@ -67,22 +67,22 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
   return (
     <section
       aria-label="Now playing"
-      className="bg-background relative min-h-full overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+      className="bg-panel relative min-h-full overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
       {!!currentSong.thumbnail && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] overflow-hidden opacity-20"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] overflow-hidden opacity-40"
         >
           <Image
             alt=""
-            className="size-full scale-125 object-cover blur-3xl"
+            className="size-full scale-150 object-cover blur-[64px] saturate-150 outline-none dark:outline-none"
             height={600}
             src={currentSong.thumbnail}
             unoptimized={isRedditHostedImage(currentSong.thumbnail)}
             width={600}
           />
-          <div className="to-background absolute inset-0 bg-linear-to-b from-transparent" />
+          <div className="to-panel absolute inset-0 bg-linear-to-b from-transparent" />
         </div>
       )}
       <div className="relative mx-auto flex max-w-lg flex-col gap-5 px-5 sm:px-7">
@@ -116,7 +116,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
         {!isDesktop && (
           <div className="my-3 flex aspect-video min-h-[min(34vh,180px)] w-full items-center justify-center">
             <MediaPlayerFrame
-              className="w-full overflow-hidden rounded-2xl shadow-2xl outline outline-black/10 dark:outline-white/10"
+              className="w-full overflow-hidden rounded-lg shadow-2xl"
               playerKeyPrefix="mobile-player"
               song={currentSong}
             />
@@ -124,7 +124,7 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
         )}
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="line-clamp-2 text-2xl leading-tight font-semibold tracking-tight">
+            <h1 className="line-clamp-2 text-2xl leading-tight font-extrabold tracking-[-0.03em]">
               {display.title}
             </h1>
             <p className="text-muted-foreground mt-2 truncate text-sm">
@@ -235,10 +235,10 @@ export function PlayerPanel({ isDesktop }: { isDesktop: boolean }) {
             </Button>
           </div>
         </div>
-        <details className="bg-card/80 rounded-2xl p-5">
+        <details className="bg-card rounded-lg p-5">
           <summary className="cursor-pointer text-base font-semibold">Behind the track</summary>
           <div className="pt-5">
-            <SongInfoContent key={currentSong.id} song={currentSong} />
+            <SongInfoContent key={currentSong.id} song={currentSong} variant="sheet" />
           </div>
         </details>
       </div>
