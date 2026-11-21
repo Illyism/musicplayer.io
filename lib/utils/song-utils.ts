@@ -1,6 +1,6 @@
 import type { Song } from '@/lib/store/player-store'
 
-export function decodeHtmlEntities(url: string): string {
+function decodeHtmlEntities(url: string): string {
   return url
     .replace(/&amp;/gu, '&')
     .replace(/&lt;/gu, '<')
@@ -8,7 +8,7 @@ export function decodeHtmlEntities(url: string): string {
     .replace(/&quot;/gu, '"')
 }
 
-export function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): string | undefined {
+function normalizeThumbnailUrl(thumbnail?: string, previewUrl?: string): string | undefined {
   let url = previewUrl || thumbnail
   if (!url || url === 'self' || url === 'default' || url === 'nsfw' || url === 'spoiler') {
     return undefined
@@ -72,67 +72,49 @@ function sanitizeRedditPermalink(rawPermalink: unknown): string {
 
 export function parseSong(data: any): Song {
   const thumbnail = normalizeThumbnailUrl(data.thumbnail, data.preview?.images?.[0]?.source?.url)
-  const safeUrl = sanitizeHttpUrl(data.url)
-
-  const { type, playable } = determineMediaType({ ...data, url: safeUrl })
+  const type = mediaType(data)
 
   return {
     author: data.author,
     created_ago: formatTimeAgo(new Date(data.created_utc * 1000)),
     created_utc: data.created_utc,
     domain: data.domain,
-    downs: data.downs || 0,
     id: data.id,
-    is_self: data.is_self,
-    media: data.media,
     name: data.name,
     num_comments: data.num_comments || 0,
     permalink: sanitizeRedditPermalink(data.permalink),
-    playable,
+    playable: type !== 'none',
     score: data.score || 0,
     selftext: data.selftext,
     subreddit: data.subreddit,
     thumbnail,
     title: data.title,
     type,
-    ups: data.ups || 0,
-    url: safeUrl,
+    url: sanitizeHttpUrl(data.url),
   }
 }
 
-function determineMediaType(data: any): {
-  type: Song['type']
-  playable: boolean
-} {
-  const safeUrl = sanitizeHttpUrl(data.url)
-  if (!safeUrl) {
-    return { playable: false, type: 'none' }
-  }
-  const domain = data.domain?.toLowerCase() || ''
-  const url = safeUrl.toLowerCase()
+const MEDIA_TYPE_BY_DOMAIN: Record<string, Song['type']> = {
+  'm.youtube.com': 'youtube',
+  'soundcloud.com': 'soundcloud',
+  'vimeo.com': 'vimeo',
+  'www.soundcloud.com': 'soundcloud',
+  'www.vimeo.com': 'vimeo',
+  'www.youtube.com': 'youtube',
+  'youtu.be': 'youtube',
+  'youtube.com': 'youtube',
+}
 
-  if (
-    domain === 'youtube.com' ||
-    domain === 'youtu.be' ||
-    domain === 'm.youtube.com' ||
-    domain === 'www.youtube.com'
-  ) {
-    return { playable: true, type: 'youtube' }
+function mediaType(data: any): Song['type'] {
+  const url = sanitizeHttpUrl(data.url)
+  if (!url) {
+    return 'none'
   }
-
-  if (domain === 'soundcloud.com' || domain === 'www.soundcloud.com') {
-    return { playable: true, type: 'soundcloud' }
+  const byDomain = MEDIA_TYPE_BY_DOMAIN[data.domain?.toLowerCase() ?? '']
+  if (byDomain) {
+    return byDomain
   }
-
-  if (domain === 'vimeo.com' || domain === 'www.vimeo.com') {
-    return { playable: true, type: 'vimeo' }
-  }
-
-  if (url.endsWith('.mp3')) {
-    return { playable: true, type: 'mp3' }
-  }
-
-  return { playable: false, type: 'none' }
+  return url.toLowerCase().endsWith('.mp3') ? 'mp3' : 'none'
 }
 
 function formatTimeAgo(date: Date): string {
@@ -157,38 +139,13 @@ function formatTimeAgo(date: Date): string {
   return 'just now'
 }
 
-export function filterPlayableSongs(posts: any[]): any[] {
+export function parsePlayableSongs(posts: unknown): Song[] {
   if (!Array.isArray(posts)) {
     return []
   }
-
-  return posts.filter(post => {
-    if (!post?.data) {
-      return false
-    }
-
-    const { data } = post
-
-    const safeUrl = sanitizeHttpUrl(data.url)
-    if (data.is_self || !safeUrl) {
-      return false
-    }
-
-    const domain = data.domain?.toLowerCase() || ''
-    const url = safeUrl.toLowerCase()
-
-    return (
-      domain === 'youtube.com' ||
-      domain === 'youtu.be' ||
-      domain === 'm.youtube.com' ||
-      domain === 'www.youtube.com' ||
-      domain === 'soundcloud.com' ||
-      domain === 'www.soundcloud.com' ||
-      domain === 'vimeo.com' ||
-      domain === 'www.vimeo.com' ||
-      url.endsWith('.mp3')
-    )
-  })
+  return posts
+    .filter(post => post?.data && !post.data.is_self && mediaType(post.data) !== 'none')
+    .map(post => parseSong(post.data))
 }
 
 export function extractYouTubeId(url: string): string | null {
@@ -235,31 +192,6 @@ export function formatNumber(num: number): string {
   return num.toString()
 }
 
-export function isValidMediaUrl(url: string): boolean {
-  if (!url) {
-    return false
-  }
-
-  try {
-    const urlObj = new URL(url)
-    if (urlObj.protocol !== 'https:' && urlObj.protocol !== 'http:') {
-      return false
-    }
-    const domain = urlObj.hostname.toLowerCase().replace('www.', '')
-
-    return (
-      domain === 'youtube.com' ||
-      domain === 'youtu.be' ||
-      domain === 'm.youtube.com' ||
-      domain === 'soundcloud.com' ||
-      domain === 'vimeo.com' ||
-      urlObj.pathname.toLowerCase().endsWith('.mp3')
-    )
-  } catch {
-    return false
-  }
-}
-
 export function getPlatformName(domain: string): string {
   const normalizedDomain = domain.toLowerCase().replace('www.', '')
 
@@ -271,80 +203,4 @@ export function getPlatformName(domain: string): string {
   }
 
   return platforms[normalizedDomain] || domain
-}
-
-export function generateSongKey(song: Song, index: number): string {
-  return `${song.id}-${song.name}-${index}`
-}
-
-export function isSongPlaying(song: Song, currentSong: Song | null, isPlaying: boolean): boolean {
-  return currentSong?.id === song.id && isPlaying
-}
-
-export function formatDuration(seconds: number): string {
-  if (!(seconds && Number.isFinite(seconds))) {
-    return 'Unknown'
-  }
-
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = Math.floor(seconds % 60)
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-
-  return `${minutes}:${secs.toString().padStart(2, '0')}`
-}
-
-export function calculateProgress(currentTime: number, duration: number): number {
-  if (!duration || duration === 0) {
-    return 0
-  }
-  return Math.min(100, Math.max(0, (currentTime / duration) * 100))
-}
-
-export function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array]
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  return shuffled
-}
-
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
-
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      timeout = null
-      func(...args)
-    }
-
-    if (timeout) {
-      clearTimeout(timeout)
-    }
-    timeout = setTimeout(later, wait)
-  }
-}
-
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle = false
-
-  return function executedFunction(...args: Parameters<T>) {
-    if (!inThrottle) {
-      func(...args)
-      inThrottle = true
-      setTimeout(() => {
-        inThrottle = false
-      }, limit)
-    }
-  }
 }

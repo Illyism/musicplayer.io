@@ -9,8 +9,6 @@ const CACHE_MS = 5 * 60_000
 const MAX_CACHE_KEYS = 20
 const DELETED_VALUES = new Set(['[deleted]', '[removed]'])
 
-type RequestData = (path: string, params: URLSearchParams) => Promise<unknown>
-
 export function parseSavedTrackIds(value: string | null): string[] | null {
   if (!value || value.length > MAX_IDS * 14) {
     return null
@@ -26,7 +24,7 @@ function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 }
 
-export function parseSavedTracks(value: unknown, ids: string[]): Song[] {
+function parseSavedTracks(value: unknown, ids: string[]): Song[] {
   const { children } = record(record(value).data)
   if (!Array.isArray(children)) {
     return []
@@ -53,58 +51,49 @@ export function parseSavedTracks(value: unknown, ids: string[]): Song[] {
     const song = parseSong({
       ...data,
       domain: new URL(String(data.url)).hostname.toLowerCase(),
-      media: undefined,
       selftext: undefined,
     })
     if (song.playable) {
       songs.set(song.id, song)
     }
   }
-  return ids.map(id => songs.get(id)).filter((song): song is Song => song !== undefined)
+  return [...songs.values()]
 }
 
-export function createSavedTrackReader({
-  request = requestCommunityData,
-  now = Date.now,
-}: {
-  request?: RequestData
-  now?: () => number
-} = {}) {
-  const cache = new Map<string, { expiresAt: number; songs: Song[] }>()
-  const pending = new Map<string, Promise<Song[]>>()
+const cache = new Map<string, { expiresAt: number; songs: Song[] }>()
+const pending = new Map<string, Promise<Song[]>>()
 
-  return async (ids: string[]): Promise<Song[]> => {
-    const canonicalIds = [...ids].sort()
-    const key = canonicalIds.join(',')
-    const cached = cache.get(key)
-    if (cached && cached.expiresAt > now()) {
-      return parseOrder(cached.songs, ids)
-    }
-    const inFlight = pending.get(key)
-    if (inFlight) {
-      return parseOrder(await inFlight, ids)
-    }
-    const load = (async () => {
-      const response = await request(
-        '/api/info',
-        new URLSearchParams({ id: canonicalIds.map(id => `t3_${id}`).join(',') })
-      )
-      const songs = parseSavedTracks(response, canonicalIds)
-      if (cache.size >= MAX_CACHE_KEYS) {
-        const oldest = cache.keys().next().value
-        if (oldest !== undefined) {
-          cache.delete(oldest)
-        }
+export async function readSavedTracks(ids: string[]): Promise<Song[]> {
+  const canonicalIds = [...ids].sort()
+  const key = canonicalIds.join(',')
+  const cached = cache.get(key)
+  if (cached && cached.expiresAt > Date.now()) {
+    return parseOrder(cached.songs, ids)
+  }
+  const inFlight = pending.get(key)
+  if (inFlight) {
+    return parseOrder(await inFlight, ids)
+  }
+  const load = (async () => {
+    const response = await requestCommunityData(
+      '/api/info',
+      new URLSearchParams({ id: canonicalIds.map(id => `t3_${id}`).join(',') })
+    )
+    const songs = parseSavedTracks(response, canonicalIds)
+    if (cache.size >= MAX_CACHE_KEYS) {
+      const oldest = cache.keys().next().value
+      if (oldest !== undefined) {
+        cache.delete(oldest)
       }
-      cache.set(key, { expiresAt: now() + CACHE_MS, songs })
-      return songs
-    })()
-    pending.set(key, load)
-    try {
-      return parseOrder(await load, ids)
-    } finally {
-      pending.delete(key)
     }
+    cache.set(key, { expiresAt: Date.now() + CACHE_MS, songs })
+    return songs
+  })()
+  pending.set(key, load)
+  try {
+    return parseOrder(await load, ids)
+  } finally {
+    pending.delete(key)
   }
 }
 
@@ -112,5 +101,3 @@ function parseOrder(songs: Song[], ids: string[]): Song[] {
   const byId = new Map(songs.map(song => [song.id, song]))
   return ids.map(id => byId.get(id)).filter((song): song is Song => song !== undefined)
 }
-
-export const readSavedTracks = createSavedTrackReader()

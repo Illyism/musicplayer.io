@@ -26,7 +26,7 @@ export interface ListeningEvent {
   type: ListeningEventType
 }
 
-export interface ListeningState {
+interface ListeningState {
   clearHistory: () => void
   enabled: boolean
   events: ListeningEvent[]
@@ -154,9 +154,7 @@ function readSong(value: unknown): Song | null {
     author: typeof item.author === 'string' ? item.author : '',
     created_utc: Number.isFinite(item.created_utc) ? (item.created_utc ?? 0) : 0,
     domain: typeof item.domain === 'string' ? item.domain : new URL(item.url).hostname,
-    downs: Number.isFinite(item.downs) ? (item.downs ?? 0) : 0,
     id: item.id,
-    is_self: item.is_self === true,
     name: typeof item.name === 'string' ? item.name : `t3_${item.id}`,
     num_comments: Number.isFinite(item.num_comments) ? (item.num_comments ?? 0) : 0,
     permalink: typeof item.permalink === 'string' ? item.permalink : '',
@@ -167,7 +165,6 @@ function readSong(value: unknown): Song | null {
     thumbnail: isWebUrl(item.thumbnail) ? item.thumbnail : undefined,
     title: item.title,
     type: item.type ?? 'none',
-    ups: Number.isFinite(item.ups) ? (item.ups ?? 0) : 0,
     url: item.url,
   }
 }

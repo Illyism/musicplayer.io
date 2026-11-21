@@ -5,10 +5,7 @@ export interface Song {
   created_ago?: string
   created_utc: number
   domain: string
-  downs: number
   id: string
-  is_self: boolean
-  media?: any
   name: string
   num_comments: number
   permalink: string
@@ -19,7 +16,6 @@ export interface Song {
   thumbnail?: string
   title: string
   type: 'youtube' | 'soundcloud' | 'vimeo' | 'mp3' | 'none'
-  ups: number
   url: string
 }
 
@@ -53,7 +49,7 @@ export interface PlayerState {
   volume: number
 }
 
-export interface PlayerActions {
+interface PlayerActions {
   addSongs: (songs: Song[]) => void
   clearQueue: () => void
   cycleRepeatMode: () => void
@@ -90,7 +86,7 @@ export interface PlayerActions {
   toggleTheatreMode: () => void
 }
 
-export type PlayerStore = PlayerState & PlayerActions
+type PlayerStore = PlayerState & PlayerActions
 
 const STORAGE_KEYS = {
   sortMethod: 'reddit_music_player_sort_method',
@@ -98,18 +94,6 @@ const STORAGE_KEYS = {
   topPeriod: 'reddit_music_player_top_period',
   volume: 'reddit_music_player_volume',
 } as const
-
-function _loadFromStorage<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined') {
-    return defaultValue
-  }
-  try {
-    const item = localStorage.getItem(key)
-    return item ? JSON.parse(item) : defaultValue
-  } catch {
-    return defaultValue
-  }
-}
 
 const VALID_SUBREDDIT_NAME_REGEX = /^[a-z0-9_-]{1,100}$/iu
 

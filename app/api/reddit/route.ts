@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import type { RedditComment } from '@/lib/actions/reddit'
 import { isRedditError, RedditError } from '@/lib/errors/reddit-error'
+import { isCrossSiteRequest } from '@/lib/utils/cross-site'
 import { handleRedditApiError } from '@/lib/utils/error-handler'
 import {
   isValidRedditPermalink,
@@ -49,11 +51,7 @@ function getCached<T>(map: Map<string, CacheEntry<T>>, key: string): T | undefin
   return cached.value
 }
 
-async function withSharedCache<T>(
-  key: string,
-  fetcher: () => Promise<T>,
-  ttlMs = LISTING_CACHE_MS
-): Promise<T> {
+async function withSharedCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const cachedNotFound = getCached(notFoundCache, key)
   if (cachedNotFound) {
     throw new RedditError(cachedNotFound.message, {
@@ -76,7 +74,7 @@ async function withSharedCache<T>(
     try {
       const value = await fetcher()
       setBoundedCache(listingCache, key, {
-        expiresAt: Date.now() + ttlMs,
+        expiresAt: Date.now() + LISTING_CACHE_MS,
         value,
       })
       return value
@@ -98,24 +96,6 @@ async function withSharedCache<T>(
 
   listingInFlight.set(key, request)
   return await request
-}
-
-function isCrossSiteRequest(request: NextRequest): boolean {
-  if (request.headers.get('sec-fetch-site') === 'cross-site') {
-    return true
-  }
-  const origin = request.headers.get('origin')
-  if (!origin) {
-    return false
-  }
-  try {
-    const parsedOrigin = new URL(origin)
-    const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
-    const host = forwardedHost || request.headers.get('host') || request.nextUrl.host
-    return parsedOrigin.host !== host
-  } catch {
-    return true
-  }
 }
 
 const SubredditSchema = z
@@ -282,8 +262,8 @@ function getCommentsCached(permalink: string) {
   })
 }
 
-function parseComments(children: any[]): any[] {
-  const comments: any[] = []
+function parseComments(children: any[]): RedditComment[] {
+  const comments: RedditComment[] = []
 
   for (const item of children) {
     if (item.kind !== 't1') {
@@ -296,20 +276,14 @@ function parseComments(children: any[]): any[] {
       continue
     }
 
-    const formattedComment = {
+    comments.push({
       author: comment.author,
       body: comment.body,
       created_ago: formatTimeAgo(comment.created_utc),
       id: comment.id,
-      replies: [] as any[],
+      replies: comment.replies?.data?.children ? parseComments(comment.replies.data.children) : [],
       score: comment.score,
-    }
-
-    if (comment.replies?.data?.children) {
-      formattedComment.replies = parseComments(comment.replies.data.children)
-    }
-
-    comments.push(formattedComment)
+    })
   }
 
   return comments

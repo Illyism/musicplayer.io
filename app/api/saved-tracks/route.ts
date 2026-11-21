@@ -1,25 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { parseSavedTrackIds, readSavedTracks } from '@/lib/listening/saved-tracks'
+import { isCrossSiteRequest } from '@/lib/utils/cross-site'
 
 const RESPONSE_HEADERS = { 'Cache-Control': 'private, no-store' }
-
-function isCrossSiteRequest(request: NextRequest): boolean {
-  if (request.headers.get('sec-fetch-site') === 'cross-site') {
-    return true
-  }
-  const origin = request.headers.get('origin')
-  if (!origin) {
-    return false
-  }
-  try {
-    const parsedOrigin = new URL(origin)
-    const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
-    const host = forwardedHost || request.headers.get('host') || request.nextUrl.host
-    return parsedOrigin.host !== host
-  } catch {
-    return true
-  }
-}
 
 export async function GET(request: NextRequest) {
   if (isCrossSiteRequest(request)) {

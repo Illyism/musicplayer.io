@@ -1,4 +1,4 @@
-export interface RedditErrorOptions extends ErrorOptions {
+interface RedditErrorOptions extends ErrorOptions {
   reason?: string
   statusCode?: number
 }

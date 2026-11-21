@@ -1,15 +1,19 @@
+function postAuth(body: Record<string, unknown>) {
+  return fetch('/api/auth', {
+    body: JSON.stringify(body),
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+}
+
 export async function getRedditAuthorizationUrl(): Promise<{
   error: string | null
   url: string | null
 }> {
   try {
-    const response = await fetch('/api/auth', {
-      body: JSON.stringify({ action: 'authorize' }),
-      cache: 'no-store',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    })
+    const response = await postAuth({ action: 'authorize' })
     const data = await response.json().catch(() => null)
     return {
       error: typeof data?.error === 'string' ? data.error : null,
@@ -32,13 +36,7 @@ export async function loginWithReddit(
   username?: string
 }> {
   try {
-    const response = await fetch('/api/auth', {
-      body: JSON.stringify({ action: 'callback', code, state }),
-      cache: 'no-store',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    })
+    const response = await postAuth({ action: 'callback', code, state })
     const data = await response.json().catch(() => null)
     if (!(response.ok && data?.success)) {
       return {
@@ -57,13 +55,7 @@ export async function loginWithReddit(
 }
 
 export async function logout(): Promise<{ success: boolean }> {
-  await fetch('/api/auth', {
-    body: JSON.stringify({ action: 'logout' }),
-    cache: 'no-store',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-  }).catch(() => null)
+  await postAuth({ action: 'logout' }).catch(() => null)
   return { success: true }
 }
 

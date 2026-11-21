@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { isCrossSiteRequest } from '@/lib/utils/cross-site'
 import {
   buildRedditAuthorizationUrl,
   getRedditOAuthConfig,
@@ -48,24 +49,6 @@ const AuthActionRequestSchema = z.discriminatedUnion('action', [
   }),
   z.object({ action: z.literal('logout') }),
 ])
-
-function isCrossSiteRequest(request: NextRequest): boolean {
-  if (request.headers.get('sec-fetch-site') === 'cross-site') {
-    return true
-  }
-  const origin = request.headers.get('origin')
-  if (!origin) {
-    return false
-  }
-  try {
-    const parsedOrigin = new URL(origin)
-    const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
-    const host = forwardedHost || request.headers.get('host') || request.nextUrl.host
-    return parsedOrigin.host !== host
-  } catch {
-    return true
-  }
-}
 
 function getVerifiedOrigin(requestHeaders: Headers): string | null {
   if (requestHeaders.get('sec-fetch-site') === 'cross-site') {

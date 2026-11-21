@@ -2,8 +2,8 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { getSubredditPosts, searchReddit } from '@/lib/actions/reddit'
 import { getErrorMessage, isRedditError } from '@/lib/errors/reddit-error'
-import { removeSubredditsFromStorage, usePlayerStore } from '@/lib/store/player-store'
-import { filterPlayableSongs, parseSong } from '@/lib/utils/song-utils'
+import { removeSubredditsFromStorage, type Song, usePlayerStore } from '@/lib/store/player-store'
+import { parsePlayableSongs } from '@/lib/utils/song-utils'
 
 const REDDIT_PATH_REGEX = /^\/r\/(?<communities>[^/]+)\/?$/u
 const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/u
@@ -41,17 +41,13 @@ function getRouteSubredditsFromWindow(): string[] {
   ]
 }
 
-export interface FetchSubredditsOptions {
-  fallbackToDefaultOnError?: boolean
-}
-
 export function useRedditAPI() {
   const fetchFromSubreddits = useCallback(
     async (
       subreddits: string[],
       pagination?: string,
-      options?: FetchSubredditsOptions
-    ): Promise<any[]> => {
+      options?: { fallbackToDefaultOnError?: boolean }
+    ): Promise<Song[]> => {
       if (pagination) {
         if (isPaginationInFlight) {
           return []
@@ -78,7 +74,7 @@ export function useRedditAPI() {
         const sort = state.sortMethod
         const timePeriod = sort === 'top' ? state.topPeriod : undefined
 
-        const data = await getSubredditPosts(subredditString, sort, timePeriod, pagination, '100')
+        const data = await getSubredditPosts(subredditString, sort, timePeriod, pagination)
 
         if (requestId !== activeRequestId) {
           return []
@@ -92,8 +88,7 @@ export function useRedditAPI() {
           return []
         }
 
-        const filtered = filterPlayableSongs(data.data.children)
-        const songs = filtered.map((item: any) => parseSong(item.data))
+        const songs = parsePlayableSongs(data.data.children)
 
         if (!pagination && songs.length === 0) {
           const fallback = removeSubredditsFromStorage(subreddits)
@@ -179,7 +174,7 @@ export function useRedditAPI() {
       const sort = state.sortMethod
       const timePeriod = sort === 'top' ? state.topPeriod : undefined
 
-      const data = await searchReddit(query, sort, timePeriod, pagination, '100')
+      const data = await searchReddit(query, sort, timePeriod, pagination)
 
       if (requestId !== activeRequestId) {
         return []
@@ -193,8 +188,7 @@ export function useRedditAPI() {
         return []
       }
 
-      const filtered = filterPlayableSongs(data.data.children)
-      const songs = filtered.map((item: any) => parseSong(item.data))
+      const songs = parsePlayableSongs(data.data.children)
 
       if (pagination) {
         state.addSongs(songs)

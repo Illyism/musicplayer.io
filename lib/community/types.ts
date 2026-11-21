@@ -14,7 +14,6 @@ export const COMMUNITY_CATEGORIES = [
 
 export type CommunityCategory = (typeof COMMUNITY_CATEGORIES)[number]
 export type CommunityActivity = 'active' | 'recent' | 'quiet' | 'unknown'
-export type DiscoverySource = 'live' | 'cache' | 'snapshot' | 'fallback'
 
 export interface Community {
   activity: CommunityActivity
@@ -43,7 +42,7 @@ export interface CommunityDiscoveryResult {
   query: string
   sampleWindowDays: number
   schemaVersion: 1
-  source: DiscoverySource
+  source: 'live' | 'cache' | 'fallback'
   updatedAt: string | null
 }
 

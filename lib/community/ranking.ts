@@ -26,7 +26,7 @@ export interface DiscoveryPost {
   url?: string
 }
 
-export interface ActivitySample {
+interface ActivitySample {
   activity: CommunityActivity
   latestPlayableAt: string | null
   playablePosts: number
@@ -53,8 +53,8 @@ export function isSupportedMusicLink(post: DiscoveryPost): boolean {
   }
 }
 
-export function scoreActivitySample(posts: DiscoveryPost[], now = Date.now()): ActivitySample {
-  const nowSeconds = now / 1000
+export function scoreActivitySample(posts: DiscoveryPost[]): ActivitySample {
+  const nowSeconds = Date.now() / 1000
   const validPosts = posts.filter(
     (post): post is DiscoveryPost & { created_utc: number } =>
       typeof post.created_utc === 'number' &&

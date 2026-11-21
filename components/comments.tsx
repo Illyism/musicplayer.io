@@ -3,16 +3,8 @@
 import { ArrowClockwise, ArrowUp, ChatCircle, ChatCircleText } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import type { RedditComment as Comment } from '@/lib/actions/reddit'
 import { getErrorMessage } from '@/lib/errors/reddit-error'
-
-interface Comment {
-  author: string
-  body: string
-  created_ago: string
-  id: string
-  replies: Comment[]
-  score: number
-}
 
 interface CommentsProps {
   onLogin?: (action: string) => void
