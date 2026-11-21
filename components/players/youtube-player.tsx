@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { extractYouTubeId } from '@/lib/utils/song-utils'
 
@@ -16,13 +17,20 @@ interface YouTubePlayerProps {
   song: Song
 }
 
+const TIME_UPDATE_MS = 250
+
 export function YouTubePlayer({ song }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<any>(null)
   const loadedSongRef = useRef<{ id: string } | null>(null)
   const transitioningRef = useRef<boolean>(true)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume } = usePlayerStore()
+  const { isPlaying, volume } = usePlayerStore(
+    useShallow(state => ({
+      isPlaying: state.isPlaying,
+      volume: state.volume,
+    }))
+  )
   const videoId = extractYouTubeId(song.url)
   const [embedActive, setEmbedActive] = useState(isPlaying)
 
@@ -83,7 +91,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
                 state.setCurrentTime(time)
               }
               state.setDuration(playerRef.current.getDuration())
-            }, 100)
+            }, TIME_UPDATE_MS)
           },
           onStateChange: (event: any) => {
             if (!isCurrent()) {

@@ -13,6 +13,8 @@ export interface Song {
   selftext?: string
   subreddit: string
   thumbnail?: string
+  thumbnailMedium?: string
+  thumbnailSmall?: string
   title: string
   type: 'youtube' | 'soundcloud' | 'vimeo' | 'mp3' | 'none'
   url: string
@@ -25,6 +27,8 @@ export interface PlayerState {
   currentTime: number
   duration: number
   failedSongIds: string[]
+  failureStreak: number
+  initialized: boolean
 
   isPlaying: boolean
   isTheatreMode: boolean
@@ -69,6 +73,7 @@ interface PlayerActions {
   setCurrentSong: (index: number) => void
   setCurrentTime: (time: number) => void
   setDuration: (duration: number) => void
+  setInitialized: (initialized: boolean) => void
   setListingError: (error: string | null) => void
   setLoading: (loading: boolean) => void
 
@@ -87,6 +92,8 @@ interface PlayerActions {
 }
 
 type PlayerStore = PlayerState & PlayerActions
+
+const MAX_FAILURE_STREAK = 3
 
 const STORAGE_KEYS = {
   sortMethod: 'reddit_music_player_sort_method',
@@ -221,13 +228,23 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     if (state.currentSong?.id !== songId || state.failedSongIds.includes(songId)) {
       return
     }
-    set({ failedSongIds: [...state.failedSongIds, songId] })
+    const failureStreak = state.failureStreak + 1
+    set({ failedSongIds: [...state.failedSongIds, songId], failureStreak })
     if (state.isPlaying) {
       get().next()
+      if (failureStreak >= MAX_FAILURE_STREAK) {
+        set({
+          isPlaying: false,
+          playbackError: 'Several tracks in a row could not play. Press Play to try the next one.',
+        })
+        return
+      }
     }
     set({ playbackError: message })
   },
   failedSongIds: [],
+  failureStreak: 0,
+  initialized: false,
 
   isPlaying: false,
   isTheatreMode: false,
@@ -393,13 +410,25 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
 
   setCurrentTime: time => {
-    set({ currentTime: time })
+    const state = get()
+    if (time === state.currentTime) {
+      return
+    }
+    set(
+      time > 0 && state.failureStreak > 0
+        ? { currentTime: time, failureStreak: 0 }
+        : { currentTime: time }
+    )
   },
 
   setDuration: duration => {
-    if (duration > 0 && Number.isFinite(duration)) {
+    if (duration > 0 && Number.isFinite(duration) && duration !== get().duration) {
       set({ duration })
     }
+  },
+
+  setInitialized: initialized => {
+    set({ initialized })
   },
 
   setListingError: listingError => {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { EMBED_SANDBOX, PauseOverlay } from './embed-frame'
 
@@ -23,7 +24,13 @@ export function SoundCloudPlayer({ song }: SoundCloudPlayerProps) {
   const transitioningRef = useRef<boolean>(true)
   const generationRef = useRef(0)
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, togglePlay } = usePlayerStore()
+  const { isPlaying, volume, togglePlay } = usePlayerStore(
+    useShallow(state => ({
+      isPlaying: state.isPlaying,
+      togglePlay: state.togglePlay,
+      volume: state.volume,
+    }))
+  )
   const initialIframeSrc = useRef(
     `https://w.soundcloud.com/player/?url=${encodeURIComponent(song.url)}&auto_play=false&visual=true`
   )

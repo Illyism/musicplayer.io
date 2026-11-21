@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { type Song, usePlayerStore } from '@/lib/store/player-store'
 import { extractVimeoId } from '@/lib/utils/song-utils'
 import { EMBED_SANDBOX, PauseOverlay } from './embed-frame'
@@ -67,7 +68,13 @@ function VimeoEmbed({ onEmbedFailed, song, videoId }: VimeoEmbedProps) {
   const embeddedVideoIdRef = useRef(videoId)
   const initialIframeSrc = useRef(vimeoEmbedUrl(videoId))
   const [isReady, setIsReady] = useState(false)
-  const { isPlaying, volume, togglePlay } = usePlayerStore()
+  const { isPlaying, volume, togglePlay } = usePlayerStore(
+    useShallow(state => ({
+      isPlaying: state.isPlaying,
+      togglePlay: state.togglePlay,
+      volume: state.volume,
+    }))
+  )
 
   useEffect(() => {
     let mounted = true

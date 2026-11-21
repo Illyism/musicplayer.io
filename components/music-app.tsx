@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useState } from 'react'
 import { AppShellFallback } from '@/components/app-shell-fallback'
 import { BrowsePanel } from '@/components/browse-panel'
 import { Header } from '@/components/header'
@@ -18,7 +18,10 @@ import { useInitializeApp } from '@/lib/hooks/use-initialize-app'
 import { useListeningSignals } from '@/lib/hooks/use-listening-signals'
 import { useMediaSession } from '@/lib/hooks/use-media-session'
 import { usePlayerHydration } from '@/lib/hooks/use-player-hydration'
+import { InitialSubredditsContext } from '@/lib/hooks/use-route-subreddits'
 import { usePlayerStore } from '@/lib/store/player-store'
+
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 const PANEL_GUTTER =
   'w-2 bg-transparent before:absolute before:inset-y-3 before:left-1/2 before:w-px before:-translate-x-1/2 before:rounded-full before:bg-transparent before:transition-colors hover:before:bg-foreground/25 data-[separator=hover]:before:bg-foreground/25 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:before:w-0.5 focus-visible:before:bg-ring data-[separator=active]:before:bg-foreground/40'
@@ -35,7 +38,7 @@ function MusicAppContent() {
 
   const mobileView = usePlayerStore(state => state.mobileView)
   const currentSong = usePlayerStore(state => state.currentSong)
-  const [isDesktop, setIsDesktop] = useState(false)
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null)
   const [showKeyboardModal, setShowKeyboardModal] = useState(false)
 
   useEffect(() => {
@@ -44,7 +47,7 @@ function MusicAppContent() {
       : 'Music Player for Reddit'
   }, [currentSong])
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const desktopQuery = window.matchMedia('(min-width: 1024px)')
     const updateLayout = () => setIsDesktop(desktopQuery.matches)
     updateLayout()
@@ -68,10 +71,78 @@ function MusicAppContent() {
     }
   }, [])
 
+  let mainPanels = (
+    <div className="flex min-h-0 w-full flex-1 lg:gap-2 lg:px-2">
+      <div className="bg-panel hidden min-h-0 min-w-[240px] shrink grow-0 basis-[325px] overflow-hidden rounded-lg lg:block">
+        <BrowsePanel />
+      </div>
+      <div className="bg-panel min-h-0 min-w-0 flex-1 overflow-hidden lg:min-w-[340px] lg:rounded-lg">
+        <PlaylistPanel />
+      </div>
+      <div className="bg-panel hidden min-h-0 min-w-[300px] shrink grow-0 basis-[400px] flex-col overflow-hidden rounded-lg lg:flex">
+        <SongInfoSidebar isDesktop={false} />
+      </div>
+    </div>
+  )
+
+  if (isDesktop === true) {
+    mainPanels = (
+      <ResizablePanelGroup className="min-h-0 px-2" direction="horizontal">
+        <ResizablePanel
+          className="bg-panel min-h-0 overflow-hidden rounded-lg"
+          defaultSize={325}
+          maxSize={420}
+          minSize={240}
+        >
+          <BrowsePanel />
+        </ResizablePanel>
+        <ResizableHandle className={PANEL_GUTTER} />
+        <ResizablePanel className="bg-panel min-h-0 overflow-hidden rounded-lg" minSize={340}>
+          {mobileView === 'library' ? (
+            <div className="h-full overflow-y-auto">
+              <ListeningLibrary />
+            </div>
+          ) : (
+            <PlaylistPanel />
+          )}
+        </ResizablePanel>
+        <ResizableHandle className={PANEL_GUTTER} />
+        <ResizablePanel
+          className="bg-panel flex min-h-0 flex-col overflow-hidden rounded-lg"
+          defaultSize={400}
+          maxSize={520}
+          minSize={300}
+        >
+          <SongInfoSidebar isDesktop />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    )
+  } else if (isDesktop === false) {
+    mainPanels = (
+      <>
+        <div className="bg-panel min-h-0 w-full overflow-y-auto" hidden={mobileView !== 'browse'}>
+          <BrowsePanel />
+        </div>
+        <div className="bg-panel min-h-0 w-full overflow-y-auto" hidden={mobileView !== 'playlist'}>
+          <PlaylistPanel />
+        </div>
+        <div
+          className="mobile-player-panel min-h-0 w-full overflow-y-auto"
+          data-visible={mobileView === 'player'}
+        >
+          <PlayerPanel isDesktop={false} />
+        </div>
+        <div className="bg-panel min-h-0 w-full overflow-y-auto" hidden={mobileView !== 'library'}>
+          <ListeningLibrary active={mobileView === 'library'} />
+        </div>
+      </>
+    )
+  }
+
   return (
     <div
       className="music-app bg-background flex h-dvh min-h-0 flex-col overflow-hidden"
-      data-now-playing={!isDesktop && mobileView === 'player'}
+      data-now-playing={isDesktop === false && mobileView === 'player'}
     >
       <a
         className="bg-primary text-primary-foreground sr-only z-110 rounded-full px-4 py-3 focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
@@ -91,64 +162,7 @@ function MusicAppContent() {
         id="main-content"
         tabIndex={-1}
       >
-        {isDesktop ? (
-          <ResizablePanelGroup className="min-h-0 px-2" direction="horizontal">
-            <ResizablePanel
-              className="bg-panel min-h-0 overflow-hidden rounded-lg"
-              defaultSize={325}
-              maxSize={420}
-              minSize={240}
-            >
-              <BrowsePanel />
-            </ResizablePanel>
-            <ResizableHandle className={PANEL_GUTTER} />
-            <ResizablePanel className="bg-panel min-h-0 overflow-hidden rounded-lg" minSize={340}>
-              {mobileView === 'library' ? (
-                <div className="h-full overflow-y-auto">
-                  <ListeningLibrary />
-                </div>
-              ) : (
-                <PlaylistPanel />
-              )}
-            </ResizablePanel>
-            <ResizableHandle className={PANEL_GUTTER} />
-            <ResizablePanel
-              className="bg-panel flex min-h-0 flex-col overflow-hidden rounded-lg"
-              defaultSize={400}
-              maxSize={520}
-              minSize={300}
-            >
-              <SongInfoSidebar isDesktop />
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : (
-          <>
-            <div
-              className="bg-panel min-h-0 w-full overflow-y-auto"
-              hidden={mobileView !== 'browse'}
-            >
-              <BrowsePanel />
-            </div>
-            <div
-              className="bg-panel min-h-0 w-full overflow-y-auto"
-              hidden={mobileView !== 'playlist'}
-            >
-              <PlaylistPanel />
-            </div>
-            <div
-              className="mobile-player-panel min-h-0 w-full overflow-y-auto"
-              data-visible={mobileView === 'player'}
-            >
-              <PlayerPanel isDesktop={false} />
-            </div>
-            <div
-              className="bg-panel min-h-0 w-full overflow-y-auto"
-              hidden={mobileView !== 'library'}
-            >
-              <ListeningLibrary active={mobileView === 'library'} />
-            </div>
-          </>
-        )}
+        {mainPanels}
       </main>
       <div className="app-dock shrink-0">
         <PlayerControls />
@@ -159,12 +173,14 @@ function MusicAppContent() {
   )
 }
 
-export function MusicApp() {
+export function MusicApp({ initialSubreddits }: { initialSubreddits?: string[] } = {}) {
   return (
     <Suspense fallback={<AppShellFallback />}>
-      <PictureInPictureProvider>
-        <MusicAppContent />
-      </PictureInPictureProvider>
+      <InitialSubredditsContext.Provider value={initialSubreddits}>
+        <PictureInPictureProvider>
+          <MusicAppContent />
+        </PictureInPictureProvider>
+      </InitialSubredditsContext.Provider>
     </Suspense>
   )
 }

@@ -3,13 +3,11 @@
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { getPersistedSubreddits, usePlayerStore } from '@/lib/store/player-store'
+import { parseRouteCommunities } from '@/lib/utils/listing-request'
 import { hydratePlayerStore } from './use-player-hydration'
 import { isSubredditFetchInFlight, useRedditAPI } from './use-reddit-api'
 
 const REDDIT_PATH_REGEX = /^\/r\/(?<communities>[^/]+)\/?$/u
-const COMMUNITY_SEPARATOR_REGEX = /[+\s]+/u
-const VALID_SUBREDDIT_REGEX = /^[a-z0-9_-]{1,100}$/iu
-const MAX_ROUTE_COMMUNITIES = 50
 
 const SORT_METHODS = ['hot', 'new', 'top'] as const
 const TOP_PERIODS = ['day', 'week', 'month', 'year', 'all'] as const
@@ -45,6 +43,7 @@ export function useInitializeApp() {
     const searchOwnsFeed = Boolean(state.searchQuery) && !routeCommunities
     if (searchOwnsFeed) {
       hasInitialized.current = true
+      state.setInitialized(true)
       return
     }
 
@@ -60,14 +59,7 @@ export function useInitializeApp() {
     }
 
     if (routeCommunities) {
-      const communities = [
-        ...new Set(
-          routeCommunities
-            .split(COMMUNITY_SEPARATOR_REGEX)
-            .map(value => value.trim().toLowerCase())
-            .filter(value => VALID_SUBREDDIT_REGEX.test(value))
-        ),
-      ].slice(0, MAX_ROUTE_COMMUNITIES)
+      const communities = parseRouteCommunities(routeCommunities)
       const currentSelection = [...state.selectedSubreddits].sort().join('+')
       const routeSelection = [...communities].sort().join('+')
       const wasInitialized = hasInitialized.current
@@ -83,6 +75,7 @@ export function useInitializeApp() {
         ) {
           state.setSearchQuery(null)
           state.setSelectedSubreddits(communities, { persist: false })
+          state.setInitialized(true)
           const browseRequestIsActive =
             wasInitialized &&
             isSubredditFetchInFlight(routeSelection) &&
@@ -91,12 +84,15 @@ export function useInitializeApp() {
           if (!browseRequestIsActive) {
             fetchFromSubreddits(communities)
           }
+        } else {
+          state.setInitialized(true)
         }
         return
       }
 
       state.setSearchQuery(null)
       state.setSelectedSubreddits([], { persist: false })
+      state.setInitialized(true)
       state.setSongs([])
       state.setAfter(null)
       state.setListingError('The requested subreddit or post could not be found.')
@@ -114,6 +110,7 @@ export function useInitializeApp() {
       const persisted = getPersistedSubreddits()
       state.setSelectedSubreddits(persisted, { persist: false })
     }
+    state.setInitialized(true)
 
     const activeSubreddits = usePlayerStore.getState().selectedSubreddits
     const savedMixIsEmpty = activeSubreddits.length === 0

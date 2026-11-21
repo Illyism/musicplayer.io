@@ -54,10 +54,10 @@ export default function PrivacyPage() {
       <section>
         <h2>Optional Reddit sign-in</h2>
         <p>
-          Signing in with Reddit is completely optional and only used if you want to upvote or
-          downvote from the player. Authentication happens directly with Reddit via OAuth. We never
-          see your Reddit password; OAuth session tokens are stored in <code>httpOnly</code> cookies
-          in your browser solely to perform actions you initiate and are cleared when you sign out.
+          Signing in with Reddit is completely optional and only shows your Reddit username in the
+          player. Authentication happens directly with Reddit via OAuth. We never see your Reddit
+          password; OAuth session tokens are stored in <code>httpOnly</code> cookies in your browser
+          solely to perform actions you initiate and are cleared when you sign out.
         </p>
       </section>
 

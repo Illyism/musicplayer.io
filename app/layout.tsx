@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { preconnect } from 'react-dom'
 import { Providers } from './providers'
 import './globals.css'
 
@@ -34,6 +35,8 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  preconnect('https://external-preview.redd.it')
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans">

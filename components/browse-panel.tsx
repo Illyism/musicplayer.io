@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { SearchForm } from '@/components/search-form'
 import { ShareModal } from '@/components/share-modal'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import { discoveryStatus } from '@/lib/community/presentation'
 import { COMMUNITY_CATEGORIES, type Community, type CommunityCategory } from '@/lib/community/types'
 import { useCommunityDiscovery } from '@/lib/hooks/use-community-discovery'
 import { useRedditAPI } from '@/lib/hooks/use-reddit-api'
+import { useEffectiveSubreddits } from '@/lib/hooks/use-route-subreddits'
 import { usePlayerStore } from '@/lib/store/player-store'
 import { useSearchStore } from '@/lib/store/search-store'
 import { cn } from '@/lib/utils'
@@ -22,6 +24,7 @@ import { formatNumber } from '@/lib/utils/song-utils'
 const COMMUNITY_PREFIX = /^\/?r\//u
 const COMMUNITY_NAME = /^[a-z0-9_]{1,21}$/u
 const MAX_COMMUNITY_QUERY = 64
+const COMMUNITY_SKELETON_ROWS = ['c-1', 'c-2', 'c-3', 'c-4', 'c-5', 'c-6']
 const GENRE_CATEGORIES = COMMUNITY_CATEGORIES.filter(
   value => value !== 'All music' && value !== 'Other'
 )
@@ -128,7 +131,17 @@ export function BrowsePanel() {
   } = useCommunityDiscovery(communityQuery, category)
   const router = useRouter()
   const { selectedSubreddits, setSelectedSubreddits, setSearchQuery, setSongs, setAfter, loading } =
-    usePlayerStore()
+    usePlayerStore(
+      useShallow(state => ({
+        loading: state.loading,
+        selectedSubreddits: state.selectedSubreddits,
+        setAfter: state.setAfter,
+        setSearchQuery: state.setSearchQuery,
+        setSelectedSubreddits: state.setSelectedSubreddits,
+        setSongs: state.setSongs,
+      }))
+    )
+  const effectiveSubreddits = useEffectiveSubreddits()
   const { fetchFromSubreddits } = useRedditAPI()
   let resultsTitle = category ? `${category} communities` : 'Worth exploring'
   if (communityQuery) {
@@ -141,6 +154,34 @@ export function BrowsePanel() {
     : ''
   const visibleCommunities =
     matchingResult && !discovering && error === null ? data.communities : []
+
+  let discoveryStatusContent = <div aria-hidden="true" className="mb-1 h-5" />
+  if (discovering) {
+    discoveryStatusContent = (
+      <p className="mb-1 flex h-5 items-center px-2" role="status">
+        <span
+          aria-hidden="true"
+          className="bg-muted h-3 w-40 rounded-full motion-safe:animate-pulse"
+        />
+        <span className="sr-only">Checking recent music activity…</span>
+      </p>
+    )
+  } else if (error !== null) {
+    discoveryStatusContent = (
+      <p className="text-destructive mb-1 px-2 text-sm" role="alert">
+        {error}
+      </p>
+    )
+  } else if (data && matchingResult) {
+    discoveryStatusContent = (
+      <p
+        className="text-muted-foreground mb-1 h-5 truncate px-2 text-xs leading-5"
+        title={statusLine}
+      >
+        {statusLine}
+      </p>
+    )
+  }
 
   const updatePath = (names: string[]) => {
     const path = names.length > 0 ? `/r/${names.join('+')}` : '/'
@@ -232,55 +273,6 @@ export function BrowsePanel() {
             </Button>
           ))}
         </div>
-        <section className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-2 pl-2">
-            <h2 className="min-w-0 truncate text-lg font-bold lg:text-base">{resultsTitle}</h2>
-            <Button
-              aria-label="Refresh communities"
-              className="text-muted-foreground hover:text-foreground size-11 shrink-0 rounded-full"
-              disabled={discovering}
-              onClick={refresh}
-              size="icon"
-              variant="ghost"
-            >
-              <ArrowClockwise className={cn('size-5', discovering && 'motion-safe:animate-spin')} />
-            </Button>
-          </div>
-          {discovering === true && (
-            <p className="text-muted-foreground px-2 py-4 text-sm" role="status">
-              Checking recent music activity…
-            </p>
-          )}
-          {error !== null && (
-            <p className="text-destructive px-2 text-sm" role="alert">
-              {error}
-            </p>
-          )}
-          {data && matchingResult && !discovering && (
-            <p
-              className="text-muted-foreground mb-1 truncate px-2 text-xs leading-5"
-              title={statusLine}
-            >
-              {statusLine}
-            </p>
-          )}
-          {visibleCommunities.map(community => (
-            <CommunityRow
-              community={community}
-              disabled={loading}
-              key={community.key}
-              onToggle={toggle}
-              selected={selectedSubreddits.includes(community.key)}
-            />
-          ))}
-          {matchingResult && !discovering && error === null && visibleCommunities.length === 0 && (
-            <p className="text-muted-foreground px-2 py-4 text-sm">
-              {data?.source === 'fallback'
-                ? 'Try again shortly or add a community below.'
-                : 'No communities found. Try a broader genre or add a community below.'}
-            </p>
-          )}
-        </section>
         <section className="flex flex-col gap-2">
           <div className="flex items-center justify-between pl-2">
             <h2 className="text-lg font-bold lg:text-sm">Your mix</h2>
@@ -294,7 +286,7 @@ export function BrowsePanel() {
               <ShareNetwork className="size-5" />
             </Button>
           </div>
-          {selectedSubreddits.map(name => (
+          {effectiveSubreddits.map(name => (
             <div className="bg-muted flex items-center gap-2 rounded-md pr-1 pl-3" key={name}>
               <RedditLogo className="text-reddit size-4" weight="fill" />
               <span className="min-w-0 flex-1 truncate text-sm">r/{name}</span>
@@ -336,26 +328,73 @@ export function BrowsePanel() {
             </Button>
           </form>
         </section>
-        <footer className="text-muted-foreground mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 px-2 pt-2 text-xs">
-          <Link className="hover:text-foreground" href="/privacy">
-            Privacy
-          </Link>
-          <span aria-hidden="true">·</span>
-          <Link className="hover:text-foreground" href="/terms">
-            Terms
-          </Link>
-          <span aria-hidden="true">·</span>
-          <a
-            className="hover:text-foreground"
-            href="https://github.com/musicplayer-io/musicplayer.io"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            GitHub
-          </a>
-        </footer>
+        <section className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2 pl-2">
+            <h2 className="min-w-0 truncate text-lg font-bold lg:text-base">{resultsTitle}</h2>
+            <Button
+              aria-label="Refresh communities"
+              className="text-muted-foreground hover:text-foreground size-11 shrink-0 rounded-full"
+              disabled={discovering}
+              onClick={refresh}
+              size="icon"
+              variant="ghost"
+            >
+              <ArrowClockwise className={cn('size-5', discovering && 'motion-safe:animate-spin')} />
+            </Button>
+          </div>
+          {discoveryStatusContent}
+          {discovering
+            ? COMMUNITY_SKELETON_ROWS.map(key => (
+                <div
+                  aria-hidden="true"
+                  className="flex min-h-16 items-center gap-3 rounded-md px-2 py-2 motion-safe:animate-pulse"
+                  key={key}
+                >
+                  <div className="bg-muted size-12 shrink-0 rounded-md" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="bg-muted h-4 w-28 rounded-full" />
+                    <div className="bg-muted h-3.5 w-44 max-w-full rounded-full" />
+                  </div>
+                  <div className="bg-muted size-9 shrink-0 rounded-full" />
+                </div>
+              ))
+            : visibleCommunities.map(community => (
+                <CommunityRow
+                  community={community}
+                  disabled={loading}
+                  key={community.key}
+                  onToggle={toggle}
+                  selected={effectiveSubreddits.includes(community.key)}
+                />
+              ))}
+          {matchingResult && !discovering && error === null && visibleCommunities.length === 0 ? (
+            <p className="text-muted-foreground px-2 py-4 text-sm">
+              {data?.source === 'fallback'
+                ? 'Try again shortly or add a community below.'
+                : 'No communities found. Try a broader genre or add a community below.'}
+            </p>
+          ) : null}
+        </section>
       </div>
-      <ShareModal isOpen={share} onClose={() => setShare(false)} subreddits={selectedSubreddits} />
+      <footer className="text-muted-foreground border-border/50 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t px-4 py-3 text-xs lg:px-5">
+        <Link className="hover:text-foreground" href="/privacy">
+          Privacy
+        </Link>
+        <span aria-hidden="true">·</span>
+        <Link className="hover:text-foreground" href="/terms">
+          Terms
+        </Link>
+        <span aria-hidden="true">·</span>
+        <a
+          className="hover:text-foreground"
+          href="https://github.com/musicplayer-io/musicplayer.io"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          GitHub
+        </a>
+      </footer>
+      <ShareModal isOpen={share} onClose={() => setShare(false)} subreddits={effectiveSubreddits} />
     </aside>
   )
 }

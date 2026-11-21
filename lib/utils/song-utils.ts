@@ -71,8 +71,30 @@ function sanitizeRedditPermalink(rawPermalink: unknown): string {
   return ''
 }
 
+const SMALL_COVER_WIDTH = 108
+const MEDIUM_COVER_WIDTH = 216
+
+function renditionUrl(image: any, minWidth: number): string | undefined {
+  const renditions: Array<{ url?: string; width?: number }> = Array.isArray(image?.resolutions)
+    ? image.resolutions
+    : []
+  const [match] = renditions
+    .filter(rendition => rendition.url && (rendition.width ?? 0) >= minWidth)
+    .sort((left, right) => (left.width ?? 0) - (right.width ?? 0))
+  return normalizeThumbnailUrl(undefined, match?.url)
+}
+
+export function smallCover(song: Pick<Song, 'thumbnail' | 'thumbnailSmall'>) {
+  return song.thumbnailSmall ?? song.thumbnail
+}
+
+export function mediumCover(song: Pick<Song, 'thumbnail' | 'thumbnailMedium'>) {
+  return song.thumbnailMedium ?? song.thumbnail
+}
+
 export function parseSong(data: any): Song {
-  const thumbnail = normalizeThumbnailUrl(data.thumbnail, data.preview?.images?.[0]?.source?.url)
+  const image = data.preview?.images?.[0]
+  const thumbnail = normalizeThumbnailUrl(data.thumbnail, image?.source?.url)
   const type = mediaType(data)
 
   return {
@@ -88,6 +110,8 @@ export function parseSong(data: any): Song {
     selftext: data.selftext,
     subreddit: data.subreddit,
     thumbnail,
+    thumbnailMedium: renditionUrl(image, MEDIUM_COVER_WIDTH),
+    thumbnailSmall: renditionUrl(image, SMALL_COVER_WIDTH) ?? normalizeThumbnailUrl(data.thumbnail),
     title: data.title,
     type,
     url: sanitizeHttpUrl(data.url),
