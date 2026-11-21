@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - "journal/**"
+      - "docs/**"
+      - "plans/**"
+      - "*.md"
+      - ".cursor/**"
+      - ".agents/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".gemini/**"
+      - ".opencode/**"
+      - "skills-lock.json"
+  pull_request:
+    paths-ignore:
+      - "journal/**"
+      - "docs/**"
+      - "plans/**"
+      - "*.md"
+      - ".cursor/**"
+      - ".agents/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".gemini/**"
+      - ".opencode/**"
+      - "skills-lock.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SKIP_ENV_VALIDATION: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles("**/bun.lock") }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - name: Check
+        run: bun run check
