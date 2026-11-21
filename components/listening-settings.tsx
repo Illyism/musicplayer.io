@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { MAX_LISTENING_SIGNALS, SIGNAL_RETENTION_DAYS } from '@/lib/listening/retention'
 import { useListeningStore } from '@/lib/store/listening-store'
 
 export function ListeningSettings() {
@@ -63,8 +64,8 @@ export function ListeningSettings() {
             />
           </div>
           <p className="text-muted-foreground text-xs">
-            Up to 500 signals, kept for 30 days. Playback errors and seeking do not count as taste
-            signals. Saved tracks are kept separately.
+            Up to {MAX_LISTENING_SIGNALS} signals, kept for {SIGNAL_RETENTION_DAYS} days. Playback
+            errors and seeking do not count as taste signals. Saved tracks are kept separately.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button disabled={events.length === 0} onClick={exportHistory} variant="outline">

@@ -90,7 +90,6 @@ export function MP3Player({ song }: MP3PlayerProps) {
       return
     }
 
-    // Restore saved currentTime when audio is loaded
     const state = usePlayerStore.getState()
     if (state.currentSong?.id !== song.id) {
       return
@@ -120,7 +119,6 @@ export function MP3Player({ song }: MP3PlayerProps) {
     }
   }, [isPlaying, song.id])
 
-  // Restore saved position when audio metadata loads
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) {

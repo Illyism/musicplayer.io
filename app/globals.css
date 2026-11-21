@@ -186,7 +186,6 @@
   }
 }
 
-/* Keyboard actions respond immediately; pointer motion remains interruptible. */
 html[data-input-method="keyboard"] *,
 html[data-input-method="keyboard"] *::before,
 html[data-input-method="keyboard"] *::after {

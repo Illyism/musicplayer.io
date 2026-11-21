@@ -59,7 +59,6 @@ function AuthCallbackContent() {
       const state = searchParams.get('state')
       const error = searchParams.get('error')
 
-      // Check for errors
       if (error) {
         const message =
           error === 'access_denied'
@@ -77,7 +76,6 @@ function AuthCallbackContent() {
       }
 
       try {
-        // Exchange code for access token using Server Action
         const { loginWithReddit } = await import('@/lib/actions/auth')
         const result = await loginWithReddit(code, state)
 

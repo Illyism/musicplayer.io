@@ -1,15 +1,19 @@
 'use client'
 
 import { create } from 'zustand'
+import {
+  CACHED_TRACK_RETENTION_DAYS,
+  MAX_LISTENING_SIGNALS,
+  SIGNAL_RETENTION_DAYS,
+} from '@/lib/listening/retention'
 import type { Song } from '@/lib/store/player-store'
 
 const STORAGE_KEY = 'reddit_music_player_listening_v1'
-const MAX_EVENTS = 500
 const MAX_RECENT = 20
 const MAX_SAVED = 100
 const DAY_MS = 24 * 60 * 60 * 1000
-const RETENTION_MS = 30 * DAY_MS
-const METADATA_RETENTION_MS = 2 * DAY_MS
+const SIGNAL_RETENTION_MS = SIGNAL_RETENTION_DAYS * DAY_MS
+const CACHED_TRACK_RETENTION_MS = CACHED_TRACK_RETENTION_DAYS * DAY_MS
 const EVENT_TYPES = ['listen', 'complete', 'skip', 'like', 'unlike'] as const
 
 export type ListeningEventType = (typeof EVENT_TYPES)[number]
@@ -22,12 +26,6 @@ export interface ListeningEvent {
   type: ListeningEventType
 }
 
-/**
- * Signals retain IDs, communities and playback measurements for at most 30 days.
- * Cached tracks include titles, authors, artwork, source URLs and Reddit metadata,
- * expire after 48 hours, and never contain downloaded music or embedded media.
- * Explicit bookmark IDs remain saved until removed; fresh feed data restores their metadata.
- */
 export interface ListeningState {
   clearHistory: () => void
   enabled: boolean
@@ -44,7 +42,7 @@ export interface ListeningState {
   toggleSaved: (song: Song) => void
 }
 
-function persist(state: ListeningState) {
+function persist(state: ListeningState): boolean {
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -57,13 +55,24 @@ function persist(state: ListeningState) {
         savedSongs: state.savedSongs,
       })
     )
+    return true
   } catch {
-    // Device-local features remain usable when browser storage is unavailable.
+    return false
+  }
+}
+
+function readStoredProfile(): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const data: unknown = raw ? JSON.parse(raw) : null
+    return typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : null
+  } catch {
+    return null
   }
 }
 
 function activeEvents(events: ListeningEvent[], now: number): ListeningEvent[] {
-  return events.filter(event => event.at <= now && now - event.at <= RETENTION_MS)
+  return events.filter(event => event.at <= now && now - event.at <= SIGNAL_RETENTION_MS)
 }
 
 export function communityAffinities(events: ListeningEvent[], now = Date.now()) {
@@ -192,7 +201,7 @@ function pruneMetadata(
   const savedSongIds = uniqueIds(state.savedSongIds, MAX_SAVED)
   const hasFreshMetadata = (song: Song) => {
     const at = state.observedAt[song.id]
-    return Number.isFinite(at) && at <= now && now - at <= METADATA_RETENTION_MS
+    return Number.isFinite(at) && at <= now && now - at <= CACHED_TRACK_RETENTION_MS
   }
   const seenRecent = new Set<string>()
   const recentSongs = state.recentSongs
@@ -233,35 +242,29 @@ export const useListeningStore = create<ListeningState>((set, get) => ({
       return
     }
     const now = Date.now()
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      const data: unknown = raw ? JSON.parse(raw) : null
-      if (typeof data === 'object' && data !== null) {
-        const stored = data as Record<string, unknown>
-        const events = Array.isArray(stored.events)
-          ? activeEvents(stored.events.filter(isEvent), now).slice(-MAX_EVENTS)
-          : []
-        const recentSongs = Array.isArray(stored.recentSongs)
-          ? stored.recentSongs.map(readSong).filter((song): song is Song => song !== null)
-          : []
-        const savedSongs = Array.isArray(stored.savedSongs)
-          ? stored.savedSongs.map(readSong).filter((song): song is Song => song !== null)
-          : []
-        const savedSongIds = Array.isArray(stored.savedSongIds)
-          ? stored.savedSongIds.filter((id): id is string => typeof id === 'string')
-          : savedSongs.map(song => song.id)
-        const observedAt =
-          typeof stored.observedAt === 'object' && stored.observedAt !== null
-            ? (stored.observedAt as Record<string, number>)
-            : {}
-        set({
-          ...pruneMetadata({ observedAt, recentSongs, savedSongIds, savedSongs }, now),
-          enabled: stored.enabled !== false,
-          events,
-        })
-      }
-    } catch {
-      // Corrupt or denied storage starts a clean device-local profile.
+    const stored = readStoredProfile()
+    if (stored) {
+      const events = Array.isArray(stored.events)
+        ? activeEvents(stored.events.filter(isEvent), now).slice(-MAX_LISTENING_SIGNALS)
+        : []
+      const recentSongs = Array.isArray(stored.recentSongs)
+        ? stored.recentSongs.map(readSong).filter((song): song is Song => song !== null)
+        : []
+      const savedSongs = Array.isArray(stored.savedSongs)
+        ? stored.savedSongs.map(readSong).filter((song): song is Song => song !== null)
+        : []
+      const savedSongIds = Array.isArray(stored.savedSongIds)
+        ? stored.savedSongIds.filter((id): id is string => typeof id === 'string')
+        : savedSongs.map(song => song.id)
+      const observedAt =
+        typeof stored.observedAt === 'object' && stored.observedAt !== null
+          ? (stored.observedAt as Record<string, number>)
+          : {}
+      set({
+        ...pruneMetadata({ observedAt, recentSongs, savedSongIds, savedSongs }, now),
+        enabled: stored.enabled !== false,
+        events,
+      })
     }
     set({ hydrated: true })
     persist(get())
@@ -298,7 +301,7 @@ export const useListeningStore = create<ListeningState>((set, get) => ({
         events: [
           ...activeEvents(state.events, at),
           { at, seconds: Math.max(0, seconds), songId: song.id, subreddit: song.subreddit, type },
-        ].slice(-MAX_EVENTS),
+        ].slice(-MAX_LISTENING_SIGNALS),
       }
     })
     persist(get())

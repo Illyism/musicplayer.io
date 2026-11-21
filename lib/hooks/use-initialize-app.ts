@@ -25,7 +25,6 @@ function decodeRouteValue(value: string | null): string | null {
   }
 }
 
-/** Initialize the feed from the route, after client storage has hydrated. */
 export function useInitializeApp() {
   const hasInitialized = useRef<boolean>(false)
   const previousRouteRef = useRef<string | null>(null)
@@ -35,7 +34,6 @@ export function useInitializeApp() {
   useEffect(() => {
     hydratePlayerStore()
 
-    // Browse starts searches before navigation completes. Keep that request active.
     const state = usePlayerStore.getState()
     const searchParams = new URLSearchParams(window.location.search)
     const routeCommunities = decodeRouteValue(
@@ -44,7 +42,8 @@ export function useInitializeApp() {
     const wasOnRoute = previousRouteRef.current !== null
     previousRouteRef.current = routeCommunities
 
-    if (state.searchQuery && !routeCommunities) {
+    const searchOwnsFeed = Boolean(state.searchQuery) && !routeCommunities
+    if (searchOwnsFeed) {
       hasInitialized.current = true
       return
     }
@@ -84,14 +83,13 @@ export function useInitializeApp() {
         ) {
           state.setSearchQuery(null)
           state.setSelectedSubreddits(communities, { persist: false })
-          // The API hook reports failures with a toast; handle this boundary's promise.
           const browseRequestIsActive =
             wasInitialized &&
             isSubredditFetchInFlight(routeSelection) &&
             !sortChanged &&
             !periodChanged
           if (!browseRequestIsActive) {
-            fetchFromSubreddits(communities).catch(() => undefined)
+            fetchFromSubreddits(communities)
           }
         }
         return
@@ -118,20 +116,18 @@ export function useInitializeApp() {
     }
 
     const activeSubreddits = usePlayerStore.getState().selectedSubreddits
-    if (activeSubreddits.length > 0) {
-      const selectionKey = [...activeSubreddits].sort().join('+')
-      const browseRequestIsActive =
-        wasInitialized && isSubredditFetchInFlight(selectionKey) && !sortChanged && !periodChanged
-      if (!browseRequestIsActive) {
-        fetchFromSubreddits(activeSubreddits, undefined, {
-          fallbackToDefaultOnError: true,
-        }).catch(() => undefined)
-      }
-    } else {
-      // An intentionally empty saved mix should stay empty.
+    const savedMixIsEmpty = activeSubreddits.length === 0
+    if (savedMixIsEmpty) {
       state.setSongs([])
       state.setAfter(null)
       state.setLoading(false)
+      return
+    }
+    const selectionKey = [...activeSubreddits].sort().join('+')
+    const browseRequestIsActive =
+      wasInitialized && isSubredditFetchInFlight(selectionKey) && !sortChanged && !periodChanged
+    if (!browseRequestIsActive) {
+      fetchFromSubreddits(activeSubreddits, undefined, { fallbackToDefaultOnError: true })
     }
   }, [pathname, fetchFromSubreddits])
 }

@@ -24,10 +24,6 @@ export function hydratePlayerStore() {
   }
 }
 
-/**
- * Hydrates player store from localStorage on client-side only
- * This prevents SSR hydration mismatches
- */
 export function usePlayerHydration() {
   useEffect(() => {
     hydratePlayerStore()

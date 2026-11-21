@@ -1,6 +1,5 @@
 import type { Community, CommunityCategory } from './types'
 
-// Names are starting points, never evidence of current availability or activity.
 export const STARTER_COMMUNITIES: { category: CommunityCategory; name: string }[] = [
   { category: 'All music', name: 'listentothis' },
   { category: 'All music', name: 'Music' },

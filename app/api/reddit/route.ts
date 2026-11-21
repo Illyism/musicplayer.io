@@ -56,7 +56,10 @@ async function withSharedCache<T>(
 ): Promise<T> {
   const cachedNotFound = getCached(notFoundCache, key)
   if (cachedNotFound) {
-    throw new RedditError(cachedNotFound.message, cachedNotFound.statusCode, cachedNotFound.message)
+    throw new RedditError(cachedNotFound.message, {
+      statusCode: cachedNotFound.statusCode,
+      reason: cachedNotFound.message,
+    })
   }
 
   const cached = getCached(listingCache, key)

@@ -1,9 +1,5 @@
 import { create } from 'zustand'
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 export interface Song {
   author: string
   created_ago?: string
@@ -13,7 +9,7 @@ export interface Song {
   id: string
   is_self: boolean
   media?: any
-  name: string // Reddit fullname (e.g., "t3_abc123")
+  name: string
   num_comments: number
   permalink: string
   playable: boolean
@@ -28,21 +24,19 @@ export interface Song {
 }
 
 export interface PlayerState {
-  after: string | null // Pagination
+  after: string | null
   currentIndex: number
   currentSong: Song | null
   currentTime: number
   duration: number
   failedSongIds: string[]
 
-  // Playback
   isPlaying: boolean
   isTheatreMode: boolean
   listingCursorId: string | null
   listingError: string | null
   loading: boolean
 
-  // UI
   mobileView: 'browse' | 'playlist' | 'player' | 'library'
   naturalEndRevision: number
   playbackError: string | null
@@ -53,7 +47,6 @@ export interface PlayerState {
   searchQuery: string | null
   seekRevision: number
   selectedSubreddits: string[]
-  // Playlist
   songs: Song[]
   sortMethod: 'hot' | 'new' | 'top'
   topPeriod: 'day' | 'week' | 'month' | 'year' | 'all'
@@ -71,7 +64,6 @@ export interface PlayerActions {
   onEnded: () => void
   pause: () => void
 
-  // Playback actions
   play: () => void
   playQueuedSong: (id: string) => void
   previous: () => void
@@ -84,12 +76,10 @@ export interface PlayerActions {
   setListingError: (error: string | null) => void
   setLoading: (loading: boolean) => void
 
-  // UI actions
   setMobileView: (view: PlayerState['mobileView']) => void
   setQueueOpen: (open: boolean) => void
   setSearchQuery: (query: string | null) => void
   setSelectedSubreddits: (subreddits: string[], options?: { persist?: boolean }) => void
-  // Playlist actions
   setSongs: (songs: Song[]) => void
   setSortMethod: (method: PlayerState['sortMethod']) => void
   setTheatreMode: (enabled: boolean) => void
@@ -101,10 +91,6 @@ export interface PlayerActions {
 }
 
 export type PlayerStore = PlayerState & PlayerActions
-
-// ============================================================================
-// STORAGE HELPERS
-// ============================================================================
 
 const STORAGE_KEYS = {
   sortMethod: 'reddit_music_player_sort_method',
@@ -192,10 +178,6 @@ export function removeSubredditsFromStorage(invalidSubreddits: string[]): string
     return ['listentothis']
   }
 }
-
-// ============================================================================
-// STORE
-// ============================================================================
 
 function uniqueSongsById(songs: Song[]): Song[] {
   const seen = new Set<string>()
@@ -334,9 +316,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({ isPlaying: false })
   },
 
-  // ========================================
-  // PLAYBACK ACTIONS
-  // ========================================
   play: () => {
     set({ isPlaying: true, playbackError: null })
   },
@@ -398,7 +377,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
     set(state => ({ currentTime: Math.max(0, time), seekRevision: state.seekRevision + 1 }))
   },
-  selectedSubreddits: ['listentothis'], // Static default
+  selectedSubreddits: ['listentothis'],
 
   setAfter: after => {
     set({ after })
@@ -446,9 +425,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({ loading })
   },
 
-  // ========================================
-  // UI ACTIONS
-  // ========================================
   setMobileView: view => {
     set({ mobileView: view })
   },
@@ -462,7 +438,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
 
   setSelectedSubreddits: (subreddits, options) => {
-    // Deduplicate subreddits (keep first occurrence)
     const seen = new Set<string>()
     const unique = subreddits.filter(sub => {
       if (seen.has(sub)) {
@@ -477,9 +452,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
   },
 
-  // ========================================
-  // PLAYLIST ACTIONS
-  // ========================================
   setSongs: songs => {
     const state = get()
     const uniqueSongs = uniqueSongsById(songs)
@@ -538,7 +510,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const { songs, currentSong } = state
     const shuffled = [...songs].sort(() => Math.random() - 0.5)
 
-    // If there's a current song, find its new index in shuffled array
     if (currentSong) {
       const newIndex = shuffled.findIndex(song => song.id === currentSong.id)
       set({
@@ -549,11 +520,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       set({ songs: shuffled })
     }
   },
-  // ========================================
-  // STATE (static defaults - NO localStorage here)
-  // ========================================
   songs: [],
-  sortMethod: 'hot', // Static default
+  sortMethod: 'hot',
 
   togglePlay: () => {
     set(state => ({ isPlaying: !state.isPlaying, playbackError: null }))
@@ -562,6 +530,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   toggleTheatreMode: () => {
     set(state => ({ isTheatreMode: !state.isTheatreMode }))
   },
-  topPeriod: 'week', // Static default
-  volume: 100, // Static default
+  topPeriod: 'week',
+  volume: 100,
 }))

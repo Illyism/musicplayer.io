@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { LegalShell } from '@/components/legal-shell'
+import { MAX_LISTENING_SIGNALS, SIGNAL_RETENTION_DAYS } from '@/lib/listening/retention'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/privacy' },
@@ -37,9 +38,10 @@ export default function PrivacyPage() {
         <ul>
           <li>
             <strong>Listening signals:</strong> When &ldquo;Learn from my listening&rdquo; is
-            enabled, play, save, and skip events are scored locally in your browser (capped at 500
-            signals and pruned after 30 days) and are never uploaded to our servers or used for
-            model training.
+            enabled, play, save, and skip events are scored locally in your browser (capped at{' '}
+            {MAX_LISTENING_SIGNALS}
+            signals and pruned after {SIGNAL_RETENTION_DAYS} days) and are never uploaded to our
+            servers or used for model training.
           </li>
           <li>
             <strong>Full control:</strong> You can disable local taste signals, export your history

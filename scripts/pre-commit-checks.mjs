@@ -1,11 +1,4 @@
 #!/usr/bin/env bun
-/**
- * Pre-commit typecheck.
- *
- * Usage: bun scripts/pre-commit-checks.mjs <staged files...>
- *
- * Runs `bun run typecheck` (TS7) when TS sources or config that affects types changed.
- */
 import { spawnSync } from 'node:child_process'
 import { existsSync, statSync } from 'node:fs'
 
@@ -14,7 +7,6 @@ if (args.length === 0) {
   process.exit(0)
 }
 
-// Only consider files that exist on disk (skip deleted)
 const files = args.filter(f => existsSync(f) && statSync(f).isFile())
 
 const TRIGGERS = [

@@ -71,6 +71,7 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
             if (!mounted) {
               return
             }
+            window.__youtubePlayer = playerRef.current
             setIsReady(true)
             interval = setInterval(() => {
               if (!isCurrent() || transitioningRef.current) {
@@ -92,7 +93,6 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
             if (event.data === 1) {
               const wasTransitioning = transitioningRef.current
               transitioningRef.current = false
-              // A pending load must honor a pause pressed while it was loading.
               if (!state.isPlaying) {
                 if (wasTransitioning) {
                   playerRef.current.pauseVideo()
@@ -119,7 +119,6 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
         playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0 },
         width: '100%',
       })
-      window.__youtubePlayer = playerRef.current
     }
 
     if (window.YT?.Player) {
@@ -170,7 +169,6 @@ export function YouTubePlayer({ song }: YouTubePlayerProps) {
     if (!(isReady && playerRef.current) || loadedSongRef.current?.id !== song.id) {
       return
     }
-    // YouTube commands return void, not promises.
     if (isPlaying) {
       playerRef.current.playVideo()
     } else {

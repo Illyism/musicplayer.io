@@ -57,7 +57,7 @@ export function useCommunityDiscovery(query = '', category: CommunityCategory | 
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
-    const controller = new AbortController()
+    let cancelled = false
     const load = async () => {
       setLoading(true)
       setError(null)
@@ -70,18 +70,17 @@ export function useCommunityDiscovery(query = '', category: CommunityCategory | 
       }
       try {
         const result = await loadDiscovery(params, attempt > 0)
-        // The shared request continues for other mounted consumers.
-        if (!controller.signal.aborted) {
+        if (!cancelled) {
           setData(result)
         }
       } catch (requestError) {
-        if (!controller.signal.aborted) {
+        if (!cancelled) {
           setError(
             requestError instanceof Error ? requestError.message : 'Communities could not load.'
           )
         }
       } finally {
-        if (!controller.signal.aborted) {
+        if (!cancelled) {
           setLoading(false)
         }
       }
@@ -115,7 +114,7 @@ export function useCommunityDiscovery(query = '', category: CommunityCategory | 
     return () => {
       clearTimeout(timeout)
       unsubscribe?.()
-      controller.abort()
+      cancelled = true
     }
   }, [attempt, category, query])
 

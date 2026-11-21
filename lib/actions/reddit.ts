@@ -10,7 +10,7 @@ async function requestRedditApi<T>(params: URLSearchParams): Promise<T> {
       typeof data?.error === 'string' && data.error.length > 0
         ? data.error
         : `Reddit API error: ${response.status}`
-    throw new RedditError(message, response.status, message)
+    throw new RedditError(message, { statusCode: response.status, reason: message })
   }
   return data as T
 }

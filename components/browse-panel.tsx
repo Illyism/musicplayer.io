@@ -154,11 +154,7 @@ export function BrowsePanel() {
       setAfter(null)
       return
     }
-    try {
-      await fetchFromSubreddits(names)
-    } catch {
-      /* Request errors are displayed by the API hook. */
-    }
+    await fetchFromSubreddits(names)
   }
 
   const searchTracks = async () => {
@@ -169,11 +165,7 @@ export function BrowsePanel() {
     setSelectedSubreddits([], { persist: false })
     updatePath([])
     setMobileView('playlist')
-    try {
-      await fetchSearch(query.trim())
-    } catch {
-      /* Request errors are displayed by the API hook. */
-    }
+    await fetchSearch(query.trim())
   }
 
   const addCommunity = async () => {

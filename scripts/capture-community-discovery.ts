@@ -30,7 +30,6 @@ await writeFile(
   )}\n`
 )
 if (result.source === 'live') {
-  // Overwrite a single temporary display snapshot. Do not accumulate post datasets.
   const snapshot = { ...result, expiresAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString() }
   await writeFile(
     resolve(dataDirectory, 'community-discovery.json'),

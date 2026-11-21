@@ -18,7 +18,6 @@ export interface SessionSignal {
   type: 'listen' | 'complete' | 'skip'
 }
 
-/** Accumulates advancing media time, bounded by elapsed wall time, without counting seeks. */
 export function createListeningSession(initial: ListeningSnapshot, initialClock: number) {
   let previous = initial
   let observedSong = initial.currentSong

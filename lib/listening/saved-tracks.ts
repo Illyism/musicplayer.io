@@ -1,4 +1,4 @@
-import { isPlayableMusicLink } from '@/lib/community/ranking'
+import { isSupportedMusicLink } from '@/lib/community/ranking'
 import { requestCommunityData } from '@/lib/community/reddit-client'
 import type { Song } from '@/lib/store/player-store'
 import { parseSong } from '@/lib/utils/song-utils'
@@ -11,7 +11,6 @@ const DELETED_VALUES = new Set(['[deleted]', '[removed]'])
 
 type RequestData = (path: string, params: URLSearchParams) => Promise<unknown>
 
-/** Accept post IDs only, never caller-supplied Reddit paths or fullnames. */
 export function parseSavedTrackIds(value: string | null): string[] | null {
   if (!value || value.length > MAX_IDS * 14) {
     return null
@@ -27,7 +26,6 @@ function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 }
 
-/** Reject unavailable posts before they can restore stale bookmark metadata. */
 export function parseSavedTracks(value: unknown, ids: string[]): Song[] {
   const { children } = record(record(value).data)
   if (!Array.isArray(children)) {
@@ -48,7 +46,7 @@ export function parseSavedTracks(value: unknown, ids: string[]): Song[] {
       typeof data.created_utc !== 'number' ||
       !Number.isFinite(data.created_utc) ||
       data.created_utc <= 0 ||
-      !isPlayableMusicLink(data)
+      !isSupportedMusicLink(data)
     ) {
       continue
     }

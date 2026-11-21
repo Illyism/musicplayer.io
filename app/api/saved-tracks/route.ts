@@ -21,7 +21,6 @@ function isCrossSiteRequest(request: NextRequest): boolean {
   }
 }
 
-/** Public post reads restore the caller's own bookmark metadata; no Reddit writes. */
 export async function GET(request: NextRequest) {
   if (isCrossSiteRequest(request)) {
     return NextResponse.json(

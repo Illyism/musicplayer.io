@@ -183,9 +183,8 @@ export function PictureInPictureProvider({ children }: { children: ReactNode }) 
             restoreMedia()
             setMediaDestination(null)
             setPipWindow(null)
-            // Some embedded browsers expose the API but immediately discard its window.
-            // Keep the requested player available when the native window never becomes usable.
-            if (Date.now() - openedAt < NATIVE_WINDOW_STARTUP_GRACE_MS) {
+            const browserDiscardedWindow = Date.now() - openedAt < NATIVE_WINDOW_STARTUP_GRACE_MS
+            if (browserDiscardedWindow) {
               setMode('floating')
               toast.info(
                 'The separate player window could not stay open. Mini player opened in this tab.'
